@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SAB Monitor look: graphite window, amber accent (cursor, selection handles) -->
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:colorAccent">#DF8B35</item>
+        <item name="android:colorControlActivated">#DF8B35</item>
+        <item name="android:windowBackground">#0B1322</item>
+        <item name="android:statusBarColor">#0E111A</item>
+        <item name="android:navigationBarColor">#0B1322</item>
+        <item name="android:textColorHint">#718096</item>
+    </style>
+</resources>

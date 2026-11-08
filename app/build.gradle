@@ -1,0 +1,27 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'app.currencyexchange.widget'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'app.currencyexchange.widget'
+        minSdk 26
+        targetSdk 34
+        versionCode 30
+        versionName '1.29'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}

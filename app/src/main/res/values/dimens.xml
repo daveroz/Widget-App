@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- corner radius of every card (matches the launcher's widget corner) -->
+    <dimen name="widget_radius">28dp</dimen>
+    <!-- radius just inside a card's 1dp border, so inner pieces follow the border exactly -->
+    <dimen name="widget_radius_inner">27dp</dimen>
+</resources>

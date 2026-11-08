@@ -1,0 +1,479 @@
+Aarhus|DK|Europe/Copenhagen|56.160|10.200
+Abidjan|CI|Africa/Abidjan|5.317|-4.033
+Abu Dhabi|AE|Asia/Dubai|24.450|54.380
+Accra|GH|Africa/Accra|5.550|-0.217
+Adak|US|America/Adak|51.880|-176.658
+Addis Ababa|ET|Africa/Addis_Ababa|9.033|38.700
+Adelaide|AU|Australia/Adelaide|-34.917|138.583
+Aden|YE|Asia/Aden|12.750|45.200
+Algiers|DZ|Africa/Algiers|36.783|3.050
+Almaty|KZ|Asia/Almaty|43.250|76.950
+Amman|JO|Asia/Amman|31.950|35.933
+Amsterdam|NL|Europe/Amsterdam|52.367|4.900
+Anadyr|RU|Asia/Anadyr|64.750|177.483
+Anchorage|US|America/Anchorage|61.218|-149.900
+Andorra|AD|Europe/Andorra|42.500|1.517
+Anguilla|AI|America/Anguilla|18.200|-63.067
+Antananarivo|MG|Indian/Antananarivo|-18.917|47.517
+Antigua|AG|America/Antigua|17.050|-61.800
+Antwerp|BE|Europe/Brussels|51.220|4.400
+Apia|WS|Pacific/Apia|-13.833|-171.733
+Aqtau|KZ|Asia/Aqtau|44.517|50.267
+Aqtobe|KZ|Asia/Aqtobe|50.283|57.167
+Araguaina|BR|America/Araguaina|-7.200|-48.200
+Aruba|AW|America/Aruba|12.500|-69.967
+Ashgabat|TM|Asia/Ashgabat|37.950|58.383
+Asmara|ER|Africa/Asmara|15.333|38.883
+Astrakhan|RU|Europe/Astrakhan|46.350|48.050
+Asuncion|PY|America/Asuncion|-25.267|-57.667
+Athens|GR|Europe/Athens|37.967|23.717
+Atikokan|CA|America/Atikokan|48.759|-91.622
+Atlanta|US|America/New_York|33.750|-84.390
+Atyrau|KZ|Asia/Atyrau|47.117|51.933
+Auckland|NZ|Pacific/Auckland|-36.850|174.760
+Austin|US|America/Chicago|30.270|-97.740
+Azores|PT|Atlantic/Azores|37.733|-25.667
+Baghdad|IQ|Asia/Baghdad|33.350|44.417
+Bahia|BR|America/Bahia|-12.983|-38.517
+Bahia Banderas|MX|America/Bahia_Banderas|20.800|-105.250
+Bahrain|BH|Asia/Bahrain|26.383|50.583
+Baku|AZ|Asia/Baku|40.383|49.850
+Bamako|ML|Africa/Bamako|12.650|-8.000
+Bangalore|IN|Asia/Kolkata|12.970|77.590
+Bangkok|TH|Asia/Bangkok|13.750|100.517
+Bangui|CF|Africa/Bangui|4.367|18.583
+Banjul|GM|Africa/Banjul|13.467|-16.650
+Barbados|BB|America/Barbados|13.100|-59.617
+Barcelona|ES|Europe/Madrid|41.390|2.170
+Barnaul|RU|Asia/Barnaul|53.367|83.750
+Barranquilla|CO|America/Bogota|10.960|-74.800
+Basel|CH|Europe/Zurich|47.560|7.590
+Beijing|CN|Asia/Shanghai|39.900|116.410
+Beirut|LB|Asia/Beirut|33.883|35.500
+Belem|BR|America/Belem|-1.450|-48.483
+Belgrade|RS|Europe/Belgrade|44.833|20.500
+Belize|BZ|America/Belize|17.500|-88.200
+Berlin|DE|Europe/Berlin|52.500|13.367
+Bermuda|BM|Atlantic/Bermuda|32.283|-64.767
+Bern|CH|Europe/Zurich|46.950|7.450
+Beulah|US|America/North_Dakota/Beulah|47.264|-101.778
+Birmingham|GB|Europe/London|52.490|-1.890
+Bishkek|KG|Asia/Bishkek|42.900|74.600
+Bissau|GW|Africa/Bissau|11.850|-15.583
+Blanc-Sablon|CA|America/Blanc-Sablon|51.417|-57.117
+Blantyre|MW|Africa/Blantyre|-15.783|35.000
+Boa Vista|BR|America/Boa_Vista|2.817|-60.667
+Bogota|CO|America/Bogota|4.710|-74.070
+Boise|US|America/Boise|43.614|-116.203
+Boston|US|America/New_York|42.360|-71.060
+Bougainville|PG|Pacific/Bougainville|-6.217|155.567
+Brasov|RO|Europe/Bucharest|45.650|25.600
+Bratislava|SK|Europe/Bratislava|48.150|17.117
+Brazzaville|CG|Africa/Brazzaville|-4.267|15.283
+Brisbane|AU|Australia/Brisbane|-27.470|153.030
+Broken Hill|AU|Australia/Broken_Hill|-31.950|141.450
+Brunei|BN|Asia/Brunei|4.933|114.917
+Brussels|BE|Europe/Brussels|50.850|4.350
+Bucharest|RO|Europe/Bucharest|44.430|26.100
+Budapest|HU|Europe/Budapest|47.500|19.083
+Buenos Aires|AR|America/Argentina/Buenos_Aires|-34.600|-58.450
+Bujumbura|BI|Africa/Bujumbura|-3.383|29.367
+Busan|KR|Asia/Seoul|35.180|129.080
+Busingen|DE|Europe/Busingen|47.700|8.683
+Cairo|EG|Africa/Cairo|30.050|31.250
+Calgary|CA|America/Edmonton|51.050|-114.070
+Cali|CO|America/Bogota|3.450|-76.530
+Cambridge Bay|CA|America/Cambridge_Bay|69.114|-105.053
+Campo Grande|BR|America/Campo_Grande|-20.450|-54.617
+Canary|ES|Atlantic/Canary|28.100|-15.400
+Cancun|MX|America/Cancun|21.160|-86.850
+Cape Town|ZA|Africa/Johannesburg|-33.920|18.420
+Cape Verde|CV|Atlantic/Cape_Verde|14.917|-23.517
+Caracas|VE|America/Caracas|10.500|-66.933
+Cartagena|CO|America/Bogota|10.390|-75.480
+Casablanca|MA|Africa/Casablanca|33.650|-7.583
+Catamarca|AR|America/Argentina/Catamarca|-28.467|-65.783
+Cayenne|GF|America/Cayenne|4.933|-52.333
+Cayman|KY|America/Cayman|19.300|-81.383
+Center|US|America/North_Dakota/Center|47.116|-101.299
+Ceuta|ES|Africa/Ceuta|35.883|-5.317
+Chagos|IO|Indian/Chagos|-7.333|72.417
+Charlotte|US|America/New_York|35.230|-80.840
+Chatham|NZ|Pacific/Chatham|-43.950|-176.550
+Chennai|IN|Asia/Kolkata|13.080|80.270
+Chicago|US|America/Chicago|41.850|-87.650
+Chihuahua|MX|America/Chihuahua|28.633|-106.083
+Chisinau|MD|Europe/Chisinau|47.000|28.833
+Chita|RU|Asia/Chita|52.050|113.467
+Christmas|CX|Indian/Christmas|-10.417|105.717
+Chuuk|FM|Pacific/Chuuk|7.417|151.783
+Ciudad Juarez|MX|America/Ciudad_Juarez|31.733|-106.483
+Cluj-Napoca|RO|Europe/Bucharest|46.770|23.590
+Cocos|CC|Indian/Cocos|-12.167|96.917
+Colombo|LK|Asia/Colombo|6.933|79.850
+Comoro|KM|Indian/Comoro|-11.683|43.267
+Conakry|GN|Africa/Conakry|9.517|-13.717
+Copenhagen|DK|Europe/Copenhagen|55.680|12.570
+Cordoba|AR|America/Argentina/Cordoba|-31.400|-64.183
+Cork|IE|Europe/Dublin|51.900|-8.470
+Costa Rica|CR|America/Costa_Rica|9.933|-84.083
+Coyhaique|CL|America/Coyhaique|-45.567|-72.067
+Creston|CA|America/Creston|49.100|-116.517
+Cuiaba|BR|America/Cuiaba|-15.583|-56.083
+Curacao|CW|America/Curacao|12.183|-69.000
+Dakar|SN|Africa/Dakar|14.667|-17.433
+Dallas|US|America/Chicago|32.780|-96.800
+Damascus|SY|Asia/Damascus|33.500|36.300
+Danmarkshavn|GL|America/Danmarkshavn|76.767|-18.667
+Dar es Salaam|TZ|Africa/Dar_es_Salaam|-6.800|39.283
+Darwin|AU|Australia/Darwin|-12.467|130.833
+Dawson|CA|America/Dawson|64.067|-139.417
+Dawson Creek|CA|America/Dawson_Creek|55.767|-120.233
+Delhi|IN|Asia/Kolkata|28.610|77.210
+Denver|US|America/Denver|39.739|-104.984
+Detroit|US|America/Detroit|42.331|-83.046
+Dhaka|BD|Asia/Dhaka|23.717|90.417
+Dili|TL|Asia/Dili|-8.550|125.583
+Djibouti|DJ|Africa/Djibouti|11.600|43.150
+Doha|QA|Asia/Qatar|25.290|51.530
+Dominica|DM|America/Dominica|15.300|-61.400
+Douala|CM|Africa/Douala|4.050|9.700
+Dubai|AE|Asia/Dubai|25.300|55.300
+Dublin|IE|Europe/Dublin|53.333|-6.250
+Dushanbe|TJ|Asia/Dushanbe|38.583|68.800
+Easter|CL|Pacific/Easter|-27.150|-109.433
+Edinburgh|GB|Europe/London|55.950|-3.190
+Edmonton|CA|America/Edmonton|53.550|-113.467
+Efate|VU|Pacific/Efate|-17.667|168.417
+Eirunepe|BR|America/Eirunepe|-6.667|-69.867
+El Aaiun|EH|Africa/El_Aaiun|27.150|-13.200
+El Salvador|SV|America/El_Salvador|13.700|-89.200
+Eucla|AU|Australia/Eucla|-31.717|128.867
+Fakaofo|TK|Pacific/Fakaofo|-9.367|-171.233
+Famagusta|CY|Asia/Famagusta|35.117|33.950
+Faroe|FO|Atlantic/Faroe|62.017|-6.767
+Fiji|FJ|Pacific/Fiji|-18.133|178.417
+Florence|IT|Europe/Rome|43.770|11.260
+Fort Nelson|CA|America/Fort_Nelson|58.800|-122.700
+Fortaleza|BR|America/Fortaleza|-3.717|-38.500
+Frankfurt|DE|Europe/Berlin|50.110|8.680
+Freetown|SL|Africa/Freetown|8.500|-13.250
+Funafuti|TV|Pacific/Funafuti|-8.517|179.217
+Gaborone|BW|Africa/Gaborone|-24.650|25.917
+Galapagos|EC|Pacific/Galapagos|-0.900|-89.600
+Gambier|PF|Pacific/Gambier|-23.133|-134.950
+Gaza|PS|Asia/Gaza|31.500|34.467
+Geneva|CH|Europe/Zurich|46.200|6.140
+Gibraltar|GI|Europe/Gibraltar|36.133|-5.350
+Glace Bay|CA|America/Glace_Bay|46.200|-59.950
+Glasgow|GB|Europe/London|55.860|-4.250
+Goose Bay|CA|America/Goose_Bay|53.333|-60.417
+Gothenburg|SE|Europe/Stockholm|57.710|11.970
+Grand Turk|TC|America/Grand_Turk|21.467|-71.133
+Grenada|GD|America/Grenada|12.050|-61.750
+Guadalajara|MX|America/Mexico_City|20.670|-103.350
+Guadalcanal|SB|Pacific/Guadalcanal|-9.533|160.200
+Guadeloupe|GP|America/Guadeloupe|16.233|-61.533
+Guam|GU|Pacific/Guam|13.467|144.750
+Guangzhou|CN|Asia/Shanghai|23.130|113.260
+Guatemala|GT|America/Guatemala|14.633|-90.517
+Guatemala City|GT|America/Guatemala|14.630|-90.510
+Guayaquil|EC|America/Guayaquil|-2.167|-79.833
+Guernsey|GG|Europe/Guernsey|49.455|-2.536
+Guyana|GY|America/Guyana|6.800|-58.167
+Halifax|CA|America/Halifax|44.650|-63.600
+Hamburg|DE|Europe/Berlin|53.550|9.990
+Harare|ZW|Africa/Harare|-17.833|31.050
+Havana|CU|America/Havana|23.133|-82.367
+Hebron|PS|Asia/Hebron|31.533|35.095
+Helsinki|FI|Europe/Helsinki|60.167|24.967
+Hermosillo|MX|America/Hermosillo|29.067|-110.967
+Ho Chi Minh City|VN|Asia/Ho_Chi_Minh|10.750|106.667
+Hobart|AU|Australia/Hobart|-42.883|147.317
+Hong Kong|HK|Asia/Hong_Kong|22.283|114.150
+Honolulu|US|Pacific/Honolulu|21.307|-157.858
+Houston|US|America/Chicago|29.760|-95.370
+Hovd|MN|Asia/Hovd|48.017|91.650
+Hyderabad|IN|Asia/Kolkata|17.390|78.490
+Iasi|RO|Europe/Bucharest|47.160|27.590
+Indianapolis|US|America/Indiana/Indianapolis|39.768|-86.158
+Inuvik|CA|America/Inuvik|68.350|-133.717
+Iqaluit|CA|America/Iqaluit|63.733|-68.467
+Irkutsk|RU|Asia/Irkutsk|52.267|104.333
+Isle of Man|IM|Europe/Isle_of_Man|54.150|-4.467
+Istanbul|TR|Europe/Istanbul|41.017|28.967
+Jakarta|ID|Asia/Jakarta|-6.167|106.800
+Jamaica|JM|America/Jamaica|17.968|-76.793
+Jayapura|ID|Asia/Jayapura|-2.533|140.700
+Jersey|JE|Europe/Jersey|49.184|-2.107
+Jerusalem|IL|Asia/Jerusalem|31.781|35.224
+Johannesburg|ZA|Africa/Johannesburg|-26.200|28.050
+Juba|SS|Africa/Juba|4.850|31.617
+Jujuy|AR|America/Argentina/Jujuy|-24.183|-65.300
+Juneau|US|America/Juneau|58.302|-134.420
+Kabul|AF|Asia/Kabul|34.517|69.200
+Kaliningrad|RU|Europe/Kaliningrad|54.717|20.500
+Kamchatka|RU|Asia/Kamchatka|53.017|158.650
+Kampala|UG|Africa/Kampala|0.317|32.417
+Kanton|KI|Pacific/Kanton|-2.783|-171.717
+Karachi|PK|Asia/Karachi|24.867|67.050
+Kathmandu|NP|Asia/Kathmandu|27.717|85.317
+Kerguelen|TF|Indian/Kerguelen|-49.353|70.218
+Khandyga|RU|Asia/Khandyga|62.656|135.554
+Khartoum|SD|Africa/Khartoum|15.600|32.533
+Kigali|RW|Africa/Kigali|-1.950|30.067
+Kinshasa|CD|Africa/Kinshasa|-4.300|15.300
+Kiritimati|KI|Pacific/Kiritimati|1.867|-157.333
+Kirov|RU|Europe/Kirov|58.600|49.650
+Knox|US|America/Indiana/Knox|41.296|-86.625
+Kolkata|IN|Asia/Kolkata|22.533|88.367
+Kosrae|FM|Pacific/Kosrae|5.317|162.983
+Krakow|PL|Europe/Warsaw|50.060|19.940
+Kralendijk|BQ|America/Kralendijk|12.151|-68.277
+Krasnoyarsk|RU|Asia/Krasnoyarsk|56.017|92.833
+Kuala Lumpur|MY|Asia/Kuala_Lumpur|3.167|101.700
+Kuching|MY|Asia/Kuching|1.550|110.333
+Kuwait|KW|Asia/Kuwait|29.333|47.983
+Kwajalein|MH|Pacific/Kwajalein|9.083|167.333
+Kyiv|UA|Europe/Kyiv|50.433|30.517
+Kyoto|JP|Asia/Tokyo|35.010|135.770
+La Paz|BO|America/La_Paz|-16.500|-68.150
+La Rioja|AR|America/Argentina/La_Rioja|-29.433|-66.850
+Lagos|NG|Africa/Lagos|6.450|3.400
+Las Vegas|US|America/Los_Angeles|36.170|-115.140
+Libreville|GA|Africa/Libreville|0.383|9.450
+Lima|PE|America/Lima|-12.050|-77.050
+Lindeman|AU|Australia/Lindeman|-20.267|149.000
+Lisbon|PT|Europe/Lisbon|38.717|-9.133
+Ljubljana|SI|Europe/Ljubljana|46.050|14.517
+Lome|TG|Africa/Lome|6.133|1.217
+London|GB|Europe/London|51.508|-0.125
+Lord Howe|AU|Australia/Lord_Howe|-31.550|159.083
+Los Angeles|US|America/Los_Angeles|34.052|-118.243
+Louisville|US|America/Kentucky/Louisville|38.254|-85.759
+Lower Princes|SX|America/Lower_Princes|18.051|-63.047
+Luanda|AO|Africa/Luanda|-8.800|13.233
+Lubumbashi|CD|Africa/Lubumbashi|-11.667|27.467
+Lusaka|ZM|Africa/Lusaka|-15.417|28.283
+Luxembourg|LU|Europe/Luxembourg|49.600|6.150
+Lyon|FR|Europe/Paris|45.760|4.840
+Macau|MO|Asia/Macau|22.197|113.542
+Maceio|BR|America/Maceio|-9.667|-35.717
+Madeira|PT|Atlantic/Madeira|32.633|-16.900
+Madrid|ES|Europe/Madrid|40.400|-3.683
+Magadan|RU|Asia/Magadan|59.567|150.800
+Mahe|SC|Indian/Mahe|-4.667|55.467
+Majuro|MH|Pacific/Majuro|7.150|171.200
+Makassar|ID|Asia/Makassar|-5.117|119.400
+Malabo|GQ|Africa/Malabo|3.750|8.783
+Maldives|MV|Indian/Maldives|4.167|73.500
+Malta|MT|Europe/Malta|35.900|14.517
+Managua|NI|America/Managua|12.150|-86.283
+Manaus|BR|America/Manaus|-3.133|-60.017
+Manchester|GB|Europe/London|53.480|-2.240
+Manila|PH|Asia/Manila|14.587|120.968
+Maputo|MZ|Africa/Maputo|-25.967|32.583
+Marengo|US|America/Indiana/Marengo|38.376|-86.345
+Mariehamn|AX|Europe/Mariehamn|60.100|19.950
+Marigot|MF|America/Marigot|18.067|-63.083
+Marquesas|PF|Pacific/Marquesas|-9.000|-139.500
+Marseille|FR|Europe/Paris|43.300|5.370
+Martinique|MQ|America/Martinique|14.600|-61.083
+Maseru|LS|Africa/Maseru|-29.467|27.500
+Matamoros|MX|America/Matamoros|25.833|-97.500
+Mauritius|MU|Indian/Mauritius|-20.167|57.500
+Mayotte|YT|Indian/Mayotte|-12.783|45.233
+Mazatlan|MX|America/Mazatlan|23.217|-106.417
+Mbabane|SZ|Africa/Mbabane|-26.300|31.100
+Medellin|CO|America/Bogota|6.240|-75.580
+Melbourne|AU|Australia/Melbourne|-37.810|144.960
+Mendoza|AR|America/Argentina/Mendoza|-32.883|-68.817
+Menominee|US|America/Menominee|45.108|-87.614
+Merida|MX|America/Merida|20.967|-89.617
+Metlakatla|US|America/Metlakatla|55.127|-131.576
+Mexico City|MX|America/Mexico_City|19.430|-99.130
+Miami|US|America/New_York|25.760|-80.190
+Midway|UM|Pacific/Midway|28.217|-177.367
+Milan|IT|Europe/Rome|45.460|9.190
+Minsk|BY|Europe/Minsk|53.900|27.567
+Miquelon|PM|America/Miquelon|47.050|-56.333
+Mogadishu|SO|Africa/Mogadishu|2.067|45.367
+Monaco|MC|Europe/Monaco|43.700|7.383
+Moncton|CA|America/Moncton|46.100|-64.783
+Monrovia|LR|Africa/Monrovia|6.300|-10.783
+Monterrey|MX|America/Monterrey|25.690|-100.320
+Montevideo|UY|America/Montevideo|-34.909|-56.213
+Monticello|US|America/Kentucky/Monticello|36.830|-84.849
+Montreal|CA|America/Toronto|45.500|-73.570
+Montserrat|MS|America/Montserrat|16.717|-62.217
+Moscow|RU|Europe/Moscow|55.756|37.618
+Mumbai|IN|Asia/Kolkata|19.080|72.880
+Munich|DE|Europe/Berlin|48.140|11.580
+Muscat|OM|Asia/Muscat|23.600|58.583
+Nairobi|KE|Africa/Nairobi|-1.283|36.817
+Naples|IT|Europe/Rome|40.850|14.270
+Nassau|BS|America/Nassau|25.083|-77.350
+Nauru|NR|Pacific/Nauru|-0.517|166.917
+Ndjamena|TD|Africa/Ndjamena|12.117|15.050
+New Salem|US|America/North_Dakota/New_Salem|46.845|-101.411
+New York|US|America/New_York|40.714|-74.006
+Niamey|NE|Africa/Niamey|13.517|2.117
+Nice|FR|Europe/Paris|43.710|7.260
+Nicosia|CY|Asia/Nicosia|35.167|33.367
+Niue|NU|Pacific/Niue|-19.017|-169.917
+Nome|US|America/Nome|64.501|-165.406
+Norfolk|NF|Pacific/Norfolk|-29.050|167.967
+Noronha|BR|America/Noronha|-3.850|-32.417
+Nouakchott|MR|Africa/Nouakchott|18.100|-15.950
+Noumea|NC|Pacific/Noumea|-22.267|166.450
+Novokuznetsk|RU|Asia/Novokuznetsk|53.750|87.117
+Novosibirsk|RU|Asia/Novosibirsk|55.033|82.917
+Nuuk|GL|America/Nuuk|64.183|-51.733
+Ojinaga|MX|America/Ojinaga|29.567|-104.417
+Omsk|RU|Asia/Omsk|55.000|73.400
+Oral|KZ|Asia/Oral|51.217|51.350
+Orlando|US|America/New_York|28.540|-81.380
+Osaka|JP|Asia/Tokyo|34.690|135.500
+Oslo|NO|Europe/Oslo|59.917|10.750
+Ottawa|CA|America/Toronto|45.420|-75.700
+Ouagadougou|BF|Africa/Ouagadougou|12.367|-1.517
+Pago Pago|AS|Pacific/Pago_Pago|-14.267|-170.700
+Palau|PW|Pacific/Palau|7.333|134.483
+Panama|PA|America/Panama|8.967|-79.533
+Panama City|PA|America/Panama|8.980|-79.520
+Paramaribo|SR|America/Paramaribo|5.833|-55.167
+Paris|FR|Europe/Paris|48.867|2.333
+Perth|AU|Australia/Perth|-31.950|115.860
+Petersburg|US|America/Indiana/Petersburg|38.492|-87.279
+Philadelphia|US|America/New_York|39.950|-75.170
+Phnom Penh|KH|Asia/Phnom_Penh|11.550|104.917
+Phoenix|US|America/Phoenix|33.448|-112.073
+Pitcairn|PN|Pacific/Pitcairn|-25.067|-130.083
+Podgorica|ME|Europe/Podgorica|42.433|19.267
+Pohnpei|FM|Pacific/Pohnpei|6.967|158.217
+Pontianak|ID|Asia/Pontianak|-0.033|109.333
+Port Moresby|PG|Pacific/Port_Moresby|-9.500|147.167
+Port of Spain|TT|America/Port_of_Spain|10.650|-61.517
+Port-au-Prince|HT|America/Port-au-Prince|18.533|-72.333
+Portland|US|America/Los_Angeles|45.520|-122.680
+Porto Velho|BR|America/Porto_Velho|-8.767|-63.900
+Porto-Novo|BJ|Africa/Porto-Novo|6.483|2.617
+Prague|CZ|Europe/Prague|50.083|14.433
+Puerto Rico|PR|America/Puerto_Rico|18.468|-66.106
+Punta Arenas|CL|America/Punta_Arenas|-53.150|-70.917
+Pyongyang|KP|Asia/Pyongyang|39.017|125.750
+Qatar|QA|Asia/Qatar|25.283|51.533
+Qostanay|KZ|Asia/Qostanay|53.200|63.617
+Qyzylorda|KZ|Asia/Qyzylorda|44.800|65.467
+Rankin Inlet|CA|America/Rankin_Inlet|62.817|-92.083
+Rarotonga|CK|Pacific/Rarotonga|-21.233|-159.767
+Recife|BR|America/Recife|-8.050|-34.900
+Regina|CA|America/Regina|50.400|-104.650
+Resolute|CA|America/Resolute|74.696|-94.829
+Reunion|RE|Indian/Reunion|-20.867|55.467
+Reykjavik|IS|Atlantic/Reykjavik|64.150|-21.850
+Riga|LV|Europe/Riga|56.950|24.100
+Rio Branco|BR|America/Rio_Branco|-9.967|-67.800
+Rio de Janeiro|BR|America/Sao_Paulo|-22.910|-43.170
+Rio Gallegos|AR|America/Argentina/Rio_Gallegos|-51.633|-69.217
+Riyadh|SA|Asia/Riyadh|24.633|46.717
+Rome|IT|Europe/Rome|41.900|12.483
+Rotterdam|NL|Europe/Amsterdam|51.920|4.480
+Saipan|MP|Pacific/Saipan|15.200|145.750
+Sakhalin|RU|Asia/Sakhalin|46.967|142.700
+Salta|AR|America/Argentina/Salta|-24.783|-65.417
+Samara|RU|Europe/Samara|53.200|50.150
+Samarkand|UZ|Asia/Samarkand|39.667|66.800
+San Diego|US|America/Los_Angeles|32.720|-117.160
+San Francisco|US|America/Los_Angeles|37.770|-122.420
+San Jose|CR|America/Costa_Rica|9.930|-84.080
+San Juan|AR|America/Argentina/San_Juan|-31.533|-68.517
+San Juan|PR|America/Puerto_Rico|18.470|-66.110
+San Luis|AR|America/Argentina/San_Luis|-33.317|-66.350
+San Marino|SM|Europe/San_Marino|43.917|12.467
+Santarem|BR|America/Santarem|-2.433|-54.867
+Santiago|CL|America/Santiago|-33.450|-70.667
+Santo Domingo|DO|America/Santo_Domingo|18.490|-69.930
+Sao Paulo|BR|America/Sao_Paulo|-23.550|-46.630
+Sao Tome|ST|Africa/Sao_Tome|0.333|6.733
+Sarajevo|BA|Europe/Sarajevo|43.867|18.417
+Saratov|RU|Europe/Saratov|51.567|46.033
+Scoresbysund|GL|America/Scoresbysund|70.483|-21.967
+Seattle|US|America/Los_Angeles|47.610|-122.330
+Seoul|KR|Asia/Seoul|37.550|126.967
+Seville|ES|Europe/Madrid|37.390|-5.980
+Shanghai|CN|Asia/Shanghai|31.230|121.470
+Shenzhen|CN|Asia/Shanghai|22.540|114.060
+Simferopol|UA|Europe/Simferopol|44.950|34.100
+Singapore|SG|Asia/Singapore|1.283|103.850
+Sitka|US|America/Sitka|57.176|-135.302
+Skopje|MK|Europe/Skopje|41.983|21.433
+Sofia|BG|Europe/Sofia|42.683|23.317
+South Georgia|GS|Atlantic/South_Georgia|-54.267|-36.533
+Srednekolymsk|RU|Asia/Srednekolymsk|67.467|153.717
+St Barthelemy|BL|America/St_Barthelemy|17.883|-62.850
+St Helena|SH|Atlantic/St_Helena|-15.917|-5.700
+St Johns|CA|America/St_Johns|47.567|-52.717
+St Kitts|KN|America/St_Kitts|17.300|-62.717
+St Lucia|LC|America/St_Lucia|14.017|-61.000
+St Thomas|VI|America/St_Thomas|18.350|-64.933
+St Vincent|VC|America/St_Vincent|13.150|-61.233
+Stanley|FK|Atlantic/Stanley|-51.700|-57.850
+Stockholm|SE|Europe/Stockholm|59.333|18.050
+Swift Current|CA|America/Swift_Current|50.283|-107.833
+Sydney|AU|Australia/Sydney|-33.867|151.217
+Tahiti|PF|Pacific/Tahiti|-17.533|-149.567
+Taipei|TW|Asia/Taipei|25.050|121.500
+Tallinn|EE|Europe/Tallinn|59.417|24.750
+Tarawa|KI|Pacific/Tarawa|1.417|173.000
+Tashkent|UZ|Asia/Tashkent|41.333|69.300
+Tbilisi|GE|Asia/Tbilisi|41.717|44.817
+Tegucigalpa|HN|America/Tegucigalpa|14.100|-87.217
+Tehran|IR|Asia/Tehran|35.667|51.433
+Tell City|US|America/Indiana/Tell_City|37.953|-86.761
+Thimphu|BT|Asia/Thimphu|27.467|89.650
+Thule|GL|America/Thule|76.567|-68.783
+Tijuana|MX|America/Tijuana|32.533|-117.017
+Timisoara|RO|Europe/Bucharest|45.750|21.230
+Tirane|AL|Europe/Tirane|41.333|19.833
+Tokyo|JP|Asia/Tokyo|35.654|139.745
+Tomsk|RU|Asia/Tomsk|56.500|84.967
+Tongatapu|TO|Pacific/Tongatapu|-21.133|-175.200
+Toronto|CA|America/Toronto|43.650|-79.380
+Tortola|VG|America/Tortola|18.450|-64.617
+Tripoli|LY|Africa/Tripoli|32.900|13.183
+Tucuman|AR|America/Argentina/Tucuman|-26.817|-65.217
+Tunis|TN|Africa/Tunis|36.800|10.183
+Ulaanbaatar|MN|Asia/Ulaanbaatar|47.917|106.883
+Ulyanovsk|RU|Europe/Ulyanovsk|54.333|48.400
+Urumqi|CN|Asia/Urumqi|43.800|87.583
+Ushuaia|AR|America/Argentina/Ushuaia|-54.800|-68.300
+Ust-Nera|RU|Asia/Ust-Nera|64.560|143.227
+Vaduz|LI|Europe/Vaduz|47.150|9.517
+Valencia|ES|Europe/Madrid|39.470|-0.380
+Vancouver|CA|America/Vancouver|49.280|-123.120
+Vatican|VA|Europe/Vatican|41.902|12.453
+Venice|IT|Europe/Rome|45.440|12.320
+Vevay|US|America/Indiana/Vevay|38.748|-85.067
+Vienna|AT|Europe/Vienna|48.217|16.333
+Vientiane|LA|Asia/Vientiane|17.967|102.600
+Vilnius|LT|Europe/Vilnius|54.683|25.317
+Vincennes|US|America/Indiana/Vincennes|38.677|-87.529
+Vladivostok|RU|Asia/Vladivostok|43.167|131.933
+Volgograd|RU|Europe/Volgograd|48.733|44.417
+Wake|UM|Pacific/Wake|19.283|166.617
+Wallis|WF|Pacific/Wallis|-13.300|-176.167
+Warsaw|PL|Europe/Warsaw|52.250|21.000
+Washington|US|America/New_York|38.910|-77.040
+Wellington|NZ|Pacific/Auckland|-41.290|174.780
+Whitehorse|CA|America/Whitehorse|60.717|-135.050
+Winamac|US|America/Indiana/Winamac|41.051|-86.603
+Windhoek|NA|Africa/Windhoek|-22.567|17.100
+Winnipeg|CA|America/Winnipeg|49.883|-97.150
+Yakutat|US|America/Yakutat|59.547|-139.727
+Yakutsk|RU|Asia/Yakutsk|62.000|129.667
+Yangon|MM|Asia/Yangon|16.783|96.167
+Yekaterinburg|RU|Asia/Yekaterinburg|56.850|60.600
+Yerevan|AM|Asia/Yerevan|40.183|44.500
+Zagreb|HR|Europe/Zagreb|45.800|15.967
+Zurich|CH|Europe/Zurich|47.383|8.533

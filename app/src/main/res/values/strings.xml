@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Worldly</string>
+    <string name="widget_desc">World clocks, weather and currency rates</string>
+    <string name="currency_name">Currency Exchange</string>
+    <string name="sbb_name">SBB Clock</string>
+    <string name="sbb_desc">Swiss railway station clock with the real second-hand motion</string>
+    <string name="cal_name">Calendar</string>
+    <string name="cal_desc">Week row and your upcoming events</string>
+</resources>
