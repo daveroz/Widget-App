@@ -132,8 +132,8 @@ final class Fetcher {
      * History for the trend behind each currency row (the last {@link Trend#DAYS} days, one day in every
      * {@link Trend#STEP}), from the dated files of the same fawazahmed0 currency-api. One request per sampled day
      * covers every row: the file for the target currency lists the rates of all currencies into it. Past days never
-     * change, so each is fetched once: about 52 requests for the first fill, then one small request a week. Kept apart from {@link #refreshAll} so rates and
-     * weather never wait for it. Returns true when something new was stored (redraw the widget then).
+     * change, so each is fetched once: about 30 requests for the first fill, then one small request a day. Kept
+     * apart from {@link #refreshAll} so rates and weather never wait for it. Returns true when something new was stored (redraw the widget then).
      */
     static boolean refreshHistory(Context ctx) {
         String to = Store.to(ctx).trim().toLowerCase(Locale.ROOT);
@@ -145,7 +145,7 @@ final class Fetcher {
         if (to.isEmpty() || need.isEmpty()) return false;
         JSONObject hist = Store.hist(ctx, to);
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        long deadline = System.currentTimeMillis() + 45_000L;
+        long deadline = System.currentTimeMillis() + 25_000L;
         boolean changed = false;
         int fails = 0;
         for (int back = 1; back <= Trend.DAYS; back++) {

@@ -23,7 +23,7 @@ The status text at the bottom of the settings screen shows what worked and what 
 
 | Widget | What it is |
 |---|---|
-| **Currency Exchange** | World clocks, weather, market + Visa rates (the original KWGT widget). Behind each conversion row, the last 12 months of the market rate (one point a week) as a faint amber area chart (only the shape, no axis or numbers) |
+| **Currency Exchange** | World clocks, weather, market + Visa rates (the original KWGT widget). Behind each conversion row, the last 30 days of the market rate (one point a day) as a faint amber area chart (only the shape, no axis or numbers) |
 | **SBB Clock** | Swiss railway station clock. Second hand: one lap in 58.5 s, then waits at 12; on the minute impulse the minute hand (and the hour hand with it) moves one minute with SBB's elastic swing, exactly when the second hand starts its next lap. Geometry and motion follow SBB's own digital clock (sbbUhr 1.3, dark-background face without frame) |
 | **Calendar** | Agenda layout: big day number, week row (Sunday to Saturday, today in an amber circle), then your upcoming events with colour bar, time range and "in N minutes"; "+" adds an event. Reads the device calendar (READ_CALENDAR), no account or key. A taller widget lists more events, a wider one gives titles more room |
 
@@ -38,7 +38,7 @@ Live updates: world clocks and calendar run on exact per-minute alarms with no n
 | Market exchange rates | fawazahmed0 currency-api (CDN + mirror), fallback open.er-api.com |
 | Visa rate | Visa's public FX endpoint, same call as the original preset (fee=2, date MM/dd/yyyy) |
 | Visa rate if Visa refuses | Estimate = market rate + your fee, shown with a `~` |
-| 12-month trend behind each row | fawazahmed0 currency-api dated files (CDN + mirror): one request per sampled week covers every row, each is fetched once and cached |
+| 30-day trend behind each row | fawazahmed0 currency-api dated files (CDN + mirror): one request per day covers every row, each day is fetched once and cached |
 | Flags | google/region-flags on GitHub, fallback flagcdn.com (downloaded once, then offline) |
 
 Rates and weather inherently need an online source; these are the free ones that need no key.
@@ -54,7 +54,7 @@ read from there, so one edit restyles both.
 ## How it updates
 - Clocks and day/night: redrawn every minute with an exact alarm.
 - Rates / weather / Visa: refreshed about every 30 minutes (weather at most every 10 minutes).
-- Trend history: filled once (about 52 small requests, one per week of the past year), then one new request a week, fetched after the rates so they never wait for it.
+- Trend history: filled once (about 30 small requests), then one new day a day, fetched after the rates so they never wait for it.
 
 ## Code map (`app/src/main/java/app/currencyexchange/widget/`)
 `Renderer` draws everything onto one bitmap; `Trend` draws the rate chart behind each currency row; `Fetcher` does all network calls; `Store` holds settings

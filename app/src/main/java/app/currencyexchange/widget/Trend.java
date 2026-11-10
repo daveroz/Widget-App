@@ -19,17 +19,17 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 /**
- * The trend behind each conversion row: the last 12 months of market rates as a soft area chart, a curve through
- * one rate a week with a fill that fades out downwards. Only the shape: no axis, no numbers, no markers. It
+ * The trend behind each conversion row: the last month of market rates as a soft area chart, a curve through
+ * every day's rate with a fill that fades out downwards. Only the shape: no axis, no numbers, no markers. It
  * uses the one amber accent at low opacity so the row's flags and numbers stay on top.
  */
 final class Trend {
     private Trend() {}
 
     /** Days of history behind each row (plus today's live rate as the last point). */
-    static final int DAYS = 365;
-    /** One sample every STEP days: 52 points a year, enough for the shape and only one request a week. */
-    static final int STEP = 7;
+    static final int DAYS = 30;
+    /** One sample every STEP days (1 = daily). For a longer DAYS, a bigger step keeps the line and the requests calm. */
+    static final int STEP = 1;
 
     /** The fixed days the history is sampled on, so samples already fetched stay valid as time moves on. */
     static boolean sampleDay(LocalDate d) { return Math.floorMod(d.toEpochDay(), STEP) == 0; }
