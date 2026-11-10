@@ -9,4 +9,16 @@
         <item name="android:navigationBarColor">#0B1322</item>
         <item name="android:textColorHint">#718096</item>
     </style>
+
+    <!-- Converter: a floating card over the home screen, dimmed behind; a tap outside closes it -->
+    <style name="ConverterTheme" parent="@android:style/Theme.DeviceDefault.Dialog.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:windowCloseOnTouchOutside">true</item>
+        <item name="android:colorAccent">#DF8B35</item>
+        <item name="android:colorControlActivated">#DF8B35</item>
+        <item name="android:textColorHint">#718096</item>
+    </style>
 </resources>

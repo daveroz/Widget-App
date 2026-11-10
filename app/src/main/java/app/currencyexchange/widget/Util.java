@@ -64,6 +64,43 @@ final class Util {
         return NumberFormat.getIntegerInstance(Locale.US).format(Math.round(v));
     }
 
+    /**
+     * Amount typed in the converter: "30", "30.5", "30,5" (decimal comma), "1,250.75", "1.250,75", " 1 000 ".
+     * NaN when it is not a number.
+     */
+    static double parseAmount(String s) {
+        if (s == null) return Double.NaN;
+        String t = s.replaceAll("[\\s\\u00A0']", "");
+        int dot = t.lastIndexOf('.'), comma = t.lastIndexOf(',');
+        if (dot >= 0 && comma >= 0) {
+            // both: the one that comes last is the decimal separator
+            t = dot > comma ? t.replace(",", "") : t.replace(".", "").replace(',', '.');
+        } else if (comma >= 0) {
+            // only commas: one comma with 1-2 digits after it is a decimal comma, otherwise thousands
+            boolean decimal = t.indexOf(',') == comma && t.length() - comma - 1 <= 2;
+            t = decimal ? t.replace(',', '.') : t.replace(",", "");
+        } else if (dot >= 0 && t.indexOf('.') != dot) {
+            t = t.replace(".", ""); // "1.000.000"
+        }
+        if (t.isEmpty() || !t.matches("-?\\d*\\.?\\d*") || t.equals(".") || t.equals("-")) return Double.NaN;
+        try {
+            return Double.parseDouble(t);
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
+    }
+
+    /** Money for the converter: "117,372" from 1,000 up, "25.56" from 1, "0.0002556" below 1; "--" when unknown. */
+    static String fmtMoney(double v) {
+        if (Double.isNaN(v) || Double.isInfinite(v)) return "--";
+        double a = Math.abs(v);
+        int dec = a >= 1000 ? 0 : a >= 1 || a == 0 ? 2 : Math.min(8, 3 - (int) Math.floor(Math.log10(a)));
+        NumberFormat f = NumberFormat.getNumberInstance(Locale.US);
+        f.setMinimumFractionDigits(Math.min(dec, 2));
+        f.setMaximumFractionDigits(dec);
+        return f.format(v);
+    }
+
     /** "mexico city" -> "Mexico City". */
     static String capWords(String s) {
         if (s == null) return "";

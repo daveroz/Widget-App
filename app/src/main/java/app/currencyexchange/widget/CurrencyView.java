@@ -140,6 +140,7 @@ final class CurrencyView {
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
         for (int i = 0; i < k; i++) {
             String from = Store.from(ctx, i).trim().toUpperCase(Locale.ROOT);
+            rv.setOnClickPendingIntent(id(ctx, "row_" + i), ConverterActivity.intentFor(ctx, i)); // tap a row: converter
             rv.setImageViewBitmap(id(ctx, "fl_a_" + i), flagOrLabel(ctx, Util.countryOfCurrency(from), from));
             txt(ctx, rv, id(ctx, "code_a_" + i), from, reg, Theme.TEXT, 15, false);
             rv.setImageViewBitmap(id(ctx, "fl_b_" + i), toFlag);
@@ -168,7 +169,7 @@ final class CurrencyView {
     // ------------------------------------------------------------------ bitmaps
 
     /** Flag with rounded corners, or a grey tile with the code when the flag isn't downloaded yet. */
-    private static Bitmap flagOrLabel(Context ctx, String cc, String code) {
+    static Bitmap flagOrLabel(Context ctx, String cc, String code) {
         String key = "f|" + cc + "|" + code + "|" + (Flags.flag(ctx, cc) != null);
         Bitmap hit = PICS.get(key);
         if (hit != null) return hit;
@@ -197,7 +198,7 @@ final class CurrencyView {
         return out;
     }
 
-    private static Bitmap visaLogo(Context ctx) {
+    static Bitmap visaLogo(Context ctx) {
         String key = "v|" + (Flags.visa(ctx) != null);
         Bitmap hit = PICS.get(key);
         if (hit != null) return hit;

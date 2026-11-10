@@ -34,6 +34,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Converter: opens over the home screen when a currency row of the widget is tapped -->
+        <activity
+            android:name=".ConverterActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/ConverterTheme"
+            android:windowSoftInputMode="stateAlwaysVisible|adjustResize" />
+
         <receiver
             android:name=".WidgetProvider"
             android:exported="true"

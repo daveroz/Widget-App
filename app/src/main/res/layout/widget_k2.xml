@@ -294,11 +294,13 @@
         </LinearLayout>
         </LinearLayout>
         <FrameLayout
+            android:id="@+id/row_0"
             android:layout_width="match_parent"
             android:layout_height="54dp"
             android:layout_marginTop="7dp"
             android:background="@drawable/cur_row_light"
-            android:clipToOutline="true">
+            android:clipToOutline="true"
+            android:foreground="?android:attr/selectableItemBackground">
             <!-- market-rate trend, drawn as a soft area chart behind the row -->
             <ImageView
                 android:id="@+id/trend_0"
@@ -399,11 +401,13 @@
             </LinearLayout>
         </FrameLayout>
         <FrameLayout
+            android:id="@+id/row_1"
             android:layout_width="match_parent"
             android:layout_height="54dp"
             android:layout_marginTop="7dp"
             android:background="@drawable/cur_row_dark"
-            android:clipToOutline="true">
+            android:clipToOutline="true"
+            android:foreground="?android:attr/selectableItemBackground">
             <!-- market-rate trend, drawn as a soft area chart behind the row -->
             <ImageView
                 android:id="@+id/trend_1"
