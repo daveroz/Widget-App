@@ -129,10 +129,10 @@ final class Fetcher {
     }
 
     /**
-     * Daily history for the trend behind each currency row (the last {@link Trend#DAYS} days), from the dated
-     * files of the same fawazahmed0 currency-api. One request per day covers every row: the file for the target
-     * currency lists the rates of all currencies into it. Past days never change, so each day is fetched once;
-     * after the first fill this is one small request a day. Kept apart from {@link #refreshAll} so rates and
+     * History for the trend behind each currency row (the last {@link Trend#DAYS} days, one day in every
+     * {@link Trend#STEP}), from the dated files of the same fawazahmed0 currency-api. One request per sampled day
+     * covers every row: the file for the target currency lists the rates of all currencies into it. Past days never
+     * change, so each is fetched once: about 52 requests for the first fill, then one small request a week. Kept apart from {@link #refreshAll} so rates and
      * weather never wait for it. Returns true when something new was stored (redraw the widget then).
      */
     static boolean refreshHistory(Context ctx) {
@@ -145,10 +145,11 @@ final class Fetcher {
         if (to.isEmpty() || need.isEmpty()) return false;
         JSONObject hist = Store.hist(ctx, to);
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        long deadline = System.currentTimeMillis() + 25_000L;
+        long deadline = System.currentTimeMillis() + 45_000L;
         boolean changed = false;
         int fails = 0;
         for (int back = 1; back <= Trend.DAYS; back++) {
+            if (!Trend.sampleDay(today.minusDays(back))) continue;
             String d = today.minusDays(back).toString();
             JSONObject day = hist.optJSONObject(d);
             if (day != null && hasAll(day, need)) continue;
@@ -156,7 +157,7 @@ final class Fetcher {
             try {
                 JSONObject all = dayRates(d, to);
                 if (all == null) {
-                    // No file for that date. Yesterday's may simply not be published yet; an older gap stays a gap.
+                    // No file for that date. A very recent one may not be published yet; an older gap stays a gap.
                     if (back <= 2) continue;
                     all = new JSONObject();
                 }
@@ -173,7 +174,14 @@ final class Fetcher {
         }
         String oldest = today.minusDays(Trend.DAYS).toString();
         for (Iterator<String> it = hist.keys(); it.hasNext(); ) {
-            if (it.next().compareTo(oldest) < 0) { // slid out of the window
+            String d = it.next();
+            boolean keep;
+            try {
+                keep = d.compareTo(oldest) >= 0 && Trend.sampleDay(LocalDate.parse(d));
+            } catch (Exception e) {
+                keep = false;
+            }
+            if (!keep) { // slid out of the window, or not a sample day (e.g. from an older version)
                 it.remove();
                 changed = true;
             }

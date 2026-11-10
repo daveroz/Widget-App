@@ -128,7 +128,7 @@ final class CurrencyView {
             rv.setImageViewBitmap(id(ctx, "fl_b_" + i), toFlag);
             txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, Theme.TEXT, 15, false);
             double market = Store.rate(ctx, from, to);
-            // the last month as a soft area chart behind the row (the picture fills the row inside its 1 dp border)
+            // the last 12 months as a soft area chart behind the row (the picture fills the row inside its 1 dp border)
             double[][] trend = Trend.series(hist, from, market);
             if (trend != null) rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW - 2, ROW_DP - 2));
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), TextBmp.tight(reg, CITY_SP, "Market", Theme.MUTED));
