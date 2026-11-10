@@ -85,6 +85,25 @@ final class Store {
         sp(c).edit().putLong("visa_" + key(from) + "_" + key(to), Double.doubleToLongBits(v)).apply();
     }
 
+    /**
+     * Daily market rates into the target currency, for the trend behind each row:
+     * {"yyyy-MM-dd": {"usd": 3921.4, "eur": 4410.2, ...}, ...}; 0 marks a currency the source had no rate for.
+     */
+    static JSONObject hist(Context c, String to) {
+        String s = sp(c).getString("hist_" + key(to), null);
+        if (s != null) {
+            try { return new JSONObject(s); } catch (Exception ignored) { }
+        }
+        return new JSONObject();
+    }
+    /** Saves the history for the target currency and drops histories of earlier targets. */
+    static void putHist(Context c, String to, JSONObject o) {
+        String k = "hist_" + key(to);
+        SharedPreferences.Editor e = sp(c).edit();
+        for (String old : sp(c).getAll().keySet()) if (old.startsWith("hist_") && !old.equals(k)) e.remove(old);
+        e.putString(k, o.toString()).apply();
+    }
+
     /** {feelsLikeC, humidityPct} or null. */
     static double[] weather(Context c) {
         String s = sp(c).getString("wx", null);

@@ -332,6 +332,7 @@ public class MainActivity extends Activity {
             Fetcher.refreshAll(app, true);
             WidgetProvider.updateAll(app);
             runOnUiThread(this::updateStatus);
+            if (Fetcher.refreshHistory(app)) WidgetProvider.updateAll(app); // trend charts, after the rates
         }).start();
     }
 

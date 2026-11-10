@@ -14,6 +14,7 @@ public class RefreshJobService extends JobService {
                 Fetcher.refreshAll(ctx);
                 WidgetProvider.updateAll(ctx);
                 WidgetProvider.heal(ctx);
+                if (Fetcher.refreshHistory(ctx)) WidgetProvider.updateAll(ctx); // trend charts, after the rates
             } catch (Throwable ignored) {
             } finally {
                 jobFinished(params, false);
