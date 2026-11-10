@@ -6,7 +6,11 @@ import org.json.JSONObject;
 
 import java.net.URLEncoder;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -14,6 +18,7 @@ import java.util.Locale;
  *  - Open-Meteo geocoding  : city -> lat / lon / timezone / country
  *  - Open-Meteo forecast   : feels-like temperature + humidity
  *  - fawazahmed0 currency-api (CDN), fallback open.er-api.com : market exchange rates
+ *  - fawazahmed0 currency-api dated files : the last month of daily rates, for the trend behind each row
  *  - Visa public FX endpoint (same one the KWGT preset used); if Visa refuses, the widget shows an
  *    estimate (market rate + your fee, marked with "~")
  * Results are cached in {@link Store}; each call is independent so one failure never blocks the rest.
@@ -120,6 +125,85 @@ final class Fetcher {
             return new JSONObject(Net.get("https://open.er-api.com/v6/latest/" + from.toUpperCase(Locale.ROOT)))
                     .getJSONObject("rates").getDouble(to.toUpperCase(Locale.ROOT));
         } catch (Exception e) { last = e; }
+        throw last;
+    }
+
+    /**
+     * Daily history for the trend behind each currency row (the last {@link Trend#DAYS} days), from the dated
+     * files of the same fawazahmed0 currency-api. One request per day covers every row: the file for the target
+     * currency lists the rates of all currencies into it. Past days never change, so each day is fetched once;
+     * after the first fill this is one small request a day. Kept apart from {@link #refreshAll} so rates and
+     * weather never wait for it. Returns true when something new was stored (redraw the widget then).
+     */
+    static boolean refreshHistory(Context ctx) {
+        String to = Store.to(ctx).trim().toLowerCase(Locale.ROOT);
+        List<String> need = new ArrayList<>();
+        for (int i = 0; i < Store.count(ctx); i++) {
+            String f = Store.from(ctx, i).trim().toLowerCase(Locale.ROOT);
+            if (!f.isEmpty() && !f.equals(to) && !need.contains(f)) need.add(f);
+        }
+        if (to.isEmpty() || need.isEmpty()) return false;
+        JSONObject hist = Store.hist(ctx, to);
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        long deadline = System.currentTimeMillis() + 25_000L;
+        boolean changed = false;
+        int fails = 0;
+        for (int back = 1; back <= Trend.DAYS; back++) {
+            String d = today.minusDays(back).toString();
+            JSONObject day = hist.optJSONObject(d);
+            if (day != null && hasAll(day, need)) continue;
+            if (fails >= 3 || System.currentTimeMillis() > deadline) break; // offline or slow: next refresh goes on
+            try {
+                JSONObject all = dayRates(d, to);
+                if (all == null) {
+                    // No file for that date. Yesterday's may simply not be published yet; an older gap stays a gap.
+                    if (back <= 2) continue;
+                    all = new JSONObject();
+                }
+                JSONObject keep = day == null ? new JSONObject() : day;
+                for (String f : need) {
+                    double r = all.optDouble(f, Double.NaN);
+                    keep.put(f, r > 0 ? 1.0 / r : 0); // 0 = no rate that day, so it isn't asked for again
+                }
+                hist.put(d, keep);
+                changed = true;
+            } catch (Exception e) {
+                fails++;
+            }
+        }
+        String oldest = today.minusDays(Trend.DAYS).toString();
+        for (Iterator<String> it = hist.keys(); it.hasNext(); ) {
+            if (it.next().compareTo(oldest) < 0) { // slid out of the window
+                it.remove();
+                changed = true;
+            }
+        }
+        if (changed) Store.putHist(ctx, to, hist);
+        return changed;
+    }
+
+    private static boolean hasAll(JSONObject day, List<String> need) {
+        for (String f : need) if (!day.has(f)) return false;
+        return true;
+    }
+
+    /** All rates of one day as {currency: units of it per 1 cur}; null if the source has no file for that date. */
+    private static JSONObject dayRates(String date, String cur) throws Exception {
+        String[] urls = {
+                "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@" + date + "/v1/currencies/" + cur + ".json",
+                "https://" + date + ".currency-api.pages.dev/v1/currencies/" + cur + ".json"
+        };
+        Exception last = null;
+        boolean missing = false;
+        for (String u : urls) {
+            try {
+                return new JSONObject(Net.get(u)).getJSONObject(cur);
+            } catch (Exception e) {
+                last = e;
+                if (String.valueOf(e.getMessage()).startsWith("HTTP 404")) missing = true;
+            }
+        }
+        if (missing) return null;
         throw last;
     }
 

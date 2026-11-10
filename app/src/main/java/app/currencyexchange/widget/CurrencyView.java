@@ -58,7 +58,11 @@ final class CurrencyView {
     /** The size the weather-bar numbers (humidity etc.) show at: 12 drawn into an 18 dp box. */
     private static final float HEADER_SP = 12f / 0.82f;
 
-    static RemoteViews build(Context ctx, int k) {
+    /** Height of a currency row in the layouts (dp). */
+    private static final int ROW_DP = 54;
+
+    /** @param widthDp the widget's width as the launcher reports it (0 if unknown); sizes the trend charts */
+    static RemoteViews build(Context ctx, int k, int widthDp) {
         Typeface reg = Theme.uiMedium(ctx), bold = Theme.uiBold(ctx);
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
 
@@ -115,6 +119,8 @@ final class CurrencyView {
         String to = Store.to(ctx).trim().toUpperCase(Locale.ROOT);
         Bitmap visaLogo = visaLogo(ctx);
         Bitmap toFlag = flagOrLabel(ctx, Util.countryOfCurrency(to), to);
+        JSONObject hist = Store.hist(ctx, to);
+        int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
         for (int i = 0; i < k; i++) {
             String from = Store.from(ctx, i).trim().toUpperCase(Locale.ROOT);
             rv.setImageViewBitmap(id(ctx, "fl_a_" + i), flagOrLabel(ctx, Util.countryOfCurrency(from), from));
@@ -122,6 +128,9 @@ final class CurrencyView {
             rv.setImageViewBitmap(id(ctx, "fl_b_" + i), toFlag);
             txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, Theme.TEXT, 15, false);
             double market = Store.rate(ctx, from, to);
+            // the last month as a soft area chart behind the row (the picture fills the row inside its 1 dp border)
+            double[][] trend = Trend.series(hist, from, market);
+            if (trend != null) rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW - 2, ROW_DP - 2));
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), TextBmp.tight(reg, CITY_SP, "Market", Theme.MUTED));
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), TextBmp.tight(reg, HEADER_SP, Util.fmt0(market), Theme.TEXT));
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
