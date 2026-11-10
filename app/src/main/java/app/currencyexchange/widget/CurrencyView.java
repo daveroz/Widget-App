@@ -58,8 +58,6 @@ final class CurrencyView {
     /** The size the weather-bar numbers (rain chance etc.) show at: 12 drawn into an 18 dp box. */
     private static final float HEADER_SP = 12f / 0.82f;
 
-    /** Feels-like is shown next to the temperature only when the two differ by at least this many degrees. */
-    private static final int FEELS_GAP = 3;
     /** The chance of rain shown is the highest over the current hour and this many hours ahead. */
     private static final int RAIN_HOURS = 12;
 
@@ -82,8 +80,8 @@ final class CurrencyView {
         Typeface reg = Theme.uiMedium(ctx), bold = Theme.uiBold(ctx);
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
 
-        // header where you are: weather now (icon + temperature, feels-like only when it is clearly different),
-        // chance of rain in the coming hours, sunrise, sunset
+        // header where you are, four equal slots: weather now (icon + temperature), chance of rain in the coming
+        // hours, sunrise, sunset
         Store.Weather wx = Store.weather(ctx);
         double[] ll = Store.weatherLatLon(ctx);
         ZonedDateTime here = ZonedDateTime.now();
@@ -95,15 +93,8 @@ final class CurrencyView {
         }
         boolean day = SunCalc.isDay(ll[0], ll[1], ZoneId.systemDefault(), here);
         rv.setImageViewResource(R.id.hdr_wx, weatherIcon(wx == null ? -1 : wx.code, day));
-        long temp = wx == null ? 0 : Math.round(wx.temp), feels = wx == null ? 0 : Math.round(wx.feels);
-        if (wx == null) {
-            txt(ctx, rv, R.id.hdr_temp, "--\u00B0C", reg, Theme.TEXT, 12, false);
-        } else if (Math.abs(feels - temp) >= FEELS_GAP) {
-            rv.setImageViewBitmap(R.id.hdr_temp, TextBmp.make(reg, 12 * 2.5f, 0.8f, false, false,
-                    new String[]{temp + "\u00B0C", " feels " + feels + "\u00B0"}, new int[]{Theme.TEXT, Theme.MUTED}));
-        } else {
-            txt(ctx, rv, R.id.hdr_temp, temp + "\u00B0C", reg, Theme.TEXT, 12, false);
-        }
+        txt(ctx, rv, R.id.hdr_temp, (wx == null ? "--" : String.valueOf(Math.round(wx.temp))) + "\u00B0C",
+                reg, Theme.TEXT, 12, false);
         int rain = wx == null ? -1 : wx.rainChance(System.currentTimeMillis(), RAIN_HOURS);
         txt(ctx, rv, R.id.hdr_rain, rain < 0 ? "--%" : rain + "%", reg, Theme.TEXT, 12, false);
         txt(ctx, rv, R.id.hdr_rise, rise, reg, Theme.TEXT, 12, false);

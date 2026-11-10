@@ -105,15 +105,15 @@ final class Store {
         e.putString(k, o.toString()).apply();
     }
 
-    /** Weather where you are: temperature and feels-like (deg C), the WMO weather code and the hourly chance of rain. */
+    /** Weather where you are: temperature (deg C), the WMO weather code and the hourly chance of rain. */
     static final class Weather {
-        final double temp, feels;
+        final double temp;
         final int code;          // WMO weather interpretation code, -1 if unknown
         final long[] hours;      // start of each forecast hour, epoch seconds
         final int[] rain;        // chance of precipitation per hour (%), -1 if unknown
 
-        Weather(double temp, double feels, int code, long[] hours, int[] rain) {
-            this.temp = temp; this.feels = feels; this.code = code; this.hours = hours; this.rain = rain;
+        Weather(double temp, int code, long[] hours, int[] rain) {
+            this.temp = temp; this.code = code; this.hours = hours; this.rain = rain;
         }
 
         /** Highest chance of rain (%) from the current hour through the next {@code ahead} hours; -1 if unknown. */
@@ -127,7 +127,7 @@ final class Store {
         }
     }
 
-    /** Null until the first fetch (and for the older feels-like + humidity cache, so it is fetched again). */
+    /** Null until the first fetch (and for the older humidity-only cache, so it is fetched again). */
     static Weather weather(Context c) {
         String s = sp(c).getString("wx", null);
         if (s == null) return null;
@@ -142,14 +142,14 @@ final class Store {
                 hours[i] = t.getLong(i);
                 rain[i] = p.optInt(i, -1);
             }
-            return new Weather(o.getDouble("temp"), o.getDouble("feels"), o.optInt("code", -1), hours, rain);
+            return new Weather(o.getDouble("temp"), o.optInt("code", -1), hours, rain);
         } catch (Exception e) { return null; }
     }
 
     /** hours = epoch seconds of each forecast hour, rain = chance of precipitation for each (JSON nulls allowed). */
-    static void putWeather(Context c, double temp, double feels, int code, JSONArray hours, JSONArray rain) {
+    static void putWeather(Context c, double temp, int code, JSONArray hours, JSONArray rain) {
         try {
-            JSONObject o = new JSONObject().put("temp", temp).put("feels", feels).put("code", code);
+            JSONObject o = new JSONObject().put("temp", temp).put("code", code);
             if (hours != null && rain != null) o.put("t", hours).put("p", rain);
             sp(c).edit().putString("wx", o.toString()).apply();
         } catch (Exception ignored) { }
