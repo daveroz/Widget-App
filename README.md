@@ -23,7 +23,7 @@ The status text at the bottom of the settings screen shows what worked and what 
 
 | Widget | What it is |
 |---|---|
-| **Currency Exchange** | World clocks, weather, market + Visa rates (the original KWGT widget). Behind each conversion row, the last 30 days of the market rate (one point a day) as a faint amber area chart (only the shape, no axis or numbers) |
+| **Currency Exchange** | World clocks, market + Visa rates (the original KWGT widget). The top bar shows, for where you are: the weather now (condition icon and temperature, plus "feels" when it differs by 3° or more), the chance of rain over the next 12 hours, sunrise and sunset. Behind each conversion row, the last 30 days of the market rate (one point a day) as a faint amber area chart (only the shape, no axis or numbers) |
 | **SBB Clock** | Swiss railway station clock. Second hand: one lap in 58.5 s, then waits at 12; on the minute impulse the minute hand (and the hour hand with it) moves one minute with SBB's elastic swing, exactly when the second hand starts its next lap. Geometry and motion follow SBB's own digital clock (sbbUhr 1.3, dark-background face without frame) |
 | **Calendar** | Agenda layout: big day number, week row (Sunday to Saturday, today in an amber circle), then your upcoming events with colour bar, time range and "in N minutes"; "+" adds an event. Reads the device calendar (READ_CALENDAR), no account or key. A taller widget lists more events, a wider one gives titles more room |
 
@@ -33,7 +33,7 @@ Live updates: world clocks and calendar run on exact per-minute alarms with no n
 | Data | Source |
 |---|---|
 | City -> coordinates, timezone, country | Open-Meteo geocoding |
-| Feels-like + humidity | Open-Meteo forecast |
+| Weather now (condition, temperature, feels-like) + hourly chance of rain | Open-Meteo forecast |
 | Sunrise / sunset, day/night strip | Computed on the phone (no network) |
 | Market exchange rates | fawazahmed0 currency-api (CDN + mirror), fallback open.er-api.com |
 | Visa rate | Visa's public FX endpoint, same call as the original preset (fee=2, date MM/dd/yyyy) |

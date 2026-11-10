@@ -55,8 +55,24 @@ final class CurrencyView {
     /** The size the clock city names actually show at (11 drawn into a 16 dp box with Carbon+'s 0.95 em line). */
     private static final float CITY_SP = 16f * 0.8f / 0.95f * 0.985f;
 
-    /** The size the weather-bar numbers (humidity etc.) show at: 12 drawn into an 18 dp box. */
+    /** The size the weather-bar numbers (rain chance etc.) show at: 12 drawn into an 18 dp box. */
     private static final float HEADER_SP = 12f / 0.82f;
+
+    /** Feels-like is shown next to the temperature only when the two differ by at least this many degrees. */
+    private static final int FEELS_GAP = 3;
+    /** The chance of rain shown is the highest over the current hour and this many hours ahead. */
+    private static final int RAIN_HOURS = 12;
+
+    /** Header icon for a WMO weather code (Open-Meteo); clear and partly cloudy have night versions. */
+    static int weatherIcon(int code, boolean day) {
+        if (code == 0) return day ? R.drawable.wx_clear_day : R.drawable.wx_clear_night;
+        if (code == 1 || code == 2) return day ? R.drawable.wx_partly_day : R.drawable.wx_partly_night;
+        if (code == 45 || code == 48) return R.drawable.wx_fog;
+        if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return R.drawable.wx_rain;
+        if ((code >= 71 && code <= 77) || code == 85 || code == 86) return R.drawable.wx_snow;
+        if (code >= 95 && code <= 99) return R.drawable.wx_storm;
+        return R.drawable.wx_cloud; // 3 = overcast, or unknown
+    }
 
     /** Height of a currency row in the layouts (dp). */
     private static final int ROW_DP = 54;
@@ -66,20 +82,30 @@ final class CurrencyView {
         Typeface reg = Theme.uiMedium(ctx), bold = Theme.uiBold(ctx);
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
 
-        // header: feels like, humidity, sunrise, sunset
-        double[] wx = Store.weather(ctx);
-        String feels = wx == null ? "--" : String.valueOf(Math.round(wx[0]));
-        String hum = wx == null ? "--" : String.valueOf(Math.round(wx[1]));
+        // header where you are: weather now (icon + temperature, feels-like only when it is clearly different),
+        // chance of rain in the coming hours, sunrise, sunset
+        Store.Weather wx = Store.weather(ctx);
         double[] ll = Store.weatherLatLon(ctx);
+        ZonedDateTime here = ZonedDateTime.now();
         String rise = "--:--", set = "--:--";
         if (!Double.isNaN(ll[0]) && !Double.isNaN(ll[1])) {
-            int[] t = SunCalc.times(ll[0], ll[1], ZonedDateTime.now().toLocalDate(), ZoneId.systemDefault());
+            int[] t = SunCalc.times(ll[0], ll[1], here.toLocalDate(), ZoneId.systemDefault());
             rise = Util.hm(t[0]);
             set = Util.hm(t[1]);
         }
-        rv.setImageViewBitmap(R.id.hdr_feels, TextBmp.make(reg, 12 * 2.5f, 0.8f, false, false,
-                new String[]{"Feels like ", feels + "\u00B0C"}, new int[]{Theme.MUTED, Theme.TEXT}));
-        txt(ctx, rv, R.id.hdr_hum, hum + "%", reg, Theme.TEXT, 12, false);
+        boolean day = SunCalc.isDay(ll[0], ll[1], ZoneId.systemDefault(), here);
+        rv.setImageViewResource(R.id.hdr_wx, weatherIcon(wx == null ? -1 : wx.code, day));
+        long temp = wx == null ? 0 : Math.round(wx.temp), feels = wx == null ? 0 : Math.round(wx.feels);
+        if (wx == null) {
+            txt(ctx, rv, R.id.hdr_temp, "--\u00B0C", reg, Theme.TEXT, 12, false);
+        } else if (Math.abs(feels - temp) >= FEELS_GAP) {
+            rv.setImageViewBitmap(R.id.hdr_temp, TextBmp.make(reg, 12 * 2.5f, 0.8f, false, false,
+                    new String[]{temp + "\u00B0C", " feels " + feels + "\u00B0"}, new int[]{Theme.TEXT, Theme.MUTED}));
+        } else {
+            txt(ctx, rv, R.id.hdr_temp, temp + "\u00B0C", reg, Theme.TEXT, 12, false);
+        }
+        int rain = wx == null ? -1 : wx.rainChance(System.currentTimeMillis(), RAIN_HOURS);
+        txt(ctx, rv, R.id.hdr_rain, rain < 0 ? "--%" : rain + "%", reg, Theme.TEXT, 12, false);
         txt(ctx, rv, R.id.hdr_rise, rise, reg, Theme.TEXT, 12, false);
         txt(ctx, rv, R.id.hdr_set, set, reg, Theme.TEXT, 12, false);
 

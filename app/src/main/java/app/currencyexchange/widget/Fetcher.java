@@ -16,7 +16,7 @@ import java.util.Locale;
 /**
  * Pulls the data the widget shows. Every source is free and needs NO account or API key:
  *  - Open-Meteo geocoding  : city -> lat / lon / timezone / country
- *  - Open-Meteo forecast   : feels-like temperature + humidity
+ *  - Open-Meteo forecast   : temperature, feels-like, weather condition + hourly chance of rain
  *  - fawazahmed0 currency-api (CDN), fallback open.er-api.com : market exchange rates
  *  - fawazahmed0 currency-api dated files : the last month of daily rates, for the trend behind each row
  *  - Visa public FX endpoint (same one the KWGT preset used); if Visa refuses, the widget shows an
@@ -263,12 +263,21 @@ final class Fetcher {
         return Double.NaN;
     }
 
-    /** Open-Meteo forecast: free, no key. */
+    /**
+     * Open-Meteo forecast: free, no key. Current temperature, feels-like and weather code, plus the chance of rain
+     * for each hour of today and tomorrow (unix times, so the widget can pick the coming hours when it draws).
+     */
     private static void weather(Context ctx, double lat, double lon) throws Exception {
         String url = "https://api.open-meteo.com/v1/forecast?latitude=" + String.format(Locale.US, "%.4f", lat)
                 + "&longitude=" + String.format(Locale.US, "%.4f", lon)
-                + "&current=apparent_temperature,relative_humidity_2m&timezone=auto";
-        JSONObject cur = new JSONObject(Net.get(url)).getJSONObject("current");
-        Store.putWeather(ctx, cur.getDouble("apparent_temperature"), cur.getDouble("relative_humidity_2m"));
+                + "&current=temperature_2m,apparent_temperature,weather_code"
+                + "&hourly=precipitation_probability&forecast_days=2&timeformat=unixtime&timezone=auto";
+        JSONObject root = new JSONObject(Net.get(url));
+        JSONObject cur = root.getJSONObject("current");
+        JSONObject hourly = root.optJSONObject("hourly");
+        Store.putWeather(ctx, cur.getDouble("temperature_2m"), cur.getDouble("apparent_temperature"),
+                cur.optInt("weather_code", -1),
+                hourly == null ? null : hourly.optJSONArray("time"),
+                hourly == null ? null : hourly.optJSONArray("precipitation_probability"));
     }
 }

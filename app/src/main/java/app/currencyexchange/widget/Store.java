@@ -3,6 +3,7 @@ package app.currencyexchange.widget;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.Locale;
@@ -104,18 +105,53 @@ final class Store {
         e.putString(k, o.toString()).apply();
     }
 
-    /** {feelsLikeC, humidityPct} or null. */
-    static double[] weather(Context c) {
+    /** Weather where you are: temperature and feels-like (deg C), the WMO weather code and the hourly chance of rain. */
+    static final class Weather {
+        final double temp, feels;
+        final int code;          // WMO weather interpretation code, -1 if unknown
+        final long[] hours;      // start of each forecast hour, epoch seconds
+        final int[] rain;        // chance of precipitation per hour (%), -1 if unknown
+
+        Weather(double temp, double feels, int code, long[] hours, int[] rain) {
+            this.temp = temp; this.feels = feels; this.code = code; this.hours = hours; this.rain = rain;
+        }
+
+        /** Highest chance of rain (%) from the current hour through the next {@code ahead} hours; -1 if unknown. */
+        int rainChance(long nowMs, int ahead) {
+            long now = nowMs / 1000L;
+            int best = -1;
+            for (int i = 0; i < hours.length; i++) {
+                if (hours[i] + 3600L > now && hours[i] < now + ahead * 3600L) best = Math.max(best, rain[i]);
+            }
+            return best;
+        }
+    }
+
+    /** Null until the first fetch (and for the older feels-like + humidity cache, so it is fetched again). */
+    static Weather weather(Context c) {
         String s = sp(c).getString("wx", null);
         if (s == null) return null;
         try {
             JSONObject o = new JSONObject(s);
-            return new double[]{o.getDouble("feels"), o.getDouble("hum")};
+            if (!o.has("temp")) return null;
+            JSONArray t = o.optJSONArray("t"), p = o.optJSONArray("p");
+            int n = t == null || p == null ? 0 : Math.min(t.length(), p.length());
+            long[] hours = new long[n];
+            int[] rain = new int[n];
+            for (int i = 0; i < n; i++) {
+                hours[i] = t.getLong(i);
+                rain[i] = p.optInt(i, -1);
+            }
+            return new Weather(o.getDouble("temp"), o.getDouble("feels"), o.optInt("code", -1), hours, rain);
         } catch (Exception e) { return null; }
     }
-    static void putWeather(Context c, double feels, double hum) {
+
+    /** hours = epoch seconds of each forecast hour, rain = chance of precipitation for each (JSON nulls allowed). */
+    static void putWeather(Context c, double temp, double feels, int code, JSONArray hours, JSONArray rain) {
         try {
-            sp(c).edit().putString("wx", new JSONObject().put("feels", feels).put("hum", hum).toString()).apply();
+            JSONObject o = new JSONObject().put("temp", temp).put("feels", feels).put("code", code);
+            if (hours != null && rain != null) o.put("t", hours).put("p", rain);
+            sp(c).edit().putString("wx", o.toString()).apply();
         } catch (Exception ignored) { }
     }
 }
