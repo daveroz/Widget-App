@@ -4,12 +4,26 @@ A native replacement for the KWGT preset "Currency Exchange". No KWGT, no Sun Su
 keys and no accounts. Install the APK, add the widget, done.
 
 ## Get the APK
-1. Create a private GitHub repo and upload the contents of this folder (keep `.github/workflows/build.yml`
-   at the repo root).
-2. Open the **Actions** tab, run **Build APK** (also runs on every push to `main`).
-3. Download the artifact **Worldly**; the APK inside is `Worldly.apk`.
+The newest build is always at
+**https://github.com/daveroz/Worldly/releases/download/latest/Worldly.apk**
+(GitHub Actions builds it on every push to `main`). Each run's **Actions** page also has
+`Worldly.apk` to download directly, not inside a zip.
 
 (Or open the folder in Android Studio and use Build > Build APK.)
+
+### Signing, so updates install over each other
+Android only installs an update that is signed with the same key as the version already on the
+phone. Builds are signed with one fixed key, kept in the repository secret
+**`SIGNING_KEYSTORE_BASE64`** (Settings → Secrets and variables → Actions): the keystore file,
+base64-encoded. The key password and alias default to `android` and `androiddebugkey`; if yours
+differ, add them as `SIGNING_KEYSTORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD`.
+Without the secret, builds are signed with a throwaway key, can't install over an existing copy,
+and aren't published to the `latest` release.
+
+If the phone says **"package conflicts with an existing package"**, the copy on it was signed with
+another key (builds from before the fixed key all had different ones). Uninstall Worldly once and
+install the new APK; after that every update installs over the last one. Uninstalling removes
+the widgets and settings, so add them again afterwards.
 
 ## Install & set up
 1. Install the APK (allow "install unknown apps").

@@ -19,9 +19,26 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    // Every build must be signed with the same key, or Android refuses to install it over the
+    // last one ("package conflicts with an existing package"). GitHub Actions passes that key in
+    // SIGNING_KEYSTORE_FILE (from the SIGNING_KEYSTORE_BASE64 repository secret); without it,
+    // builds fall back to the build machine's own debug key.
+    def keystore = System.getenv('SIGNING_KEYSTORE_FILE')
+    signingConfigs {
+        if (keystore) {
+            fixed {
+                storeFile file(keystore)
+                storePassword System.getenv('SIGNING_KEYSTORE_PASSWORD') ?: 'android'
+                keyAlias System.getenv('SIGNING_KEY_ALIAS') ?: 'androiddebugkey'
+                keyPassword System.getenv('SIGNING_KEY_PASSWORD') ?: 'android'
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig keystore ? signingConfigs.fixed : signingConfigs.debug
         }
     }
 }
