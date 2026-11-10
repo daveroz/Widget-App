@@ -19,22 +19,25 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 /**
- * The trend behind each conversion row: the last month of market rates as a soft area chart, a smooth curve
- * with a fill that fades out downwards. Only the shape: no axis, no numbers, no markers. It uses the one amber
- * accent at low opacity so the row's flags and numbers stay on top.
+ * The trend behind each conversion row: the last 12 months of market rates as a soft area chart, a curve through
+ * one rate a week with a fill that fades out downwards. Only the shape: no axis, no numbers, no markers. It
+ * uses the one amber accent at low opacity so the row's flags and numbers stay on top.
  */
 final class Trend {
     private Trend() {}
 
     /** Days of history behind each row (plus today's live rate as the last point). */
-    static final int DAYS = 30;
+    static final int DAYS = 365;
+    /** One sample every STEP days: 52 points a year, enough for the shape and only one request a week. */
+    static final int STEP = 7;
+
+    /** The fixed days the history is sampled on, so samples already fetched stay valid as time moves on. */
+    static boolean sampleDay(LocalDate d) { return Math.floorMod(d.toEpochDay(), STEP) == 0; }
 
     // The curve keeps to the middle band of the row; the fill fades to nothing at the bottom edge.
     private static final float BAND_TOP = 0.24f, BAND_BOTTOM = 0.78f;
-    private static final int LINE_ALPHA = 0x66, FILL_ALPHA = 0x4D; // 40 % line, 30 % fill at its top
+    private static final int LINE_ALPHA = 0x80, FILL_ALPHA = 0x3A; // 50 % line, 23 % fill at its top
     private static final float LINE_DP = 1.5f;
-    /** Day-to-day noise is smoothed out (Gaussian, in days) so the shape reads as broad waves. */
-    private static final double SMOOTH_DAYS = 1.6;
     /** Moves smaller than this share of the rate are drawn flatter, so a pegged currency doesn't look volatile. */
     private static final double MIN_SPAN = 0.004;
     /** Radius just inside a row's 1 dp border (res/values/dimens.xml widget_radius_inner). */
@@ -55,7 +58,9 @@ final class Trend {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         ArrayList<double[]> pts = new ArrayList<>();
         for (int back = DAYS; back >= 1; back--) {
-            JSONObject day = hist.optJSONObject(today.minusDays(back).toString());
+            LocalDate d = today.minusDays(back);
+            if (!sampleDay(d)) continue;
+            JSONObject day = hist.optJSONObject(d.toString());
             double v = day == null ? 0 : day.optDouble(f, 0);
             if (v > 0) pts.add(new double[]{-back, v});
         }
@@ -75,8 +80,7 @@ final class Trend {
         return made;
     }
 
-    private static Bitmap draw(double[][] raw, int wDp, int hDp) {
-        double[][] pts = smooth(raw);
+    private static Bitmap draw(double[][] pts, int wDp, int hDp) {
         int w = Math.round(wDp * PXDP), h = Math.round(hDp * PXDP), n = pts.length;
         double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
         for (double[] p : pts) {
@@ -121,21 +125,6 @@ final class Trend {
         Paint clear = new Paint(Paint.ANTI_ALIAS_FLAG);
         clear.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
         c.drawPath(outside, clear);
-        return out;
-    }
-
-    /** Gaussian-weighted average of each point with its neighbours (by day, so gaps are handled). */
-    private static double[][] smooth(double[][] pts) {
-        double[][] out = new double[pts.length][];
-        for (int i = 0; i < pts.length; i++) {
-            double sw = 0, sv = 0;
-            for (double[] q : pts) {
-                double d = (q[0] - pts[i][0]) / SMOOTH_DAYS, wt = Math.exp(-d * d / 2);
-                sw += wt;
-                sv += wt * q[1];
-            }
-            out[i] = new double[]{pts[i][0], sv / sw};
-        }
         return out;
     }
 
