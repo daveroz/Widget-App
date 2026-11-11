@@ -124,7 +124,7 @@ final class CurrencyView {
             }
             ZonedDateTime now = ZonedDateTime.now(z);
             int phase = SunCalc.phase(lat, lon, z, now);
-            Bitmap[] pcs = clockPieces(Flags.flag(ctx, cc), phase, i == 0 ? 1 : (i == 3 ? 2 : 0), scene);
+            Bitmap[] pcs = clockPieces(Flags.flag(ctx, cc), phase, i == 0 ? 1 : (i == 3 ? 2 : 0));
             if (i == 0) {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_0a"), pcs[0]);
                 rv.setImageViewBitmap(id(ctx, "clk_bg_0"), pcs[1]);
@@ -236,10 +236,10 @@ final class CurrencyView {
         return out;
     }
 
-    /** The sun-phase strip: daytime is the shared light (the playing song's colour, or amber); the rest keep theirs. */
-    private static int phaseColor(int phase, Scene scene) {
+    /** The sun-phase strip's own colours, whatever is playing: day, golden hour, blue hour, night. */
+    private static int phaseColor(int phase) {
         switch (phase) {
-            case SunCalc.DAY: return scene.key;
+            case SunCalc.DAY: return Theme.AMBER;
             case SunCalc.SUNSET: return 0xFFE2553A;  // golden hour / sunset / sunrise
             case SunCalc.BLUE: return 0xFF3F6FD8;    // blue hour
             default: return Theme.NIGHT;
@@ -253,11 +253,11 @@ final class CurrencyView {
     private static final float INNER_R = 27 * PXDP; // card radius just inside its 1 dp border
 
     /** side 0: middle cell {full}; 1: left cell {corner, rest}; 2: right cell {rest, corner}. */
-    private static Bitmap[] clockPieces(Bitmap flag, int phase, int side, Scene scene) {
-        String key = "c|" + System.identityHashCode(flag) + "|" + phase + "|" + side + "|" + scene.key;
+    private static Bitmap[] clockPieces(Bitmap flag, int phase, int side) {
+        String key = "c|" + System.identityHashCode(flag) + "|" + phase + "|" + side;
         Bitmap a = PICS.get(key + "|0"), b = PICS.get(key + "|1");
         if (a != null && (side == 0 || b != null)) return side == 0 ? new Bitmap[]{a} : new Bitmap[]{a, b};
-        Bitmap full = clockFull(flag, phase, scene);
+        Bitmap full = clockFull(flag, phase);
         Bitmap[] out;
         if (side == 0) {
             out = new Bitmap[]{full};
@@ -290,7 +290,7 @@ final class CurrencyView {
     }
 
     /** Flag faded into the night with the sun-phase band of light below (one exact boundary). */
-    private static Bitmap clockFull(Bitmap flag, int phase, Scene scene) {
+    private static Bitmap clockFull(Bitmap flag, int phase) {
         final int w = CW, h = CH;
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
@@ -310,7 +310,7 @@ final class CurrencyView {
         gp.setShader(new LinearGradient(0, 0, 0, split, 0x66000000, Theme.DEEP, Shader.TileMode.CLAMP));
         c.drawRect(fr, gp);
         // The sun-phase band is a strip of light: it glows up into the haze above it.
-        int band = phaseColor(phase, scene);
+        int band = phaseColor(phase);
         float rise = h * 0.3f;
         Paint haze = new Paint(Paint.DITHER_FLAG);
         haze.setShader(new LinearGradient(0, split - rise, 0, split, band & 0x00FFFFFF, (band & 0x00FFFFFF) | 0x4D000000,

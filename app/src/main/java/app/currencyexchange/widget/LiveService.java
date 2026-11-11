@@ -24,8 +24,8 @@ import java.time.ZoneId;
  * Keeps all widgets live while the screen is on, independent of alarms (which some phones delay):
  *  - on every screen-on and at every minute boundary it repaints the clocks (Currency + Calendar + SBB),
  *  - for the SBB clock it also pushes frames for the second hand (about 10 a second, or 1 a second),
- *  - for the Sound widget it pushes frames of its light show (about 15 a second while something plays,
- *    10 while it plays its patterns), and listens to the sound while something plays.
+ *  - for the Sound widget it pushes frames of its light show (about 20 a second while something plays,
+ *    12 while it plays its patterns), and listens to the sound while something plays.
  * With the screen off it does nothing at all, so there is no battery cost; the alarm chains stay as a backup.
  */
 public class LiveService extends Service {
@@ -216,7 +216,7 @@ public class LiveService extends Service {
             if (wave == null) wave = new SoundWave(ctx);
             boolean busy = false;
             try {
-                if (now - soundPoll >= 500 || SoundWidgetProvider.pollSoon()) {
+                if (now - soundPoll >= 500) {
                     soundPoll = now;
                     if (SoundWidgetProvider.refresh(ctx)) SoundWidgetProvider.updateAll(ctx); // a new app to open on tap
                     if (SoundWidgetProvider.playing()) {
@@ -232,9 +232,9 @@ public class LiveService extends Service {
                     }
                 }
                 busy = SoundWidgetProvider.step(soundIds, dt, wave);
-                if (!SoundWidgetProvider.quiet()) SoundWidgetProvider.pushFrames(ctx, soundIds);
+                SoundWidgetProvider.pushFrames(ctx, soundIds);
             } catch (Throwable ignored) { }
-            handler.postDelayed(this, busy ? 66L : 100L); // 15 frames a second with the sound, 10 for the patterns
+            handler.postDelayed(this, busy ? 50L : 83L); // 20 frames a second with the sound, 12 for the patterns
         }
     };
 

@@ -121,7 +121,24 @@
                 android:resource="@xml/widget_info_sound" />
         </receiver>
 
-        <!-- Notification access lets the Sound widget see what's playing in other apps; it reads no notifications -->
+        <receiver
+            android:name=".PlayerWidgetProvider"
+            android:exported="true"
+            android:label="@string/player_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_player" />
+        </receiver>
+
+        <!-- Notification access lets the Sound and Music widgets see what's playing in other apps; it reads no
+             notifications -->
         <service
             android:name=".MediaListener"
             android:exported="true"
