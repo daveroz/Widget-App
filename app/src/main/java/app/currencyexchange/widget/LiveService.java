@@ -16,13 +16,16 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.os.SystemClock;
 
 import java.time.ZoneId;
 
 /**
  * Keeps all widgets live while the screen is on, independent of alarms (which some phones delay):
  *  - on every screen-on and at every minute boundary it repaints the clocks (Currency + Calendar + SBB),
- *  - for the SBB clock it also pushes frames for the second hand (about 10 a second, or 1 a second).
+ *  - for the SBB clock it also pushes frames for the second hand (about 10 a second, or 1 a second),
+ *  - for the Sound widget it pushes frames of its light show (about 20 a second while something plays,
+ *    12 while it plays its patterns), and listens to the sound while something plays.
  * With the screen off it does nothing at all, so there is no battery cost; the alarm chains stay as a backup.
  */
 public class LiveService extends Service {
@@ -34,13 +37,18 @@ public class LiveService extends Service {
     private BroadcastReceiver screen;
     private Bitmap buf;
     private boolean on;
+    private SoundWave wave;
+    private long soundLast, soundPoll;
+    private int[] soundIds = new int[0];
+    private String soundStatus = "";
 
     // ------------------------------------------------------------------ control
 
     static boolean wanted(Context ctx) {
-        // Only the moving SBB second hand needs a running service (Android requires a notification for that).
-        // World clocks and the calendar run on exact alarms alone, with no notification.
-        return SbbWidgetProvider.widgetIds(ctx).length > 0 && !"minute".equals(Store.sbbMode(ctx));
+        // Only the moving SBB second hand and the Sound widget's lights need a running service (Android requires a
+        // notification for that). World clocks and the calendar run on exact alarms alone, with no notification.
+        return (SbbWidgetProvider.widgetIds(ctx).length > 0 && !"minute".equals(Store.sbbMode(ctx)))
+                || SoundWidgetProvider.widgetIds(ctx).length > 0;
     }
 
     static void ensure(Context ctx) {
@@ -96,7 +104,10 @@ public class LiveService extends Service {
             return START_NOT_STICKY;
         }
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        if (pm.isInteractive()) start();
+        if (pm.isInteractive()) {
+            start();
+            kick(); // a widget may have just been added: make sure its loop runs
+        }
         return START_STICKY;
     }
 
@@ -123,15 +134,31 @@ public class LiveService extends Service {
         Notification n = new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_clock)
                 .setContentTitle("Widgets running")
-                .setContentText("Updates the clocks every minute while the screen is on")
+                .setContentText("Keeps the widgets moving while the screen is on")
                 .setContentIntent(open)
                 .setOngoing(true)
                 .build();
         if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            // The Sound widget hears the phone's sound only while this runs as a "microphone" service. It never opens
+            // a microphone: Android files the sound-levels permission under it. Android only allows that type while
+            // the permission is on (and refuses it in some cases started from the background): then carry on without.
+            int type = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE;
+            if (wantsSound(this)) {
+                try {
+                    startForeground(NOTIF_ID, n, type | ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+                    return;
+                } catch (RuntimeException ignored) { }
+            }
+            startForeground(NOTIF_ID, n, type);
         } else {
             startForeground(NOTIF_ID, n);
         }
+    }
+
+    /** Whether there's a Sound widget that may listen to the phone's sound. */
+    private static boolean wantsSound(Context ctx) {
+        return SoundWidgetProvider.widgetIds(ctx).length > 0
+                && ctx.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED;
     }
 
     // ------------------------------------------------------------------ loops
@@ -141,6 +168,16 @@ public class LiveService extends Service {
         on = true;
         handler.post(minuteLoop);
         handler.post(frameLoop);
+        handler.post(soundLoop);
+    }
+
+    /** Restarts the frame loops, which stop by themselves while they have no widget to move. */
+    private void kick() {
+        if (!on || handler == null) return;
+        handler.removeCallbacks(frameLoop);
+        handler.post(frameLoop);
+        handler.removeCallbacks(soundLoop);
+        handler.post(soundLoop);
     }
 
     private void stopLoops() {
@@ -148,8 +185,58 @@ public class LiveService extends Service {
         if (handler != null) {
             handler.removeCallbacks(minuteLoop);
             handler.removeCallbacks(frameLoop);
+            handler.removeCallbacks(soundLoop);
+            handler.post(this::stopListening);
         }
     }
+
+    private void stopListening() {
+        if (wave != null) wave.stop();
+        soundLast = 0;
+        soundPoll = 0;
+    }
+
+    /**
+     * The Sound widget's light show: about twice a second it looks at what's playing (and listens while something
+     * plays), and every frame it moves the lights and the record on and sends the new picture.
+     */
+    private final Runnable soundLoop = new Runnable() {
+        @Override
+        public void run() {
+            if (!on) return;
+            Context ctx = getApplicationContext();
+            long now = SystemClock.uptimeMillis();
+            if (soundPoll == 0 || now - soundPoll >= 500) soundIds = SoundWidgetProvider.widgetIds(ctx);
+            if (soundIds.length == 0) {
+                stopListening();
+                return; // nothing to move; kick() restarts this when one is added
+            }
+            float dt = soundLast == 0 ? 0f : Math.min(0.1f, (now - soundLast) / 1000f);
+            soundLast = now;
+            if (wave == null) wave = new SoundWave(ctx);
+            boolean busy = false;
+            try {
+                if (now - soundPoll >= 500) {
+                    soundPoll = now;
+                    if (SoundWidgetProvider.refresh(ctx)) SoundWidgetProvider.updateAll(ctx); // a new app to open on tap
+                    if (SoundWidgetProvider.playing()) {
+                        wave.start();
+                        wave.setPlaying(true);
+                    } else {
+                        wave.stop();
+                    }
+                    String st = wave.status().name();
+                    if (!st.equals(soundStatus)) {
+                        soundStatus = st;
+                        Store.sp(ctx).edit().putString("soundStatus", st).apply();
+                    }
+                }
+                busy = SoundWidgetProvider.step(soundIds, dt, wave);
+                SoundWidgetProvider.pushFrames(ctx, soundIds);
+            } catch (Throwable ignored) { }
+            handler.postDelayed(this, busy ? 50L : 83L);
+        }
+    };
 
     /** Immediately, then at every minute boundary: repaint Currency + Calendar (+ a still SBB picture). */
     private final Runnable minuteLoop = new Runnable() {
