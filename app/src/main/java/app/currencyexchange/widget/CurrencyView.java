@@ -79,6 +79,13 @@ final class CurrencyView {
     static RemoteViews build(Context ctx, int k, int widthDp) {
         Typeface reg = Theme.uiMedium(ctx), bold = Theme.uiBold(ctx);
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
+        // The light all the widgets share: the playing song's colour, or amber.
+        Scene scene = Ambience.scene();
+        int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
+        // the weather strip's panel (just inside the clocks card's 1 dp border), and its icons in the light
+        rv.setImageViewBitmap(R.id.hdr_bg, Stage.panel(scene, rowW - 2, 30, 1.5f, Stage.roundTop(27),
+                0xF00A101B, Stage.NIGHT));
+        for (int icon : new int[]{R.id.hdr_wx, R.id.ic0, R.id.ic1, R.id.ic2}) rv.setInt(icon, "setColorFilter", scene.label);
 
         // header where you are, four equal slots: weather now (icon + temperature), chance of rain in the coming
         // hours, sunrise, sunset
@@ -117,7 +124,7 @@ final class CurrencyView {
             }
             ZonedDateTime now = ZonedDateTime.now(z);
             int phase = SunCalc.phase(lat, lon, z, now);
-            Bitmap[] pcs = clockPieces(Flags.flag(ctx, cc), phase, i == 0 ? 1 : (i == 3 ? 2 : 0));
+            Bitmap[] pcs = clockPieces(Flags.flag(ctx, cc), phase, i == 0 ? 1 : (i == 3 ? 2 : 0), scene);
             if (i == 0) {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_0a"), pcs[0]);
                 rv.setImageViewBitmap(id(ctx, "clk_bg_0"), pcs[1]);
@@ -137,7 +144,6 @@ final class CurrencyView {
         Bitmap visaLogo = visaLogo(ctx);
         Bitmap toFlag = flagOrLabel(ctx, Util.countryOfCurrency(to), to);
         JSONObject hist = Store.hist(ctx, to);
-        int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
         for (int i = 0; i < k; i++) {
             String from = Store.from(ctx, i).trim().toUpperCase(Locale.ROOT);
             rv.setOnClickPendingIntent(id(ctx, "row_" + i), ConverterActivity.intentFor(ctx, i)); // tap a row: converter
@@ -146,9 +152,11 @@ final class CurrencyView {
             rv.setImageViewBitmap(id(ctx, "fl_b_" + i), toFlag);
             txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, Theme.TEXT, 15, false);
             double market = Store.rate(ctx, from, to);
-            // the last month as a soft area chart behind the row (the picture fills the row inside its 1 dp border)
+            // the row's panel in the shared light, with the last month as a soft area chart over it (the picture fills
+            // the row inside its 1 dp border)
             double[][] trend = Trend.series(hist, from, market);
-            if (trend != null) rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW - 2, ROW_DP - 2));
+            rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW - 2, ROW_DP - 2, scene, i % 2 == 0));
+            rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), TextBmp.tight(reg, CITY_SP, "Market", Theme.MUTED));
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), TextBmp.tight(reg, HEADER_SP, Util.fmt0(market), Theme.TEXT));
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
@@ -228,9 +236,10 @@ final class CurrencyView {
         return out;
     }
 
-    private static int phaseColor(int phase) {
+    /** The sun-phase strip: daytime is the shared light (the playing song's colour, or amber); the rest keep theirs. */
+    private static int phaseColor(int phase, Scene scene) {
         switch (phase) {
-            case SunCalc.DAY: return Theme.AMBER;
+            case SunCalc.DAY: return scene.key;
             case SunCalc.SUNSET: return 0xFFE2553A;  // golden hour / sunset / sunrise
             case SunCalc.BLUE: return 0xFF3F6FD8;    // blue hour
             default: return Theme.NIGHT;
@@ -244,11 +253,11 @@ final class CurrencyView {
     private static final float INNER_R = 27 * PXDP; // card radius just inside its 1 dp border
 
     /** side 0: middle cell {full}; 1: left cell {corner, rest}; 2: right cell {rest, corner}. */
-    private static Bitmap[] clockPieces(Bitmap flag, int phase, int side) {
-        String key = "c|" + System.identityHashCode(flag) + "|" + phase + "|" + side;
+    private static Bitmap[] clockPieces(Bitmap flag, int phase, int side, Scene scene) {
+        String key = "c|" + System.identityHashCode(flag) + "|" + phase + "|" + side + "|" + scene.key;
         Bitmap a = PICS.get(key + "|0"), b = PICS.get(key + "|1");
         if (a != null && (side == 0 || b != null)) return side == 0 ? new Bitmap[]{a} : new Bitmap[]{a, b};
-        Bitmap full = clockFull(flag, phase);
+        Bitmap full = clockFull(flag, phase, scene);
         Bitmap[] out;
         if (side == 0) {
             out = new Bitmap[]{full};
@@ -281,7 +290,7 @@ final class CurrencyView {
     }
 
     /** Flag faded into the night with the sun-phase band of light below (one exact boundary). */
-    private static Bitmap clockFull(Bitmap flag, int phase) {
+    private static Bitmap clockFull(Bitmap flag, int phase, Scene scene) {
         final int w = CW, h = CH;
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
@@ -301,7 +310,7 @@ final class CurrencyView {
         gp.setShader(new LinearGradient(0, 0, 0, split, 0x66000000, Theme.DEEP, Shader.TileMode.CLAMP));
         c.drawRect(fr, gp);
         // The sun-phase band is a strip of light: it glows up into the haze above it.
-        int band = phaseColor(phase);
+        int band = phaseColor(phase, scene);
         float rise = h * 0.3f;
         Paint haze = new Paint(Paint.DITHER_FLAG);
         haze.setShader(new LinearGradient(0, split - rise, 0, split, band & 0x00FFFFFF, (band & 0x00FFFFFF) | 0x4D000000,

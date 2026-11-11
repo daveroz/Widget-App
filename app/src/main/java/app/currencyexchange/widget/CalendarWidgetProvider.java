@@ -102,11 +102,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
         for (int id : ids) {
             RemoteViews rv;
+            android.graphics.Bitmap bg = background(ctx, awm, id, heightFor(2)); // one picture shared by every size variant
             if (android.os.Build.VERSION.SDK_INT >= 31) {
                 // The launcher picks the variant that fits the real widget size and re-picks when it is resized.
                 java.util.Map<android.util.SizeF, RemoteViews> map = new java.util.LinkedHashMap<>();
                 for (int k = 0; k < LAYOUTS.length; k++) {
-                    map.put(new android.util.SizeF(110f, heightFor(k)), build(ctx, k, events, allowed, open, addPi));
+                    map.put(new android.util.SizeF(110f, heightFor(k)), build(ctx, k, events, allowed, open, addPi, bg));
                 }
                 rv = new RemoteViews(map);
             } else {
@@ -117,7 +118,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                         : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 208);
                 int k = 0;
                 for (int i = 0; i < LAYOUTS.length; i++) if (heightFor(i) <= hdp) k = i;
-                rv = build(ctx, k, events, allowed, open, addPi);
+                rv = build(ctx, k, events, allowed, open, addPi, bg);
             }
             awm.updateAppWidget(id, rv);
         }
@@ -134,8 +135,11 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     }
 
     private static RemoteViews build(Context ctx, int k, List<CalendarData.Event> events, boolean allowed,
-                                     PendingIntent open, PendingIntent add) {
+                                     PendingIntent open, PendingIntent add, android.graphics.Bitmap bg) {
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k]);
+        // The light all the widgets share (the playing song's colour, or amber): the panel's washes, today, the accents.
+        Scene scene = Ambience.scene();
+        if (bg != null) rv.setImageViewBitmap(R.id.cal_bg, bg);
         android.graphics.Typeface tf = Theme.uiMedium(ctx);
         LocalDate today = LocalDate.now();
         long now = System.currentTimeMillis();
@@ -154,9 +158,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             boolean isToday = d.equals(today);
             int lab = rid(ctx, "wk_label_" + i), num = rid(ctx, "wk_num_" + i);
             t(rv, tf, lab, d.format(java.time.format.DateTimeFormatter.ofPattern("EEE", loc)).toUpperCase(loc),
-                    isToday ? Theme.AMBER_LIGHT : Theme.MUTED, 9.5f, 0.8f, false);
-            t(rv, tf, num, String.valueOf(d.getDayOfMonth()), isToday ? 0xFFFFFFFF : Theme.TEXT_SOFT, 13, 0.58f, false);
-            rv.setInt(num, "setBackgroundResource", isToday ? R.drawable.cal_today : 0);
+                    isToday ? scene.label : Theme.MUTED, 9.5f, 0.8f, false);
+            if (isToday) { // lit in the light: a touch of it inside a ring of it
+                rv.setImageViewBitmap(num, lit(scene, TextBmp.make(tf, 13 * 2.5f, 0.58f, false, false, String.valueOf(d.getDayOfMonth()), 0xFFFFFFFF)));
+            } else {
+                t(rv, tf, num, String.valueOf(d.getDayOfMonth()), Theme.TEXT_SOFT, 13, 0.58f, false);
+            }
         }
 
         // events
@@ -176,7 +183,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             }
             CalendarData.Event ev = events.get(i);
             rv.setViewVisibility(bar, android.view.View.VISIBLE);
-            rv.setInt(bar, "setColorFilter", ev.color != 0 ? (0xFF000000 | ev.color) : Theme.AMBER);
+            rv.setInt(bar, "setColorFilter", ev.color != 0 ? (0xFF000000 | ev.color) : scene.key);
             String tm;
             if (ev.allDay) tm = "All day";
             else {
@@ -196,7 +203,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                     if (mins <= 90) h = "in " + mins + (mins == 1 ? " minute" : " minutes");
                 }
             }
-            t(rv, tf, hint, h, Theme.AMBER_LIGHT, 11, 0.8f, true);
+            t(rv, tf, hint, h, scene.label, 11, 0.8f, true);
             t(rv, tf, title, Util.ellipsize(Util.capWords(ev.title), 30), Theme.TEXT, 15, 0.8f, false);
         }
         int hidden = allowed ? events.size() - k : 0;
@@ -209,6 +216,35 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         rv.setOnClickPendingIntent(R.id.panel, open);
         rv.setOnClickPendingIntent(R.id.btn_add, add);
         return rv;
+    }
+
+    /** Today's number, lit: a touch of the light inside a ring of it, the number white on top. */
+    private static android.graphics.Bitmap lit(Scene scene, android.graphics.Bitmap number) {
+        int s = Math.max(number.getWidth(), number.getHeight());
+        android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas c = new android.graphics.Canvas(b);
+        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        float ring = s * 0.05f, r = s / 2f - ring;
+        p.setColor(Scene.alpha(scene.key, 0.25f));
+        c.drawCircle(s / 2f, s / 2f, r, p);
+        p.setStyle(android.graphics.Paint.Style.STROKE);
+        p.setStrokeWidth(ring);
+        p.setColor(Scene.alpha(scene.key, 0.9f));
+        c.drawCircle(s / 2f, s / 2f, r, p);
+        c.drawBitmap(number, (s - number.getWidth()) / 2f, (s - number.getHeight()) / 2f, null);
+        return b;
+    }
+
+    /** The panel picture for a widget: night glass lit by the shared light, at the widget's size on the home screen. */
+    private static android.graphics.Bitmap background(Context ctx, AppWidgetManager awm, int id, int fallbackHeightDp) {
+        Bundle o = awm.getAppWidgetOptions(id);
+        boolean land = ctx.getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        int w = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH : AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
+        int h = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
+        if (w <= 0) w = 320;
+        if (h <= 0) h = fallbackHeightDp;
+        return Stage.panel(Ambience.scene(), w, h, 1.25f, Stage.round(28), 0xF00C1322, Stage.NIGHT);
     }
 
     private static PendingIntent broadcast(Context ctx, String action, int code) {
