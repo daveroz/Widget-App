@@ -23,7 +23,7 @@ final class SoundControls {
     /** Pixels per dp the pictures are drawn at. */
     private static final float PX = 3f;
     /** Height of the progress picture, in dp. */
-    static final int BAR_DP = 24;
+    static final int BAR_DP = 28;
 
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(12);
 
@@ -84,7 +84,7 @@ final class SoundControls {
         Canvas c = new Canvas(b);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(Theme.TEXT_SOFT);
-        float cx = s / 2f, u = s * 0.17f;
+        float cx = s / 2f, u = s * 0.18f;
         float dir = next ? 1 : -1;
         Path t = new Path();
         t.moveTo(cx - dir * u * 0.9f, cx - u);
@@ -109,23 +109,23 @@ final class SoundControls {
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         line.setStrokeCap(Paint.Cap.ROUND);
         line.setColor(Theme.BORDER_STRONG);
-        line.setStrokeWidth(Math.max(1f, px));
+        line.setStrokeWidth(Math.max(1f, 1.4f * px));
         c.drawLine(x0, y, x1, y, line);
         if (head > x0) {
             line.setColor(Scene.alpha(scene.key, 0.22f));
-            line.setStrokeWidth(5 * px);
+            line.setStrokeWidth(6 * px);
             c.drawLine(x0, y, head, y, line); // the glow around it
             line.setShader(new LinearGradient(x0, 0, Math.max(x0 + 1, head), 0, Scene.alpha(scene.key, 0.5f), scene.key,
                     Shader.TileMode.CLAMP));
-            line.setStrokeWidth(1.8f * px);
+            line.setStrokeWidth(2.4f * px);
             c.drawLine(x0, y, head, y, line);
             line.setShader(null);
         }
         // where the song is: an LED-white point with a little glow, which a tap on the line moves
         line.setColor(Scene.alpha(scene.key, 0.35f));
-        c.drawCircle(head, y, 4.5f * px, line);
+        c.drawCircle(head, y, 5.5f * px, line);
         line.setColor(scene.led);
-        c.drawCircle(head, y, 2.6f * px, line);
+        c.drawCircle(head, y, 3.4f * px, line);
         return b;
     }
 

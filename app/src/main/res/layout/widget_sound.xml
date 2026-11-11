@@ -16,9 +16,9 @@
     <LinearLayout
         android:id="@+id/controls"
         android:layout_width="match_parent"
-        android:layout_height="36dp"
+        android:layout_height="46dp"
         android:layout_gravity="bottom"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="6dp"
         android:layout_marginEnd="14dp"
         android:layout_marginBottom="8dp"
         android:baselineAligned="false"
@@ -28,29 +28,29 @@
 
         <ImageView
             android:id="@+id/btn_prev"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             android:contentDescription="@string/sound_prev"
             android:scaleType="fitCenter" />
 
         <ImageView
             android:id="@+id/btn_play"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
             android:contentDescription="@string/sound_play_pause"
             android:scaleType="fitCenter" />
 
         <ImageView
             android:id="@+id/btn_next"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             android:contentDescription="@string/sound_next"
             android:scaleType="fitCenter" />
 
         <ImageView
             android:id="@+id/t_elapsed"
             android:layout_width="wrap_content"
-            android:layout_height="8dp"
+            android:layout_height="9dp"
             android:layout_marginStart="8dp"
             android:adjustViewBounds="true"
             android:importantForAccessibility="no"
@@ -67,7 +67,7 @@
             <ImageView
                 android:id="@+id/bar"
                 android:layout_width="match_parent"
-                android:layout_height="24dp"
+                android:layout_height="28dp"
                 android:layout_gravity="center_vertical"
                 android:contentDescription="@string/sound_seek"
                 android:scaleType="fitXY" />
@@ -203,7 +203,7 @@
         <ImageView
             android:id="@+id/t_total"
             android:layout_width="wrap_content"
-            android:layout_height="8dp"
+            android:layout_height="9dp"
             android:adjustViewBounds="true"
             android:importantForAccessibility="no"
             android:scaleType="fitEnd" />

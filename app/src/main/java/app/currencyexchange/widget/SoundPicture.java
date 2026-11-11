@@ -26,8 +26,8 @@ import java.util.Random;
 final class SoundPicture {
     /** Pictures are drawn at this many pixels per dp at most. */
     static final float MAX_DP = 2f;
-    /** The room the controls take along the bottom while something plays (36 dp row, 8 dp below, 4 dp above). */
-    static final float CONTROLS_DP = 48f;
+    /** The room the controls take along the bottom while something plays (46 dp row, 8 dp below, 4 dp above). */
+    static final float CONTROLS_DP = 58f;
 
     private final SoundLights lights = new SoundLights();
     private final SoundRecord record = new SoundRecord();
@@ -172,8 +172,8 @@ final class SoundPicture {
             detail = track.artist;
         }
         // Three lines when there's room, else the label and the title; centred in the band.
-        boolean three = detail != null && !detail.isEmpty() && band >= 46 * dp;
-        float block = three ? 47 * dp : 30 * dp;
+        boolean three = detail != null && !detail.isEmpty() && band >= 42 * dp;
+        float block = three ? 44 * dp : 29 * dp;
         // the label, in spaced capitals: what's happening in the light's colour, the app in grey
         float y = top + Math.max(0, (band - block) / 2) + 8 * dp;
         text.setTypeface(Theme.uiBold(ctx));
@@ -194,14 +194,14 @@ final class SoundPicture {
         text.setLetterSpacing(0f);
         text.setTextSize(16 * dp);
         text.setColor(Theme.TEXT);
-        y += 21 * dp;
+        y += 20 * dp;
         c.drawText(TextUtils.ellipsize(title, text, width, TextUtils.TruncateAt.END).toString(), x, y, text);
         // the artist
         if (three) {
             text.setTypeface(Theme.uiMedium(ctx));
             text.setTextSize(12 * dp);
             text.setColor(Theme.MUTED);
-            y += 17 * dp;
+            y += 16 * dp;
             c.drawText(TextUtils.ellipsize(detail, text, width, TextUtils.TruncateAt.END).toString(), x, y, text);
         }
     }
