@@ -37,6 +37,8 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     private static boolean access;
     /** Which app a tap opens (a full update is sent when it changes). */
     private static String state = "";
+    /** When something was last seen playing or paused (to ride over the gap between songs). */
+    private static long seenAt;
     @Override
     public void onUpdate(Context ctx, AppWidgetManager awm, int[] ids) {
         refresh(ctx);
@@ -90,6 +92,9 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     static synchronized boolean refresh(Context ctx) {
         access = NowPlaying.hasAccess(ctx);
         NowPlaying.Track now = access ? NowPlaying.current(ctx) : null;
+        long t = NowPlaying.now();
+        if (now != null) seenAt = t;
+        else if (track != null && access && t - seenAt < NowPlaying.BLIP_MS) now = track; // a moment's silence between songs
         track = now;
         scene = Ambience.lightFor(ctx, now);
         Ambience.show(ctx, scene); // the other widgets share the light

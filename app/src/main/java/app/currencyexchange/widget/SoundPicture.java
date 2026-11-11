@@ -31,6 +31,9 @@ final class SoundPicture {
     private boolean access = true;
     /** The cover, and a small copy of it for drawing every frame (players send them up to 1000 px or more). */
     private Bitmap coverFrom, coverSmall;
+    /** When the LP's cover was last seen, and from which app (to ride over the gap between songs). */
+    private long coverAt;
+    private String coverApp;
 
     /** What's playing (null for nothing), its light, and whether Worldly may see other apps' media. */
     void set(NowPlaying.Track now, Scene light, boolean mediaAccess) {
@@ -41,6 +44,12 @@ final class SoundPicture {
         if (now != null && now.hasCover()) {
             record.show(small(now.art), now.playing, now.song());
             record.setTint(light.key);
+            coverAt = NowPlaying.now();
+            coverApp = now.packageName;
+        } else if (now != null && record.hasCover() && now.packageName.equals(coverApp)
+                && NowPlaying.now() - coverAt < NowPlaying.BLIP_MS) {
+            // The next song's title came before its cover: keep the LP as it is until the cover arrives, when the
+            // record slides back, the sleeve changes and the new record slides out.
         } else {
             record.clear();
         }
