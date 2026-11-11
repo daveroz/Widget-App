@@ -3,10 +3,7 @@ package app.currencyexchange.widget;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
-import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.Shader;
 import android.text.TextPaint;
 
 
@@ -14,8 +11,8 @@ import android.text.TextPaint;
  * One Sound widget's picture, in the Deco launcher's look: the night glass panel with a wash of the
  * light; on top, the cover as an LP on the right for music (a square cover) and on the left what's
  * playing: a small label in spaced capitals ("Now playing · Spotify"), the title and the artist;
- * below, the wall of lamps from margin to margin, a little of it behind the LP; and a progress line
- * lit in the light along the bottom. (The Music widget has the controls.) Videos (a wide picture) and apps without a cover get the light show alone, in the app's
+ * below, the wall of lamps from margin to margin, a little of it behind the LP, down to the bottom.
+ * (The Music widget has the controls and how far through the song is.) Videos (a wide picture) and apps without a cover get the light show alone, in the app's
  * colour. With nothing playing, the wall plays its patterns in Worldly's amber.
  */
 final class SoundPicture {
@@ -25,7 +22,6 @@ final class SoundPicture {
     private final SoundLights lights = new SoundLights();
     private final SoundRecord record = new SoundRecord();
     private final TextPaint text = Words.paint();
-    private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF box = new RectF();
     private final RectF wall = new RectF();
     private final RectF sleeve = new RectF();
@@ -102,10 +98,9 @@ final class SoundPicture {
         Stage.paint(c, box, corners, scene, bass, Stage.NIGHT, Stage.NIGHT, 0f, true);
 
         // Zones: on top, the cover with its LP on the right and the words on the left; below, the wall of lamps from
-        // margin to margin, its top a little behind the LP; along the bottom, how far through.
+        // margin to margin, its top a little behind the LP, down to the bottom margin.
         float pad = 14 * dp;
-        boolean progress = track != null && track.duration > 0;
-        float bottom = h - pad - (progress ? 18 * dp : 0);
+        float bottom = h - pad;
         // The LP grows with a taller widget, up to about a third of its width.
         float most = Math.max(84 * dp, Math.min(w * 0.34f, 130 * dp));
         float size = Math.max(28 * dp, Math.min((bottom - pad) * 0.56f, most));
@@ -120,44 +115,9 @@ final class SoundPicture {
 
         record.draw(c, sleeve, dp, scene);
         Words.draw(ctx, c, text, Words.of(track, access, "Sound", "Music from any app lights this up"), scene, pad, pad, wall.top - pad, textRight - pad, dp);
-        if (progress) drawProgress(ctx, c, pad, w - pad, h - pad - 4 * dp, dp);
         c.restore();
         Stage.edge(c, box, corners, Math.max(1f, dp));
         return out;
     }
 
-    /** How far through: the time so far, a hairline lit from the left in the light, and the length. */
-    private void drawProgress(Context ctx, Canvas c, float from, float to, float y, float dp) {
-        long at = track.positionAt(NowPlaying.now());
-        String done = SoundControls.clock(at), all = SoundControls.clock(track.duration);
-        text.setTypeface(Theme.uiMedium(ctx));
-        text.setTextSize(11 * dp);
-        text.setLetterSpacing(0.04f);
-        text.setColor(Theme.MUTED);
-        float baseline = y + 4 * dp;
-        c.drawText(done, from, baseline, text);
-        float allW = text.measureText(all);
-        c.drawText(all, to - allW, baseline, text);
-        text.setLetterSpacing(0f);
-        float x0 = from + text.measureText("00:00") + 8 * dp, x1 = to - allW - 8 * dp;
-        if (x1 <= x0) return;
-        float f = Math.max(0f, Math.min(1f, at / (float) track.duration));
-        float head = x0 + (x1 - x0) * f;
-        line.setShader(null);
-        line.setStrokeCap(Paint.Cap.ROUND);
-        line.setColor(Theme.BORDER_STRONG);
-        line.setStrokeWidth(Math.max(1f, dp));
-        c.drawLine(x0, y, x1, y, line);
-        if (head <= x0) return;
-        line.setColor(Scene.alpha(scene.key, 0.22f));
-        line.setStrokeWidth(5 * dp);
-        c.drawLine(x0, y, head, y, line); // the glow around it
-        line.setShader(new LinearGradient(x0, 0, Math.max(x0 + 1, head), 0, Scene.alpha(scene.key, 0.5f), scene.key,
-                Shader.TileMode.CLAMP));
-        line.setStrokeWidth(1.6f * dp);
-        c.drawLine(x0, y, head, y, line);
-        line.setShader(null);
-        line.setColor(scene.led);
-        c.drawCircle(head, y, 2f * dp, line);
-    }
 }

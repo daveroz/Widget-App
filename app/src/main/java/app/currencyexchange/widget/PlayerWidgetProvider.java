@@ -18,10 +18,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The Music widget: works whatever is playing in any app, in the light of what's playing (the cover's colour, the
- * app's, or amber). The cover and what's playing on top; along the bottom previous, play / pause, next, the time so
- * far, the progress line and the length. A tap on the progress line jumps the song to that point; a tap on the rest
- * opens the playing app.
+ * The Music widget: the controls for whatever is playing in any app, in the light of what's playing (the cover's
+ * colour, the app's, or amber): previous, play / pause, next, the time so far, the progress line and the length. A
+ * tap on the progress line jumps the song to that point; a tap on the panel around them opens the playing app.
  *
  * It's still between changes (no animation), so taps get the home screen's full attention. The media listener
  * redraws it when the song or the player changes, and moves the progress on once a second while something plays.
@@ -120,7 +119,6 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
                 RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.widget_player);
                 synchronized (PlayerWidgetProvider.class) {
                     rv.setImageViewBitmap(R.id.img, picture(ctx, id));
-                    rv.setOnClickPendingIntent(R.id.root, tapIntent(ctx));
                     controls(ctx, rv, id, true);
                 }
                 awm.updateAppWidget(id, rv);
@@ -253,11 +251,10 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
         return Math.min(2f, (float) Math.sqrt(MOST_PIXELS / Math.max(1, wDp * hDp)));
     }
 
-    /** What the picture shows: it's drawn again only when this changes. */
+    /** What the picture shows (the panel in the light, or "Nothing playing"): it's drawn again only when this changes. */
     private static String pictureKey(int id) {
         float[] s = SIZES.get(id);
-        return (track == null ? "none" : track.song() + "|" + System.identityHashCode(track.art) + "|" + track.playing
-                + "|" + (track.duration > 0)) + "|" + scene.key + "|" + access + "|" + (s == null ? "" : s[0] + "x" + s[1]);
+        return (track == null ? "none" : "track") + "|" + scene.key + "|" + access + "|" + (s == null ? "" : s[0] + "x" + s[1]);
     }
 
     private static Bitmap picture(Context ctx, int id) {
@@ -273,6 +270,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
      */
     private static boolean controls(Context ctx, RemoteViews rv, int id, boolean full) {
         NowPlaying.Track t = track;
+        if (full) rv.setOnClickPendingIntent(R.id.root, tapIntent(ctx)); // the panel around the controls
         float[] size = size(ctx, id);
         int wDp = Math.round(size[0] / size[2]);
         long at = t == null ? 0 : t.positionAt(NowPlaying.now());
@@ -287,7 +285,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
         boolean timed = t.duration > 0;
         boolean times = timed && wDp >= 300;
         // The line's width: what's left of the row after its margins, the buttons and the times.
-        float used = 6 + 14 + 46 + 50 + 46;
+        float used = 10 + 18 + 46 + 50 + 46;
         Bitmap done = null, all = null;
         if (times) {
             done = TextBmp.tight(Theme.uiMedium(ctx), 11, SoundControls.clock(at), Theme.MUTED);
