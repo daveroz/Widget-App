@@ -9,4 +9,8 @@
     <string name="cal_desc">Week row and your upcoming events</string>
     <string name="sound_name">Sound</string>
     <string name="sound_desc">The Deco light show: a wall of lights that follows what\'s playing, in its colour</string>
+    <string name="sound_prev">Previous</string>
+    <string name="sound_play_pause">Play or pause</string>
+    <string name="sound_next">Next</string>
+    <string name="sound_seek">Song position: tap to jump</string>
 </resources>
