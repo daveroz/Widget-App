@@ -82,6 +82,12 @@ final class NowPlaying {
 
     /** What's playing now, or paused, or null for nothing (or no access). */
     static Track current(Context ctx) {
+        MediaController best = controller(ctx);
+        return best == null ? null : snapshot(ctx, best);
+    }
+
+    /** The player of what's playing now (or paused), for the widget's controls, or null. */
+    static MediaController controller(Context ctx) {
         MediaSessionManager sessions = ctx.getSystemService(MediaSessionManager.class);
         if (sessions == null) return null;
         List<MediaController> controllers;
@@ -99,7 +105,7 @@ final class NowPlaying {
             }
             if (best == null && !stopped(c)) best = c;
         }
-        return best == null ? null : snapshot(ctx, best);
+        return best;
     }
 
     private static boolean isPlaying(MediaController c) {

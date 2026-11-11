@@ -23,15 +23,16 @@ import android.graphics.RectF;
  *
  * Dark lamps keep a faint ember, so the panels still read. Each lit lamp is sharp, white-hot at full
  * strength, with a soft round glow, and lit panels throw soft beams down into the haze. Lamps behind
- * text can be dimmer, so it stays easy to read. A short wall has fewer rows, so its lamps stay a good
- * size.
+ * text can be dimmer, so it stays easy to read. The lamps are about the same size on every widget: a
+ * short wall has fewer rows, a tall one more.
  */
 final class SoundLights {
-    /** Up to this many rows, as on the launcher; a short wall has fewer, so its lamps stay a good size. */
-    static final int MAX_ROWS = 10;
-    private static final int MIN_ROWS = 4;
-    /** The smallest distance from one lamp to the next, in dp. */
-    private static final float MIN_PITCH_DP = 8f;
+    /**
+     * The wall has as many rows as fit at about this distance from one lamp to the next (in dp), so the lamps are
+     * the same size on every widget: a short wall has fewer rows, a tall one more, as tall as it is.
+     */
+    private static final float PITCH_DP = 10f;
+    private static final int MIN_ROWS = 4, MAX_ROWS = 24;
     /** Strips are this many lamps wide, with a dark column between them. */
     private static final int STRIP = 3;
     /** Each lamp's size, as a share of the pitch. */
@@ -66,7 +67,7 @@ final class SoundLights {
     private float time;
     private float left, top, pitch, cell, dp = 1;
     /** How many rows the wall has, half of them in each panel. */
-    private int rows = MAX_ROWS, panelRows = MAX_ROWS / 2;
+    private int rows = 10, panelRows = 5;
     private final float[] target = new float[BANDS];
     private final float[] shown = new float[BANDS];
     private double soundTime;
@@ -93,7 +94,7 @@ final class SoundLights {
         if (key.equals(laidOut)) return;
         laidOut = key;
         dp = dpPx;
-        rows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, 2 * (int) (wall.height() / (2 * MIN_PITCH_DP * dp))));
+        rows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, 2 * Math.round(wall.height() / (2 * PITCH_DP * dp))));
         panelRows = rows / 2;
         pitch = wall.height() / rows;
         cell = pitch * LAMP;

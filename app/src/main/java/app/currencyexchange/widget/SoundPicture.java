@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
@@ -20,13 +19,15 @@ import java.util.Random;
  * One Sound widget's picture, in the Deco launcher's look: the night glass panel with a wash of the
  * light; on top, the cover as an LP on the right for music (a square cover) and on the left what's
  * playing: a small label in spaced capitals ("Now playing · Spotify"), the title and the artist;
- * below, the wall of lamps from margin to margin, a little of it behind the LP; and a progress line
- * lit in the light along the bottom. Videos (a wide picture) and apps without a cover get the light show alone, in the app's
+ * below, the wall of lamps from margin to margin, a little of it behind the LP; and room along the
+ * bottom for the controls while something plays. Videos (a wide picture) and apps without a cover get the light show alone, in the app's
  * colour. With nothing playing, the wall plays its patterns in Worldly's amber.
  */
 final class SoundPicture {
     /** Pictures are drawn at this many pixels per dp at most. */
     static final float MAX_DP = 2f;
+    /** The room the controls take along the bottom while something plays (46 dp row, 8 dp below, 4 dp above). */
+    static final float CONTROLS_DP = 58f;
 
     private final SoundLights lights = new SoundLights();
     private final SoundRecord record = new SoundRecord();
@@ -34,7 +35,6 @@ final class SoundPicture {
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint wash = new Paint(Paint.DITHER_FLAG);
     private final Paint grain = new Paint();
-    private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint text = new TextPaint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
     private final Path outline = new Path();
     private final RectF box = new RectF();
@@ -131,11 +131,13 @@ final class SoundPicture {
         c.drawRect(box, wash);
 
         // Zones: on top, the cover with its LP on the right and the words on the left; below, the wall of lamps from
-        // margin to margin, its top a little behind the LP; along the bottom, how far through.
+        // margin to margin, its top a little behind the LP; along the bottom, the controls (real views laid over
+        // the picture, see SoundWidgetProvider) while something plays.
         float pad = 14 * dp;
-        boolean progress = track != null && track.duration > 0;
-        float bottom = h - pad - (progress ? 16 * dp : 0);
-        float size = Math.max(28 * dp, Math.min((bottom - pad) * 0.56f, 84 * dp));
+        float bottom = track != null ? h - CONTROLS_DP * dp : h - pad;
+        // The LP grows with a taller widget, up to about a third of its width.
+        float most = Math.max(84 * dp, Math.min(w * 0.34f, 130 * dp));
+        float size = Math.max(28 * dp, Math.min((bottom - pad) * 0.56f, most));
         float overlap = size * 0.2f;
         sleeve.set(w - pad - size, pad, w - pad, pad + size);
         wall.set(pad, pad + size - overlap, w - pad, bottom);
@@ -147,7 +149,6 @@ final class SoundPicture {
 
         record.draw(c, sleeve, dp, scene);
         drawWords(ctx, c, pad, pad, wall.top - pad, textRight - pad, dp);
-        if (progress) drawProgress(ctx, c, pad, w - pad, h - pad - 4 * dp, dp);
         c.drawRect(box, grain);
         c.restore();
         edge.setStrokeWidth(Math.max(1f, dp));
@@ -172,13 +173,15 @@ final class SoundPicture {
             title = track.title.isEmpty() ? track.app : track.title;
             detail = track.artist;
         }
-        // Three lines when there's room, else the label and the title; centred in the band.
-        boolean three = detail != null && !detail.isEmpty() && band >= 46 * dp;
-        float block = three ? 47 * dp : 30 * dp;
+        // Three lines when there's room, else the label and the title; centred in the band. On a taller widget the
+        // band is taller, and the words grow with it (up to half as big again).
+        float k = Math.max(1f, Math.min(1.45f, band / (44 * dp)));
+        boolean three = detail != null && !detail.isEmpty() && band >= 42 * dp;
+        float block = (three ? 44 : 29) * k * dp;
         // the label, in spaced capitals: what's happening in the light's colour, the app in grey
-        float y = top + Math.max(0, (band - block) / 2) + 8 * dp;
+        float y = top + Math.max(0, (band - block) / 2) + 8 * k * dp;
         text.setTypeface(Theme.uiBold(ctx));
-        text.setTextSize(10 * dp);
+        text.setTextSize(10 * k * dp);
         text.setLetterSpacing(0.22f);
         String head = label.toUpperCase(Locale.getDefault());
         text.setColor(scene.label);
@@ -193,59 +196,18 @@ final class SoundPicture {
         }
         // the title
         text.setLetterSpacing(0f);
-        text.setTextSize(16 * dp);
+        text.setTextSize(16 * k * dp);
         text.setColor(Theme.TEXT);
-        y += 21 * dp;
+        y += 20 * k * dp;
         c.drawText(TextUtils.ellipsize(title, text, width, TextUtils.TruncateAt.END).toString(), x, y, text);
         // the artist
         if (three) {
             text.setTypeface(Theme.uiMedium(ctx));
-            text.setTextSize(12 * dp);
+            text.setTextSize(12 * k * dp);
             text.setColor(Theme.MUTED);
-            y += 17 * dp;
+            y += 16 * k * dp;
             c.drawText(TextUtils.ellipsize(detail, text, width, TextUtils.TruncateAt.END).toString(), x, y, text);
         }
-    }
-
-    /** How far through: the time so far, a hairline lit from the left in the light, and the length. */
-    private void drawProgress(Context ctx, Canvas c, float from, float to, float y, float dp) {
-        long at = track.positionAt(NowPlaying.now());
-        String done = clock(at), all = clock(track.duration);
-        text.setTypeface(Theme.uiMedium(ctx));
-        text.setTextSize(10 * dp);
-        text.setLetterSpacing(0.04f);
-        text.setColor(Theme.MUTED);
-        float baseline = y + 3.5f * dp;
-        c.drawText(done, from, baseline, text);
-        float allW = text.measureText(all);
-        c.drawText(all, to - allW, baseline, text);
-        text.setLetterSpacing(0f);
-        float x0 = from + text.measureText("00:00") + 8 * dp, x1 = to - allW - 8 * dp;
-        if (x1 <= x0) return;
-        float f = Math.max(0f, Math.min(1f, at / (float) track.duration));
-        float head = x0 + (x1 - x0) * f;
-        line.setShader(null);
-        line.setStrokeCap(Paint.Cap.ROUND);
-        line.setColor(Theme.BORDER_STRONG);
-        line.setStrokeWidth(Math.max(1f, dp));
-        c.drawLine(x0, y, x1, y, line);
-        if (head <= x0) return;
-        line.setColor(Scene.alpha(scene.key, 0.22f));
-        line.setStrokeWidth(5 * dp);
-        c.drawLine(x0, y, head, y, line); // the glow around it
-        line.setShader(new LinearGradient(x0, 0, Math.max(x0 + 1, head), 0, Scene.alpha(scene.key, 0.5f), scene.key,
-                Shader.TileMode.CLAMP));
-        line.setStrokeWidth(1.6f * dp);
-        c.drawLine(x0, y, head, y, line);
-        line.setShader(null);
-        line.setColor(scene.led);
-        c.drawCircle(head, y, 1.8f * dp, line);
-    }
-
-    private static String clock(long ms) {
-        long s = Math.max(0, ms / 1000);
-        return s >= 3600 ? String.format(Locale.ROOT, "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60)
-                : String.format(Locale.ROOT, "%d:%02d", s / 60, s % 60);
     }
 
     /** A tile of faint white specks, like film grain, as on the launcher's stage. */
