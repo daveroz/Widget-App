@@ -17,6 +17,9 @@ final class Ambience {
     /** The cover picture or app the last light was worked out for, and that light. */
     private static Object litFor;
     private static Scene lit = Scene.amber();
+    /** When a cover's light was last seen (and from which app), and when anything was: to ride over the gap between songs. */
+    private static long coverAt, seenAt;
+    private static String coverApp;
     private static Handler worker;
 
     static synchronized Scene scene() {
@@ -25,8 +28,24 @@ final class Ambience {
 
     /** The light for what's playing (null for nothing): worked out once per cover or app. */
     static synchronized Scene lightFor(Context ctx, NowPlaying.Track now) {
+        long t = NowPlaying.now();
+        // Between songs the player goes quiet for a moment, or sends the title before the cover: keep the light.
+        if (now == null && litFor != null && t - seenAt < NowPlaying.BLIP_MS) return lit;
+        if (now != null && !now.hasCover() && litFor instanceof android.graphics.Bitmap
+                && now.packageName.equals(coverApp) && t - coverAt < NowPlaying.BLIP_MS) {
+            seenAt = t;
+            return lit;
+        }
         Object key = now == null ? null : now.hasCover() ? now.art : now.packageName;
-        if (key == null) return Scene.amber();
+        if (key == null) {
+            litFor = null;
+            return Scene.amber();
+        }
+        seenAt = t;
+        if (now.hasCover()) {
+            coverAt = t;
+            coverApp = now.packageName;
+        }
         if (!key.equals(litFor)) {
             litFor = key;
             lit = Scene.of(now.hasCover() ? Colours.primary(now.art) : Colours.app(ctx, now.packageName));

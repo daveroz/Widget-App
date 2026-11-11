@@ -80,6 +80,13 @@ final class NowPlaying {
         }
     }
 
+    /**
+     * Between songs, players go quiet for a moment: the new title can come before its cover, or the session reports
+     * nothing at all for an instant. For this long the widgets keep what they showed (the LP, the light), so a song
+     * change gets its full animation instead of the LP vanishing and the next one popping in.
+     */
+    static final long BLIP_MS = 2500;
+
     static boolean isWide(int width, int height) {
         return width > height * 1.4f;
     }
