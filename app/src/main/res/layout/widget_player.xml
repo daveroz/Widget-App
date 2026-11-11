@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Music widget: its picture (the panel, the cover and what's playing) fills it; the controls sit over its bottom edge
-     as real views, so taps land exactly: previous, play / pause, next, and the progress line, split into 24 zones a
-     tap jumps the song to. -->
+<!-- Music widget: its picture (the panel, lit by the light of what's playing) fills it; the controls sit over its
+     middle as real views, so taps land exactly: previous, play / pause, next, and the progress line, split into 24
+     zones a tap jumps the song to. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -18,10 +18,9 @@
         android:id="@+id/controls"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:layout_gravity="bottom"
-        android:layout_marginStart="6dp"
-        android:layout_marginEnd="14dp"
-        android:layout_marginBottom="8dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="18dp"
         android:baselineAligned="false"
         android:gravity="center_vertical"
         android:orientation="horizontal"
