@@ -39,7 +39,7 @@ The status text at the bottom of the settings screen shows what worked and what 
 |---|---|
 | **Currency Exchange** | World clocks, market + Visa rates (the original KWGT widget). The top bar shows, for where you are: the weather now (condition icon and temperature), the chance of rain over the next 12 hours, sunrise and sunset, in four equal sections. Tap a currency row to open the converter over the home screen: type an amount (say 30) and it shows the market and Visa value; the swap button converts the other way and the chips switch currency. Behind each conversion row, the last 30 days of the market rate (one point a day) as a faint amber area chart (only the shape, no axis or numbers) |
 | **SBB Clock** | Swiss railway station clock. Second hand: one lap in 58.5 s, then waits at 12; on the minute impulse the minute hand (and the hour hand with it) moves one minute with SBB's elastic swing, exactly when the second hand starts its next lap. Geometry and motion follow SBB's own digital clock (sbbUhr 1.3, dark-background face without frame) |
-| **Calendar** | Agenda layout: big day number, week row (Sunday to Saturday, today in an amber circle), then your upcoming events with colour bar, time range and "in N minutes"; "+" adds an event. Reads the device calendar (READ_CALENDAR), no account or key. A taller widget lists more events, a wider one gives titles more room |
+| **Calendar** | Agenda layout: big day number, week row (Sunday to Saturday, today lit in amber), then your upcoming events with colour bar, time range and "in N minutes"; "+" adds an event. Reads the device calendar (READ_CALENDAR), no account or key. A taller widget lists more events, a wider one gives titles more room |
 
 Live updates: world clocks and calendar run on exact per-minute alarms with no notification; only the moving SBB second hand uses a small foreground service ("Smooth" about 10 pictures a second, "Every second", or "Minute only"). With the screen off it does nothing. Alarms stay as a backup. Location is always where you are (last known device location, refreshed whenever you open the app). Fonts: Carbon+ (Currency) and Carbon+ (all widgets), both from the original KWGT presets.
 
@@ -58,12 +58,22 @@ Live updates: world clocks and calendar run on exact per-minute alarms with no n
 Rates and weather inherently need an online source; these are the free ones that need no key.
 Everything is cached, so the widget keeps showing the last values when offline.
 
-## Visual language (shared with SAB Monitor)
-Taken from `daverodd/SAB-App`: graphite surfaces (`#0e111a`, `#11141e`, `#151922`), thin slate borders
-(`#1f2636`, `#252c3c`), a single amber accent (`#df8b35`, used as a gradient on primary buttons and for
-arrows / day strip) and 16/12 corner radii. The type stays the original Carbon+ font from the KWGT
-preset (`assets/fonts`). All of it lives in `Theme.java`; both the settings screen and the widget
-read from there, so one edit restyles both.
+## Visual language: light in fog (shared with the Deco launcher and SAB Monitor)
+- **A night stage in haze.** The settings screen sits on a dark stage (`#05070b`): two slow washes of
+  amber light, fog banks drifting through, a row of small lamps along the top running a slow chase,
+  and a fine film grain (`StageView`).
+- **Glass.** Cards are the night at 72% (`#0a0f16`) with a hairline edge of cool light
+  (`rgba(170,220,255,0.12)`); inputs and pickers are darker wells inside the glass.
+- **One key light: amber `#eb9438`.** Something that's on (the save button, the chosen SBB mode, the
+  converter's amount and chip) is *lit*: a touch of amber on the glass, an amber edge and a soft glow,
+  not a solid block. Lines drawn in the light (the 30-day trend) glow; today in the calendar is lit.
+- **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
+- **Widgets** use the same night glass and hairlines, with a faint amber wash from the top right, and
+  the clocks' sun-phase strip glows up into the picture above it.
+
+The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,
+well and lit looks live in `Theme.java`; the settings screen, the converter and the widgets all read
+from there, so one edit restyles everything.
 
 ## How it updates
 - Clocks and day/night: redrawn every minute with an exact alarm.

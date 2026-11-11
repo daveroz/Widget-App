@@ -1,6 +1,7 @@
 package app.currencyexchange.widget;
 
 import android.graphics.Bitmap;
+import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
@@ -108,6 +109,16 @@ final class Trend {
         fill.setShader(new LinearGradient(0, top, 0, h,
                 alpha(Theme.AMBER, FILL_ALPHA), alpha(Theme.AMBER, 0), Shader.TileMode.CLAMP));
         c.drawPath(area, fill);
+
+        // The line is a thread of light in the haze: a soft glow of the key around a brighter core.
+        Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
+        glow.setStyle(Paint.Style.STROKE);
+        glow.setStrokeWidth(LINE_DP * PXDP * 3.5f);
+        glow.setStrokeCap(Paint.Cap.ROUND);
+        glow.setStrokeJoin(Paint.Join.ROUND);
+        glow.setColor(alpha(Theme.AMBER, Math.round(LINE_ALPHA * 0.45f)));
+        glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 2.5f, BlurMaskFilter.Blur.NORMAL));
+        c.drawPath(curve, glow);
 
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         line.setStyle(Paint.Style.STROKE);

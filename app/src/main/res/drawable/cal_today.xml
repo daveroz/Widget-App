@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Today is lit: a touch of the key light with a key edge, instead of a solid disc. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <gradient android:angle="270" android:startColor="#FFDF8B35" android:endColor="#FFC57220" />
+    <solid android:color="#40EB9438" />
+    <stroke android:width="1.5dp" android:color="#E6EB9438" />
 </shape>
