@@ -52,6 +52,17 @@ final class NowPlaying {
             this.open = open;
         }
 
+        /** The same track, shown as playing or paused (what a control just asked for, before the player says so). */
+        Track withPlaying(boolean nowPlaying) {
+            long at = NowPlaying.now();
+            return new Track(packageName, app, title, artist, art, nowPlaying, positionAt(at), duration, at, speed, open);
+        }
+
+        /** The same track at {@code ms} into it as of {@code at} (a jump a control just asked for). */
+        Track withPosition(long ms, long at) {
+            return new Track(packageName, app, title, artist, art, playing, ms, duration, at, speed, open);
+        }
+
         /** Which song this is, whatever its picture (players resend the same cover as new pictures). */
         String song() {
             return packageName + '\n' + title + '\n' + artist;
