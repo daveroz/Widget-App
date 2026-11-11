@@ -28,6 +28,7 @@
 
         <ImageView
             android:id="@+id/btn_prev"
+            android:background="@drawable/sound_press"
             android:layout_width="46dp"
             android:layout_height="46dp"
             android:contentDescription="@string/sound_prev"
@@ -35,6 +36,7 @@
 
         <ImageView
             android:id="@+id/btn_play"
+            android:background="@drawable/sound_press"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:contentDescription="@string/sound_play_pause"
@@ -42,6 +44,7 @@
 
         <ImageView
             android:id="@+id/btn_next"
+            android:background="@drawable/sound_press"
             android:layout_width="46dp"
             android:layout_height="46dp"
             android:contentDescription="@string/sound_next"
@@ -79,122 +82,146 @@
                     android:id="@+id/seek_0"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_1"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_2"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_3"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_4"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_5"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_6"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_7"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_8"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_9"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_10"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_11"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_12"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_13"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_14"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_15"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_16"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_17"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_18"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_19"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_20"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_21"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_22"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
                 <FrameLayout
                     android:id="@+id/seek_23"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"
+                    android:background="@drawable/sound_press_line" />
             </LinearLayout>
         </FrameLayout>
 

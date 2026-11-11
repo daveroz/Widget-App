@@ -64,6 +64,8 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     private static final long EXPECT_MS = 2500;
     /** Frames pause for a moment after a tap, so the home screen is free to take the next one. */
     private static long quietUntil;
+    /** After a tap, what's playing is looked at every frame for a moment (a new song shows sooner). */
+    private static long pollUntil;
 
     @Override
     public void onUpdate(Context ctx, AppWidgetManager awm, int[] ids) {
@@ -142,12 +144,34 @@ public class SoundWidgetProvider extends AppWidgetProvider {
                 }
             }
         }
+        // Show it at once with a tiny update of just the controls: no new picture, nothing else for the home screen
+        // to redo. The light show and a new song follow with the next frames.
+        int[] ids = widgetIds(ctx);
+        RemoteViews[] updates = new RemoteViews[ids.length];
         synchronized (SoundWidgetProvider.class) {
-            quietUntil = now + 350;
+            quietUntil = now + 300;
+            pollUntil = now + 1500;
+            NowPlaying.Track shown = expected(track);
+            if (shown != track) {
+                track = shown;
+                for (SoundPicture p : PICTURES.values()) p.set(track, scene, access);
+            }
+            for (int i = 0; i < ids.length; i++) {
+                updates[i] = new RemoteViews(ctx.getPackageName(), R.layout.widget_sound);
+                controls(ctx, updates[i], ids[i], false);
+            }
         }
-        refresh(ctx);
-        updateAll(ctx);
-        LiveService.ensure(ctx);
+        AppWidgetManager awm = AppWidgetManager.getInstance(ctx);
+        for (int i = 0; i < ids.length; i++) {
+            try {
+                awm.partiallyUpdateAppWidget(ids[i], updates[i]);
+            } catch (Throwable ignored) { }
+        }
+    }
+
+    /** Whether to look at what's playing on this frame, rather than every half second: just after a tap. */
+    static synchronized boolean pollSoon() {
+        return NowPlaying.now() < pollUntil;
     }
 
     /** Whether the widget shows the player as playing: what the last tap asked for, while that's fresh. */
@@ -188,7 +212,8 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     /**
      * Looks at what's playing now and works out its light: the album cover's primary colour, or the
      * app's own for a video or no cover, or Worldly's amber with nothing playing. Returns true when the
-     * playing app, play or pause, or the light changed, so the tap targets and controls need sending again.
+     * playing app changed (or something started or stopped playing), so what a tap opens needs sending again.
+     * Play / pause and the light reach the controls with the frames.
      */
     static synchronized boolean refresh(Context ctx) {
         access = NowPlaying.hasAccess(ctx);
@@ -203,7 +228,7 @@ public class SoundWidgetProvider extends AppWidgetProvider {
             scene = Scene.of(now.hasCover() ? Colours.primary(now.art) : Colours.app(ctx, now.packageName));
         }
         for (SoundPicture p : PICTURES.values()) p.set(now, scene, access);
-        String next = now == null ? "" : now.packageName + "|" + now.playing + "|" + scene.key;
+        String next = now == null ? "" : now.packageName;
         boolean changed = !next.equals(state);
         state = next;
         return changed;

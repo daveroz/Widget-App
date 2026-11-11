@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pressed: a soft round flash of light, drawn by the home screen at once, before the tap even reaches Worldly. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="#4DFFFFFF">
+    <item android:id="@android:id/mask">
+        <shape android:shape="oval">
+            <solid android:color="#FFFFFFFF" />
+        </shape>
+    </item>
+</ripple>

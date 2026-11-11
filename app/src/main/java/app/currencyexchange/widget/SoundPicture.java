@@ -173,15 +173,14 @@ final class SoundPicture {
             title = track.title.isEmpty() ? track.app : track.title;
             detail = track.artist;
         }
-        // Three lines when there's room, else the label and the title; centred in the band. On a taller widget the
-        // band is taller, and the words grow with it (up to half as big again).
-        float k = Math.max(1f, Math.min(1.45f, band / (44 * dp)));
-        boolean three = detail != null && !detail.isEmpty() && band >= 40 * dp;
-        float block = (three ? 44 : 29) * k * dp;
+        // The Calendar widget's sizes: 9.5 dp labels, 15 dp titles, 11 dp second lines, at every widget size. Three
+        // lines when there's room, else the label and the title; centred in the band.
+        boolean three = detail != null && !detail.isEmpty() && band >= 37 * dp;
+        float block = (three ? 39 : 26) * dp;
         // the label, in spaced capitals: what's happening in the light's colour, the app in grey
-        float y = top + Math.max(0, (band - block) / 2) + 8 * k * dp;
+        float y = top + Math.max(0, (band - block) / 2) + 7.5f * dp;
         text.setTypeface(Theme.uiBold(ctx));
-        text.setTextSize(10 * k * dp);
+        text.setTextSize(9.5f * dp);
         text.setLetterSpacing(0.22f);
         String head = label.toUpperCase(Locale.getDefault());
         text.setColor(scene.label);
@@ -196,16 +195,16 @@ final class SoundPicture {
         }
         // the title
         text.setLetterSpacing(0f);
-        text.setTextSize(16 * k * dp);
+        text.setTextSize(15 * dp);
         text.setColor(Theme.TEXT);
-        y += 20 * k * dp;
+        y += 18.5f * dp;
         c.drawText(TextUtils.ellipsize(title, text, width, TextUtils.TruncateAt.END).toString(), x, y, text);
         // the artist
         if (three) {
             text.setTypeface(Theme.uiMedium(ctx));
-            text.setTextSize(12 * k * dp);
+            text.setTextSize(11 * dp);
             text.setColor(Theme.MUTED);
-            y += 16 * k * dp;
+            y += 14.5f * dp;
             c.drawText(TextUtils.ellipsize(detail, text, width, TextUtils.TruncateAt.END).toString(), x, y, text);
         }
     }
