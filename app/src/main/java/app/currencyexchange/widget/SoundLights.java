@@ -16,10 +16,9 @@ import android.graphics.RectF;
  * While something plays, the wall follows the sound: each lamp column is a part of the music, bass on
  * the left and treble on the right, filling up from the bottom with it, rising quickly and settling
  * back gently, its top lamp fading in and out. (Columns hidden behind something, like the launcher's
- * LP, can echo the treble instead.) When nothing plays, or it's paused, each panel
- * runs its own pattern for a couple of seconds before switching: filling down or up, a band running
- * down it, a flickering pixel pattern, a flash that fades, all on, or dark. The two blend into each
- * other.
+ * LP, can echo the treble instead.) When nothing plays, or it's paused, steam drifts across it
+ * ({@link Steam}): wisps of light curling from left to right, with a slow swell of energy travelling
+ * the same way, the top row lit wherever there's energy. The two blend into each other.
  *
  * Dark lamps keep a faint ember, so the panels still read. Each lit lamp is sharp, white-hot at full
  * strength, with a soft round glow, and lit panels throw soft beams down into the haze. Lamps behind
@@ -37,16 +36,11 @@ final class SoundLights {
     private static final int STRIP = 3;
     /** Each lamp's size, as a share of the pitch. */
     private static final float LAMP = 0.7f;
-    /** How long a panel keeps one pattern, in seconds, and how long it takes to switch. */
-    private static final float PATTERN_SECONDS = 2.2f, SWITCH_SECONDS = 0.12f;
-    private static final int OFF = 0, FILL_DOWN = 1, FILL_UP = 2, CHASE = 3, PIXELS = 4, FLASH = 5, FULL = 6;
-    /** How often each pattern comes up, out of 20. */
-    private static final int[] PATTERN_WEIGHTS = {4, 3, 2, 3, 4, 2, 2};
     private static final float SOFT = 1 / 8f;
     private static final int BANDS = SoundWave.COLUMNS;
     /** Following the sound: the top lamp of each column, and the one under it, are a little softer. */
     private static final float[] TIP = {0.6f, 0.85f};
-    /** How long the wall takes to go from its patterns to the sound, or back. */
+    /** How long the wall takes to go from the steam to the sound, or back. */
     private static final float REACT_SECONDS = 0.6f;
 
     private final Paint lamp = new Paint();
@@ -65,6 +59,11 @@ final class SoundLights {
     private Bitmap soft;
     private Canvas softCanvas;
     private float time;
+    /** The steam: each lamp's light, easing toward its target, and its own warmth (a touch of variation). */
+    private float[] steam = new float[0], tone = new float[0];
+    /** When the steam was last worked out (to ease it by the time since), and whether it has been yet. */
+    private float steamAt;
+    private boolean steamStarted;
     /** The wall's top-left corner, the distance from one lamp to the next across and down, and a lamp's size. */
     private float left, top, pitchX, pitchY, cell, dp = 1;
     /** How many rows the wall has, half of them in each panel. */
@@ -113,6 +112,10 @@ final class SoundLights {
         left = wall.left;
         top = wall.top;
         values = new float[rows * columns];
+        steam = new float[rows * columns];
+        tone = new float[rows * columns];
+        for (int i = 0; i < tone.length; i++) tone[i] = 0.82f + 0.18f * seed(i * 13 + 7);
+        steamStarted = false;
         panelLight = new float[strips * 2];
         columnStrength = new float[columns];
         soundStrength = new float[columns];
@@ -152,7 +155,7 @@ final class SoundLights {
         }
     }
 
-    /** Follow the sound (something is playing), or play the patterns (paused, or nothing playing). */
+    /** Follow the sound (something is playing), or show the steam (paused, or nothing playing). */
     void setReactive(boolean on) {
         reactive = on;
     }
@@ -277,73 +280,25 @@ final class SoundLights {
         }
     }
 
-    /** Works out every lamp's strength for now, panel by panel, easing from one pattern to the next. */
+    /**
+     * Works out every lamp's strength for now from the steam: each lamp eases toward its target (quickly, so the
+     * filaments keep crisp edges), takes its own warmth, and is dimmer behind the text.
+     */
     private void light() {
-        for (int s = 0; s < strips; s++) {
-            for (int p = 0; p < 2; p++) {
-                int panel = s * 2 + p;
-                float clock = time / PATTERN_SECONDS + seed(panel * 7 + 3) * 3;
-                int turn = (int) Math.floor(clock);
-                float local = (clock - turn) * PATTERN_SECONDS;
-                int now = pattern(panel, turn), before = pattern(panel, turn - 1);
-                float blend = Math.min(1f, local / SWITCH_SECONDS);
-                for (int r = 0; r < panelRows; r++) {
-                    for (int k = 0; k < STRIP; k++) {
-                        int c = firstOf(s) + k;
-                        float v = lamp(now, local, r, k, panel, turn);
-                        if (blend < 1f) {
-                            float old = lamp(before, local + PATTERN_SECONDS, r, k, panel, turn - 1);
-                            v = old + (v - old) * blend;
-                        }
-                        v *= columnStrength[c];
-                        values[(p * panelRows + r) * columns + c] = v;
-                    }
-                }
+        float ease = steamStarted ? Math.min(1f, (time - steamAt) * Steam.EASE) : 1f;
+        steamAt = time;
+        steamStarted = true;
+        float t = time * Steam.SPEED;
+        for (int c = 0; c < columns; c++) {
+            if (gap(c)) continue;
+            float energy = Steam.energy(c, t);
+            for (int r = 0; r < rows; r++) {
+                int i = r * columns + c;
+                float target = Steam.target(c, r, t, energy, r == 0);
+                steam[i] += (target - steam[i]) * ease;
+                values[i] = steam[i] * tone[i] * columnStrength[c];
             }
         }
-    }
-
-    /** Which pattern a panel plays on a given turn: picked by chance, the same every time. */
-    private static int pattern(int panel, int turn) {
-        float pick = seed(panel * 131 + turn * 17) * 20;
-        for (int i = 0; i < PATTERN_WEIGHTS.length; i++) {
-            pick -= PATTERN_WEIGHTS[i];
-            if (pick < 0) return i;
-        }
-        return OFF;
-    }
-
-    /** One lamp's strength in a pattern, {@code local} seconds into it; row and column within the panel. */
-    private float lamp(int pattern, float local, int row, int column, int panel, int turn) {
-        float progress = Math.min(1f, local / (PATTERN_SECONDS * 0.6f));
-        float eased = progress * progress * (3 - 2 * progress);
-        switch (pattern) {
-            case FILL_DOWN:
-                return row < eased * (panelRows + 0.99f) ? flicker(row, column, panel) : 0f;
-            case FILL_UP:
-                return panelRows - 1 - row < eased * (panelRows + 0.99f) ? flicker(row, column, panel) : 0f;
-            case CHASE: {
-                float head = (local * 4f) % (panelRows + 2) - 1;
-                float d = Math.abs(row - head);
-                return d < 1.5f ? 1f - d / 1.5f : 0f;
-            }
-            case PIXELS: {
-                int frame = (int) (local / 0.18f);
-                return seed(panel * 59 + turn * 211 + frame * 31 + row * 7 + column) > 0.5f ? 0.9f : 0f;
-            }
-            case FLASH:
-                return (float) Math.exp(-local * 2.5f);
-            case FULL:
-                return flicker(row, column, panel);
-            default:
-                return 0f;
-        }
-    }
-
-    /** Lit lamps shimmer a little, each in its own time. */
-    private float flicker(int row, int column, int panel) {
-        float s = seed(panel * 37 + row * 5 + column);
-        return 0.82f + 0.18f * (float) Math.sin(time * (9 + s * 6) + s * 30);
     }
 
     /** A soft beam from a point, falling down and a little to the left, widening as it fades. */
@@ -391,7 +346,7 @@ final class SoundLights {
         return bitmap;
     }
 
-    /** A fixed pseudo-random number, so the patterns never repeat in step. */
+    /** A fixed pseudo-random number. */
     private static float seed(int i) {
         double s = Math.sin(i * 127.1 + 311.7) * 43758.5453;
         return (float) (s - Math.floor(s));
