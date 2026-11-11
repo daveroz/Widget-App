@@ -33,15 +33,16 @@ the widgets and settings, so add them again afterwards.
 The status text at the bottom of the settings screen shows what worked and what failed
 (cities, Visa, weather).
 
-## Widgets (3)
+## Widgets (4)
 
 | Widget | What it is |
 |---|---|
 | **Currency Exchange** | World clocks, market + Visa rates (the original KWGT widget). The top bar shows, for where you are: the weather now (condition icon and temperature), the chance of rain over the next 12 hours, sunrise and sunset, in four equal sections. Tap a currency row to open the converter over the home screen: type an amount (say 30) and it shows the market and Visa value; the swap button converts the other way and the chips switch currency. Behind each conversion row, the last 30 days of the market rate (one point a day) as a faint amber area chart (only the shape, no axis or numbers) |
 | **SBB Clock** | Swiss railway station clock. Second hand: one lap in 58.5 s, then waits at 12; on the minute impulse the minute hand (and the hour hand with it) moves one minute with SBB's elastic swing, exactly when the second hand starts its next lap. Geometry and motion follow SBB's own digital clock (sbbUhr 1.3, dark-background face without frame) |
+| **Sound** | The Deco launcher's sound light show on the home screen. A wall of square lamps from margin to margin, in strips three wide, lit in one colour: the album cover's primary colour for music, the app's own colour for videos and apps without a cover. While something plays, the lamp columns follow its sound, bass on the left and treble on the right, filling up from the bottom; music also gets its cover as a vinyl LP on the right, the record sliding out and spinning at 33⅓ rpm, slowing to a stop on pause. Paused or nothing playing, the panels run their light patterns (filling, chasing bands, pixels, flashes), in Worldly's amber when nothing plays. Top left: "Now playing · app", the title and the artist; along the bottom, how far through. A tap opens the playing app. Needs **notification access** (to see what's playing; nothing is read from notifications) and, to follow the real sound, **sound levels** (Android's "record audio" permission: it reads the phone's own sound through the audio visualizer, never the microphone). Without sound levels, or on phones that keep their sound to themselves, the lights move with the music on their own |
 | **Calendar** | Agenda layout: big day number, week row (Sunday to Saturday, today lit in amber), then your upcoming events with colour bar, time range and "in N minutes"; "+" adds an event. Reads the device calendar (READ_CALENDAR), no account or key. A taller widget lists more events, a wider one gives titles more room |
 
-Live updates: world clocks and calendar run on exact per-minute alarms with no notification; only the moving SBB second hand uses a small foreground service ("Smooth" about 10 pictures a second, "Every second", or "Minute only"). With the screen off it does nothing. Alarms stay as a backup. Location is always where you are (last known device location, refreshed whenever you open the app). Fonts: Carbon+ (Currency) and Carbon+ (all widgets), both from the original KWGT presets.
+Live updates: world clocks and calendar run on exact per-minute alarms with no notification; only the moving SBB second hand and the Sound widget's lights use a small foreground service (SBB: "Smooth" about 10 pictures a second, "Every second", or "Minute only"; Sound: about 20 pictures a second while something plays, 12 while it plays its patterns). With the screen off it does nothing. Alarms stay as a backup. Location is always where you are (last known device location, refreshed whenever you open the app). Fonts: Carbon+ (Currency) and Carbon+ (all widgets), both from the original KWGT presets.
 
 ## Data sources (all free, no key, no account)
 | Data | Source |
@@ -84,6 +85,10 @@ from there, so one edit restyles everything.
 `Renderer` draws everything onto one bitmap; `Trend` draws the rate chart behind each currency row; `Fetcher` does all network calls; `Store` holds settings
 and cache; `SunCalc` offline sun times; `WidgetProvider` + `RefreshJobService` handle updates;
 `MainActivity` is the settings screen; `Util`, `Net`, `Flags` are helpers.
+Sound widget: `NowPlaying` reads the playing media session (through `MediaListener`, the notification listener),
+`SoundWave` gives the sound's levels (audio visualizer, or made-up levels that move like music), `SoundLights` is the
+wall of lamps, `SoundRecord` the LP, `SoundPicture` lays out one widget's picture, `Scene` and `Colours` give its
+light, and `SoundWidgetProvider` + `LiveService` send the frames.
 Layout units are the 750-wide grid of the original preset.
 
 Layout note: the Calendar and Currency widgets are native views with weighted rows/columns (fonts bundled in res/font), so they follow the widget's real width and height; only flags, the Visa logo and clock backgrounds are small bitmaps.

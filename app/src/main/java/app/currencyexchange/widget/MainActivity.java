@@ -53,6 +53,7 @@ public class MainActivity extends Activity {
     private static final String[] MODES = {"smooth", "second", "minute"};
     private static final String[] MODE_LABELS = {"Smooth", "Every second", "Minute only"};
     private TextView banner, calStatus, calButton, locStatus, locButton;
+    private TextView mediaStatus, mediaButton, soundStatus, soundButton;
     private LinearLayout statusBox;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private StageView stage;
@@ -196,6 +197,22 @@ public class MainActivity extends Activity {
         modeHint.setPadding(dp(2), dp(8), 0, 0);
         sbb.addView(modeHint);
 
+        // ---- Sound widget: what it needs to see and hear what's playing ----
+        LinearLayout sound = card(col, "SOUND WIDGET");
+        TextView soundHint = text("A wall of lights that follows what's playing in any app, in its colour, with the cover as "
+                + "a spinning LP for music. Paused or nothing playing, it plays its light patterns.", 12, Theme.uiMedium(this), Theme.DIM);
+        sound.addView(soundHint);
+        mediaStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
+        mediaStatus.setPadding(0, dp(12), 0, 0);
+        sound.addView(mediaStatus);
+        mediaButton = secondaryButton("Allow media access", v -> openMediaAccess());
+        sound.addView(mediaButton, matchWrap(8));
+        soundStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
+        soundStatus.setPadding(0, dp(12), 0, 0);
+        sound.addView(soundStatus);
+        soundButton = secondaryButton("Allow sound levels", v -> requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_ALL));
+        sound.addView(soundButton, matchWrap(8));
+
         // ---- permissions ----
         LinearLayout perms = card(col, "PERMISSIONS");
         locStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
@@ -226,6 +243,7 @@ public class MainActivity extends Activity {
         col.addView(secondaryButton("Add Currency widget", v -> pin(WidgetProvider.class)), matchWrap(10));
         col.addView(secondaryButton("Add SBB clock widget", v -> pin(SbbWidgetProvider.class)), matchWrap(8));
         col.addView(secondaryButton("Add Calendar widget", v -> pin(CalendarWidgetProvider.class)), matchWrap(8));
+        col.addView(secondaryButton("Add Sound widget", v -> pin(SoundWidgetProvider.class)), matchWrap(8));
 
         // ---- status ----
         LinearLayout st = card(col, "STATUS");
@@ -280,6 +298,8 @@ public class MainActivity extends Activity {
             else if (moved || Store.weather(app) == null) refreshNow(null);
         }
         CalendarWidgetProvider.updateAll(app);
+        SoundWidgetProvider.refresh(app); // media access may have just been turned on
+        SoundWidgetProvider.updateAll(app);
         LiveService.ensure(app); // the app is in front, so Android lets the service start
         WidgetProvider.kick(app); // (re)start the per-minute clock alarms
         statusTicker.run();
@@ -369,6 +389,45 @@ public class MainActivity extends Activity {
                 : "Battery saving may pause the clocks. Allow Worldly to run in the background.");
         batStatus.setTextColor(bat ? Theme.TEXT : Theme.AMBER);
         batButton.setVisibility(bat ? View.GONE : View.VISIBLE);
+
+        boolean media = NowPlaying.hasAccess(this);
+        mediaStatus.setText(media ? "Media access on - the Sound widget sees what's playing in any app."
+                : "Needs notification access to see what's playing. Worldly reads no notifications.");
+        mediaStatus.setTextColor(media ? Theme.TEXT : Theme.AMBER);
+        mediaButton.setVisibility(media ? View.GONE : View.VISIBLE);
+        boolean levels = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        String heard = Store.sp(this).getString("soundStatus", "");
+        String levelsText;
+        if (!levels) {
+            levelsText = "Allow sound levels so the lights follow the real sound. It reads the phone's own sound, never the "
+                    + "microphone. Without it they move with the music on their own.";
+        } else if ("FOLLOWING".equals(heard)) {
+            levelsText = "Sound levels on - the lights follow the real sound.";
+        } else if ("PHONE_SILENT".equals(heard) || "UNAVAILABLE".equals(heard)) {
+            levelsText = "This phone keeps its sound to itself, so the lights move with the music on their own.";
+        } else {
+            levelsText = "Sound levels on - the lights follow the sound once something plays.";
+        }
+        soundStatus.setText(levelsText);
+        soundStatus.setTextColor(levels ? Theme.TEXT : Theme.AMBER);
+        soundButton.setVisibility(levels ? View.GONE : View.VISIBLE);
+    }
+
+    /** Notification access, which is how Android lets an app see other apps' media. */
+    private void openMediaAccess() {
+        android.content.Intent i;
+        if (Build.VERSION.SDK_INT >= 30) {
+            i = new android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
+                            new ComponentName(this, MediaListener.class).flattenToString());
+        } else {
+            i = new android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+        }
+        try {
+            startActivity(i);
+        } catch (Exception e) {
+            startActivity(new android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+        }
     }
 
     private void updateStatus() {

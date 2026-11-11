@@ -7,4 +7,6 @@
     <string name="sbb_desc">Swiss railway station clock with the real second-hand motion</string>
     <string name="cal_name">Calendar</string>
     <string name="cal_desc">Week row and your upcoming events</string>
+    <string name="sound_name">Sound</string>
+    <string name="sound_desc">The Deco light show: a wall of lights that follows what\'s playing, in its colour</string>
 </resources>

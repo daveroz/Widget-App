@@ -14,6 +14,11 @@
     <!-- SBB clock: keeps the second hand moving while the screen is on -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Sound widget: the phone's own sound levels through the audio visualizer (it never opens a microphone, but
+         Android files it under "record audio" and a "microphone" service) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
@@ -100,13 +105,40 @@
                 android:resource="@xml/widget_info_calendar" />
         </receiver>
 
+        <receiver
+            android:name=".SoundWidgetProvider"
+            android:exported="true"
+            android:label="@string/sound_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_sound" />
+        </receiver>
+
+        <!-- Notification access lets the Sound widget see what's playing in other apps; it reads no notifications -->
+        <service
+            android:name=".MediaListener"
+            android:exported="true"
+            android:label="@string/sound_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".LiveService"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
+            android:foregroundServiceType="specialUse|microphone">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Keeps the widget clocks and the SBB second hand moving while the screen is on" />
+                android:value="Keeps the widget clocks, the SBB second hand and the Sound widget's lights moving while the screen is on" />
         </service>
 
         <service
