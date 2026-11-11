@@ -41,7 +41,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-/** Settings screen, styled like SAB Monitor (graphite cards, amber accent). Cities and currencies are picked from lists. */
+/** Settings screen in the Deco look: glass cards over a stage in amber haze. Cities and currencies are picked from lists. */
 public class MainActivity extends Activity {
     private TextView batStatus, batButton;
     private final TextView[] cityBtn = new TextView[4];
@@ -55,6 +55,7 @@ public class MainActivity extends Activity {
     private TextView banner, calStatus, calButton, locStatus, locButton;
     private LinearLayout statusBox;
     private final Handler ui = new Handler(Looper.getMainLooper());
+    private StageView stage;
 
     private static final int REQ_ALL = 1;
 
@@ -62,25 +63,36 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
 
+        // The stage stays put behind the cards while they scroll over it.
+        android.widget.FrameLayout room = new android.widget.FrameLayout(this);
+        stage = new StageView(this);
+        room.addView(stage, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         ScrollView sv = new ScrollView(this);
-        sv.setBackgroundColor(Theme.BG);
+        sv.setBackgroundColor(0);
         sv.setFillViewport(true);
+        room.addView(sv, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         LinearLayout col = vbox();
-        col.setPadding(dp(16), dp(20), dp(16), dp(28));
+        col.setPadding(dp(16), dp(30), dp(16), dp(28));
         sv.addView(col, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        // ---- header: amber badge + title (like SAB's drawer header) ----
+        // ---- header: a lit badge + title ----
         LinearLayout head = new LinearLayout(this);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        TextView badge = text("FX", 13, Theme.monoBold(this), Theme.AMBER);
+        TextView badge = text("FX", 13, Theme.monoBold(this), Theme.LED);
         badge.setGravity(Gravity.CENTER);
-        badge.setBackground(Theme.box(this, 0x26DF8B35, 0x66DF8B35, 12));
-        head.addView(badge, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        badge.setLetterSpacing(0.12f);
+        badge.setBackground(Theme.lit(this, 12, false));
+        head.addView(badge, new LinearLayout.LayoutParams(dp(48), dp(48)));
         LinearLayout titles = vbox();
         titles.setPadding(dp(12), 0, 0, 0);
         titles.addView(text("Worldly", 19, Theme.uiBold(this), Theme.TEXT));
-        titles.addView(text("World clocks · rates · SBB clock · calendar", 12, Theme.uiMedium(this), Theme.MUTED));
+        TextView tagline = text("World clocks · rates · SBB clock · calendar", 12, Theme.uiMedium(this), Theme.MUTED);
+        Theme.label(this, tagline);
+        tagline.setTextSize(10);
+        tagline.setLetterSpacing(0.14f);
+        tagline.setTextColor(Theme.AMBER_LIGHT);
+        titles.addView(tagline);
         head.addView(titles);
         col.addView(head);
 
@@ -162,8 +174,10 @@ public class MainActivity extends Activity {
         for (int i = 0; i < 3; i++) {
             final String m = MODES[i];
             modeBtn[i] = text(MODE_LABELS[i], 13, Theme.uiSemi(this), Theme.TEXT_SOFT);
+            Theme.label(this, modeBtn[i]);
+            modeBtn[i].setLetterSpacing(0.12f);
             modeBtn[i].setGravity(Gravity.CENTER);
-            modeBtn[i].setPadding(dp(6), dp(11), dp(6), dp(11));
+            modeBtn[i].setPadding(dp(6), dp(14), dp(6), dp(14));
             modeBtn[i].setClickable(true);
             modeBtn[i].setOnClickListener(v -> {
                 sbbMode = m;
@@ -228,7 +242,7 @@ public class MainActivity extends Activity {
         st.addView(foot);
         updateStatus();
 
-        setContentView(sv);
+        setContentView(room);
 
         // First launch: ask for everything the widgets need in one go.
         if (!Store.sp(this).getBoolean("permAsked", false)) {
@@ -269,12 +283,14 @@ public class MainActivity extends Activity {
         LiveService.ensure(app); // the app is in front, so Android lets the service start
         WidgetProvider.kick(app); // (re)start the per-minute clock alarms
         statusTicker.run();
+        stage.setRunning(true);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         statusUi.removeCallbacks(statusTicker);
+        stage.setRunning(false);
     }
 
     private final android.os.Handler statusUi = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -423,10 +439,8 @@ public class MainActivity extends Activity {
     private void paintModes() {
         for (int i = 0; i < 3; i++) {
             boolean on = MODES[i].equals(sbbMode);
-            modeBtn[i].setTextColor(on ? 0xFFFFFFFF : Theme.TEXT_SOFT);
-            modeBtn[i].setBackground(on
-                    ? Theme.amberGradient(this, 14, false)
-                    : Theme.box(this, Theme.SURFACE, Theme.BORDER, 14));
+            modeBtn[i].setTextColor(on ? 0xFFFFFFFF : Theme.MUTED);
+            modeBtn[i].setBackground(on ? Theme.lit(this, 14, false) : Theme.well(this, 14, false));
         }
     }
 
@@ -490,9 +504,9 @@ public class MainActivity extends Activity {
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout root = vbox();
         root.setPadding(dp(14), dp(14), dp(14), dp(10));
-        root.setBackground(Theme.box(this, Theme.PANEL, Theme.BORDER, 18));
-        TextView t = text(title.toUpperCase(Locale.ROOT), 11, Theme.uiBold(this), Theme.MUTED);
-        t.setLetterSpacing(0.1f);
+        root.setBackground(Theme.box(this, 0xF20A0F16, Theme.BORDER_STRONG, 18));
+        TextView t = text(title, 11, Theme.uiBold(this), Theme.AMBER_LIGHT);
+        Theme.label(this, t);
         t.setPadding(dp(2), 0, 0, dp(8));
         root.addView(t);
         final EditText q = input("", InputType.TYPE_CLASS_TEXT, false, remote ? "Search or type any city" : "Search");
@@ -597,8 +611,7 @@ public class MainActivity extends Activity {
         t.setSingleLine(true);
         t.setEllipsize(android.text.TextUtils.TruncateAt.END);
         t.setPadding(dp(12), dp(12), dp(12), dp(12));
-        t.setBackground(Theme.pressable(Theme.box(this, Theme.SURFACE, Theme.BORDER, 12),
-                Theme.box(this, Theme.SURFACE_HI, Theme.AMBER, 12)));
+        t.setBackground(Theme.pressable(Theme.well(this, 12, false), Theme.well(this, 12, true)));
         t.setCompoundDrawablePadding(dp(6));
         t.setClickable(true);
         t.setOnClickListener(l);
@@ -608,7 +621,8 @@ public class MainActivity extends Activity {
     private LinearLayout labeledView(String label, View v) {
         LinearLayout l = vbox();
         TextView t = text(label, 10, Theme.uiBold(this), Theme.DIM);
-        t.setLetterSpacing(0.1f);
+        Theme.label(this, t);
+        t.setTextSize(10);
         t.setPadding(dp(2), 0, 0, dp(4));
         l.addView(t);
         l.addView(v, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -646,20 +660,20 @@ public class MainActivity extends Activity {
         return t;
     }
 
-    /** SAB-style panel: #11141e fill, thin slate border, 16dp corners, small caps section title. */
+    /** A glass panel over the stage, with its title in spaced capitals in the key light. */
     private LinearLayout card(LinearLayout parent, String title) {
         LinearLayout c = vbox();
-        c.setBackground(Theme.box(this, Theme.PANEL, Theme.BORDER_SOFT, 16));
+        c.setBackground(Theme.glass(this, 16));
         c.setPadding(dp(14), dp(14), dp(14), dp(14));
-        TextView t = text(title, 11, Theme.uiBold(this), Theme.MUTED);
-        t.setLetterSpacing(0.1f);
+        TextView t = text(title, 11, Theme.uiBold(this), Theme.AMBER_LIGHT);
+        Theme.label(this, t);
         t.setPadding(dp(2), 0, 0, dp(10));
         c.addView(t);
         parent.addView(c, matchWrap(14));
         return c;
     }
 
-    /** Dark input with slate border that turns amber on focus. */
+    /** A well in the glass whose edge lights up in the key on focus. */
     private EditText input(String value, int inputType, boolean mono, String hint) {
         final EditText e = new EditText(this);
         e.setInputType(inputType);
@@ -670,11 +684,10 @@ public class MainActivity extends Activity {
         e.setTypeface(mono ? Theme.monoMedium(this) : Theme.uiMedium(this));
         e.setTextColor(Theme.TEXT);
         e.setHintTextColor(Theme.DIM);
-        e.setHighlightColor(0x55DF8B35);
+        e.setHighlightColor(0x55EB9438);
         e.setPadding(dp(12), dp(11), dp(12), dp(11));
-        e.setBackground(Theme.box(this, Theme.SURFACE, Theme.BORDER, 12));
-        e.setOnFocusChangeListener((v, focused) ->
-                e.setBackground(Theme.box(this, Theme.SURFACE, focused ? Theme.AMBER : Theme.BORDER, 12)));
+        e.setBackground(Theme.well(this, 12, false));
+        e.setOnFocusChangeListener((v, focused) -> e.setBackground(Theme.well(this, 12, focused)));
         return e;
     }
 
@@ -684,24 +697,29 @@ public class MainActivity extends Activity {
         row.addView(v, lp);
     }
 
-    /** SAB's active-tab look: orange gradient, white bold text. */
+    /** The main action is lit: the key on the glass, a glowing edge, white spaced capitals. */
     private TextView primaryButton(String label, View.OnClickListener l) {
         TextView b = text(label, 15, Theme.uiBold(this), 0xFFFFFFFF);
+        Theme.label(this, b);
+        b.setTextSize(13);
+        b.setLetterSpacing(0.18f);
         b.setGravity(Gravity.CENTER);
-        b.setPadding(dp(16), dp(14), dp(16), dp(14));
-        b.setBackground(Theme.pressable(Theme.amberGradient(this, 16, false), Theme.amberGradient(this, 16, true)));
+        b.setPadding(dp(16), dp(17), dp(16), dp(17));
+        b.setBackground(Theme.pressable(Theme.lit(this, 16, false), Theme.lit(this, 16, true)));
         b.setClickable(true);
         b.setOnClickListener(l);
         return b;
     }
 
-    /** SAB's inactive-tab look: #151922 with slate border. */
+    /** Other actions: a hairline outline on the glass that lights up while pressed. */
     private TextView secondaryButton(String label, View.OnClickListener l) {
         TextView b = text(label, 14, Theme.uiSemi(this), Theme.TEXT_SOFT);
+        Theme.label(this, b);
+        b.setTextSize(12);
+        b.setLetterSpacing(0.14f);
         b.setGravity(Gravity.CENTER);
-        b.setPadding(dp(16), dp(13), dp(16), dp(13));
-        b.setBackground(Theme.pressable(Theme.box(this, Theme.SURFACE, Theme.BORDER, 16),
-                Theme.box(this, Theme.SURFACE_HI, Theme.BORDER, 16)));
+        b.setPadding(dp(16), dp(14), dp(16), dp(14));
+        b.setBackground(Theme.pressable(Theme.box(this, Theme.GLASS, Theme.BORDER_STRONG, 16), Theme.well(this, 16, true)));
         b.setClickable(true);
         b.setOnClickListener(l);
         return b;

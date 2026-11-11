@@ -5,6 +5,9 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -72,16 +75,17 @@ public class ConverterActivity extends Activity {
 
     private View build() {
         LinearLayout card = vbox();
-        card.setBackground(Theme.box(this, Theme.PANEL, Theme.BORDER_SOFT, 16));
+        card.setBackground(room());
         card.setPadding(dp(16), dp(14), dp(16), dp(14));
 
-        TextView title = text("CONVERTER", 11, Theme.uiBold(this), Theme.MUTED);
-        title.setLetterSpacing(0.1f);
+        TextView title = text("CONVERTER", 11, Theme.uiBold(this), Theme.AMBER_LIGHT);
+        Theme.label(this, title);
         title.setPadding(dp(2), 0, 0, dp(10));
         card.addView(title);
 
         // one chip per configured currency row
         chips = hbox();
+        chips.setGravity(Gravity.CENTER_VERTICAL);
         HorizontalScrollView hs = new HorizontalScrollView(this);
         hs.setHorizontalScrollBarEnabled(false);
         hs.addView(chips);
@@ -90,8 +94,8 @@ public class ConverterActivity extends Activity {
         // amount: flag + code of the currency typed in, then the number
         amountBox = hbox();
         amountBox.setGravity(Gravity.CENTER_VERTICAL);
-        amountBox.setPadding(dp(12), dp(6), dp(12), dp(6));
-        amountBox.setBackground(Theme.box(this, Theme.SURFACE, Theme.AMBER, 12));
+        amountBox.setPadding(dp(15), dp(9), dp(15), dp(9));
+        amountBox.setBackground(Theme.lit(this, 12, false));
         inFlag = new ImageView(this);
         amountBox.addView(inFlag, new LinearLayout.LayoutParams(dp(28), dp(28)));
         inCode = text("", 17, Theme.uiMedium(this), Theme.TEXT);
@@ -108,7 +112,7 @@ public class ConverterActivity extends Activity {
         amount.setTextColor(Theme.TEXT);
         amount.setHint("0");
         amount.setHintTextColor(Theme.DIM);
-        amount.setHighlightColor(0x55DF8B35);
+        amount.setHighlightColor(0x55EB9438);
         amount.setBackground(null);
         amount.setPadding(0, dp(4), 0, dp(4));
         amount.setText(Store.sp(this).getString("convAmt", "100"));
@@ -128,8 +132,7 @@ public class ConverterActivity extends Activity {
         ImageView swap = new ImageView(this);
         swap.setImageResource(R.drawable.ic_swap);
         swap.setPadding(dp(8), dp(8), dp(8), dp(8));
-        swap.setBackground(Theme.pressable(Theme.box(this, Theme.SURFACE, Theme.BORDER, 18),
-                Theme.box(this, Theme.SURFACE_HI, Theme.AMBER, 18)));
+        swap.setBackground(Theme.pressable(Theme.well(this, 18, false), Theme.well(this, 18, true)));
         swap.setContentDescription("Swap direction");
         swap.setClickable(true);
         swap.setOnClickListener(v -> {
@@ -144,9 +147,10 @@ public class ConverterActivity extends Activity {
 
         // results: market and Visa, like the widget row
         LinearLayout res = vbox();
-        res.setBackground(Theme.box(this, Theme.SURFACE, Theme.BORDER, 12));
+        res.setBackground(Theme.well(this, 12, false));
         res.setPadding(dp(14), dp(10), dp(14), dp(10));
         TextView mktLbl = text("Market", 14, Theme.uiMedium(this), Theme.MUTED);
+        Theme.label(this, mktLbl);
         mktVal = text("", 22, Theme.monoMedium(this), Theme.TEXT);
         mktCode = text("", 14, Theme.uiMedium(this), Theme.MUTED);
         res.addView(resultRow(mktLbl, mktVal, mktCode));
@@ -172,6 +176,21 @@ public class ConverterActivity extends Activity {
         return card;
     }
 
+    /**
+     * The card floats over the home screen, so it brings its own light: night glass, nearly opaque so the numbers
+     * read over any wallpaper, with a faint wash of the key light from the top right.
+     */
+    private Drawable room() {
+        GradientDrawable base = Theme.box(this, 0xF2080C12, Theme.BORDER_STRONG, 16);
+        GradientDrawable wash = new GradientDrawable();
+        wash.setGradientType(GradientDrawable.RADIAL_GRADIENT);
+        wash.setColors(new int[]{0x33EB9438, 0x0FEB9438, 0x00EB9438});
+        wash.setGradientCenter(0.92f, 0.02f);
+        wash.setGradientRadius(dp(320));
+        wash.setCornerRadius(Theme.dp(this, 16));
+        return new LayerDrawable(new Drawable[]{base, wash});
+    }
+
     private LinearLayout resultRow(View label, TextView value, TextView code) {
         LinearLayout r = hbox();
         r.setGravity(Gravity.CENTER_VERTICAL);
@@ -194,9 +213,10 @@ public class ConverterActivity extends Activity {
             String code = from(i);
             LinearLayout c = hbox();
             c.setGravity(Gravity.CENTER_VERTICAL);
-            c.setPadding(dp(8), dp(6), dp(12), dp(6));
             boolean on = i == row;
-            c.setBackground(Theme.box(this, on ? Theme.SURFACE_HI : Theme.SURFACE, on ? Theme.AMBER : Theme.BORDER, 16));
+            int ring = on ? 3 : 0; // room for the lit glow
+            c.setPadding(dp(8 + ring), dp(6 + ring), dp(12 + ring), dp(6 + ring));
+            c.setBackground(on ? Theme.lit(this, 16, false) : Theme.well(this, 16, false));
             ImageView f = new ImageView(this);
             f.setImageBitmap(CurrencyView.flagOrLabel(this, Util.countryOfCurrency(code), code));
             c.addView(f, new LinearLayout.LayoutParams(dp(18), dp(18)));
@@ -209,8 +229,8 @@ public class ConverterActivity extends Activity {
                 refreshPair();
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.rightMargin = dp(6);
-            lp.bottomMargin = dp(2);
+            lp.rightMargin = dp(on ? 3 : 6);
+            lp.gravity = Gravity.CENTER_VERTICAL;
             chips.addView(c, lp);
         }
     }

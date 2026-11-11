@@ -280,14 +280,14 @@ final class CurrencyView {
         return b;
     }
 
-    /** Flag faded into graphite with the sun-phase band below (one exact boundary). */
+    /** Flag faded into the night with the sun-phase band of light below (one exact boundary). */
     private static Bitmap clockFull(Bitmap flag, int phase) {
         final int w = CW, h = CH;
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
         final float split = Math.round(h * 0.94f);
         Paint base = new Paint();
-        base.setColor(0xFF0B0E15);
+        base.setColor(Theme.DEEP);
         c.drawRect(0, 0, w, h, base);
         RectF fr = new RectF(0, 0, w, split);
         if (flag != null) {
@@ -298,10 +298,17 @@ final class CurrencyView {
             c.drawRect(fr, p);
         }
         Paint gp = new Paint();
-        gp.setShader(new LinearGradient(0, 0, 0, split, 0x66000000, 0xFF0B0E15, Shader.TileMode.CLAMP));
+        gp.setShader(new LinearGradient(0, 0, 0, split, 0x66000000, Theme.DEEP, Shader.TileMode.CLAMP));
         c.drawRect(fr, gp);
+        // The sun-phase band is a strip of light: it glows up into the haze above it.
+        int band = phaseColor(phase);
+        float rise = h * 0.3f;
+        Paint haze = new Paint(Paint.DITHER_FLAG);
+        haze.setShader(new LinearGradient(0, split - rise, 0, split, band & 0x00FFFFFF, (band & 0x00FFFFFF) | 0x4D000000,
+                Shader.TileMode.CLAMP));
+        c.drawRect(0, split - rise, w, split, haze);
         Paint sp = new Paint();
-        sp.setColor(phaseColor(phase));
+        sp.setColor(band);
         c.drawRect(0, split, w, h, sp);
         return out;
     }
