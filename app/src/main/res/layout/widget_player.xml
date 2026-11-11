@@ -53,7 +53,7 @@
         <ImageView
             android:id="@+id/t_elapsed"
             android:layout_width="wrap_content"
-            android:layout_height="9dp"
+            android:layout_height="11dp"
             android:layout_marginStart="8dp"
             android:adjustViewBounds="true"
             android:importantForAccessibility="no"
@@ -228,7 +228,7 @@
         <ImageView
             android:id="@+id/t_total"
             android:layout_width="wrap_content"
-            android:layout_height="9dp"
+            android:layout_height="11dp"
             android:adjustViewBounds="true"
             android:importantForAccessibility="no"
             android:scaleType="fitEnd" />
