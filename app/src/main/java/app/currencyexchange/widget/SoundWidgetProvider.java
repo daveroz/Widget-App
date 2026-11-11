@@ -33,8 +33,12 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     static final String EXTRA_AT = "at";
     /** The progress line is split into these zones, left to right; a tap on one jumps to its middle. */
     private static final int[] SEEK_ZONES = {R.id.seek_0, R.id.seek_1, R.id.seek_2, R.id.seek_3, R.id.seek_4, R.id.seek_5, R.id.seek_6, R.id.seek_7, R.id.seek_8, R.id.seek_9, R.id.seek_10, R.id.seek_11, R.id.seek_12, R.id.seek_13, R.id.seek_14, R.id.seek_15, R.id.seek_16, R.id.seek_17, R.id.seek_18, R.id.seek_19, R.id.seek_20, R.id.seek_21, R.id.seek_22, R.id.seek_23};
-    /** At most this many pixels per picture, so each frame stays light to send to the home screen. */
-    private static final float MAX_PIXELS = 150_000f;
+    /**
+     * Pictures aim for this many pixels, so each frame stays light to send to the home screen, but never fewer than
+     * {@link #MIN_DP} pixels per dp (so a big widget stays sharp), nor more than {@link #MOST_PIXELS}.
+     */
+    private static final float PIXELS = 150_000f, MOST_PIXELS = 420_000f;
+    private static final float MIN_DP = 1.6f;
 
     private static final Map<Integer, SoundPicture> PICTURES = new HashMap<>();
     private static final Map<Integer, Bitmap> BUFFERS = new HashMap<>();
@@ -182,8 +186,15 @@ public class SoundWidgetProvider extends AppWidgetProvider {
         int hDp = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
         if (wDp <= 0) wDp = 320;
         if (hDp <= 0) hDp = 150;
-        float dp = Math.min(SoundPicture.MAX_DP, (float) Math.sqrt(MAX_PIXELS / (wDp * hDp)));
+        float dp = scale(wDp, hDp);
         return new float[]{Math.max(2, Math.round(wDp * dp)), Math.max(2, Math.round(hDp * dp)), dp};
+    }
+
+    /** Pixels per dp for a picture of this size in dp. */
+    static float scale(int wDp, int hDp) {
+        float area = Math.max(1, wDp * hDp);
+        float dp = Math.min(SoundPicture.MAX_DP, Math.max(MIN_DP, (float) Math.sqrt(PIXELS / area)));
+        return Math.min(dp, (float) Math.sqrt(MOST_PIXELS / area));
     }
 
     private static synchronized Bitmap draw(Context ctx, int id) {

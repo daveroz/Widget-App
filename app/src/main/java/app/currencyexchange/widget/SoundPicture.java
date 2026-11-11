@@ -135,7 +135,9 @@ final class SoundPicture {
         // the picture, see SoundWidgetProvider) while something plays.
         float pad = 14 * dp;
         float bottom = track != null ? h - CONTROLS_DP * dp : h - pad;
-        float size = Math.max(28 * dp, Math.min((bottom - pad) * 0.56f, 84 * dp));
+        // The LP grows with a taller widget, up to about a third of its width.
+        float most = Math.max(84 * dp, Math.min(w * 0.34f, 130 * dp));
+        float size = Math.max(28 * dp, Math.min((bottom - pad) * 0.56f, most));
         float overlap = size * 0.2f;
         sleeve.set(w - pad - size, pad, w - pad, pad + size);
         wall.set(pad, pad + size - overlap, w - pad, bottom);
@@ -171,13 +173,15 @@ final class SoundPicture {
             title = track.title.isEmpty() ? track.app : track.title;
             detail = track.artist;
         }
-        // Three lines when there's room, else the label and the title; centred in the band.
+        // Three lines when there's room, else the label and the title; centred in the band. On a taller widget the
+        // band is taller, and the words grow with it (up to half as big again).
+        float k = Math.max(1f, Math.min(1.45f, band / (44 * dp)));
         boolean three = detail != null && !detail.isEmpty() && band >= 42 * dp;
-        float block = three ? 44 * dp : 29 * dp;
+        float block = (three ? 44 : 29) * k * dp;
         // the label, in spaced capitals: what's happening in the light's colour, the app in grey
-        float y = top + Math.max(0, (band - block) / 2) + 8 * dp;
+        float y = top + Math.max(0, (band - block) / 2) + 8 * k * dp;
         text.setTypeface(Theme.uiBold(ctx));
-        text.setTextSize(10 * dp);
+        text.setTextSize(10 * k * dp);
         text.setLetterSpacing(0.22f);
         String head = label.toUpperCase(Locale.getDefault());
         text.setColor(scene.label);
@@ -192,16 +196,16 @@ final class SoundPicture {
         }
         // the title
         text.setLetterSpacing(0f);
-        text.setTextSize(16 * dp);
+        text.setTextSize(16 * k * dp);
         text.setColor(Theme.TEXT);
-        y += 20 * dp;
+        y += 20 * k * dp;
         c.drawText(TextUtils.ellipsize(title, text, width, TextUtils.TruncateAt.END).toString(), x, y, text);
         // the artist
         if (three) {
             text.setTypeface(Theme.uiMedium(ctx));
-            text.setTextSize(12 * dp);
+            text.setTextSize(12 * k * dp);
             text.setColor(Theme.MUTED);
-            y += 16 * dp;
+            y += 16 * k * dp;
             c.drawText(TextUtils.ellipsize(detail, text, width, TextUtils.TruncateAt.END).toString(), x, y, text);
         }
     }
