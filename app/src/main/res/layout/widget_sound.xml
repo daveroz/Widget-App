@@ -16,7 +16,7 @@
     <LinearLayout
         android:id="@+id/controls"
         android:layout_width="match_parent"
-        android:layout_height="46dp"
+        android:layout_height="50dp"
         android:layout_gravity="bottom"
         android:layout_marginStart="6dp"
         android:layout_marginEnd="14dp"
@@ -28,22 +28,22 @@
 
         <ImageView
             android:id="@+id/btn_prev"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
             android:contentDescription="@string/sound_prev"
             android:scaleType="fitCenter" />
 
         <ImageView
             android:id="@+id/btn_play"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
             android:contentDescription="@string/sound_play_pause"
             android:scaleType="fitCenter" />
 
         <ImageView
             android:id="@+id/btn_next"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
             android:contentDescription="@string/sound_next"
             android:scaleType="fitCenter" />
 
@@ -67,7 +67,7 @@
             <ImageView
                 android:id="@+id/bar"
                 android:layout_width="match_parent"
-                android:layout_height="28dp"
+                android:layout_height="34dp"
                 android:layout_gravity="center_vertical"
                 android:contentDescription="@string/sound_seek"
                 android:scaleType="fitXY" />

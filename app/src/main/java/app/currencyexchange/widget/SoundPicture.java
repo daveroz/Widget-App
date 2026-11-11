@@ -26,8 +26,8 @@ import java.util.Random;
 final class SoundPicture {
     /** Pictures are drawn at this many pixels per dp at most. */
     static final float MAX_DP = 2f;
-    /** The room the controls take along the bottom while something plays (46 dp row, 8 dp below, 4 dp above). */
-    static final float CONTROLS_DP = 58f;
+    /** The room the controls take along the bottom while something plays (50 dp row, 8 dp below, 4 dp above). */
+    static final float CONTROLS_DP = 62f;
 
     private final SoundLights lights = new SoundLights();
     private final SoundRecord record = new SoundRecord();
@@ -176,7 +176,7 @@ final class SoundPicture {
         // Three lines when there's room, else the label and the title; centred in the band. On a taller widget the
         // band is taller, and the words grow with it (up to half as big again).
         float k = Math.max(1f, Math.min(1.45f, band / (44 * dp)));
-        boolean three = detail != null && !detail.isEmpty() && band >= 42 * dp;
+        boolean three = detail != null && !detail.isEmpty() && band >= 40 * dp;
         float block = (three ? 44 : 29) * k * dp;
         // the label, in spaced capitals: what's happening in the light's colour, the app in grey
         float y = top + Math.max(0, (band - block) / 2) + 8 * k * dp;

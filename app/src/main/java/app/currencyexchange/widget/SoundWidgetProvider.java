@@ -251,33 +251,40 @@ public class SoundWidgetProvider extends AppWidgetProvider {
             return;
         }
         rv.setViewVisibility(R.id.controls, View.VISIBLE);
+        boolean timed = t.duration > 0;
+        boolean times = timed && wDp >= 300;
+        // The line's width: what's left of the row after its margins, the buttons and the times.
+        float used = 6 + 14 + 46 + 50 + 46 + 12;
+        Bitmap done = null, all = null;
+        if (times) {
+            done = TextBmp.tight(Theme.uiMedium(ctx), 11, SoundControls.clock(at), Theme.MUTED);
+            all = TextBmp.tight(Theme.uiMedium(ctx), 11, SoundControls.clock(t.duration), Theme.MUTED);
+            used += 8 + (done.getWidth() + all.getWidth()) / 2.5f; // the time pictures are 2.5 px per dp
+        }
+        int barDp = Math.max(40, Math.round(wDp - used));
         if (full) {
-            rv.setImageViewBitmap(R.id.btn_prev, SoundControls.skip(false, 42));
-            rv.setImageViewBitmap(R.id.btn_next, SoundControls.skip(true, 42));
+            rv.setImageViewBitmap(R.id.btn_prev, SoundControls.skip(false, 46));
+            rv.setImageViewBitmap(R.id.btn_next, SoundControls.skip(true, 46));
             rv.setOnClickPendingIntent(R.id.btn_prev, action(ctx, ACTION_PREV, 40, -1f));
             rv.setOnClickPendingIntent(R.id.btn_play, action(ctx, ACTION_PLAY_PAUSE, 41, -1f));
             rv.setOnClickPendingIntent(R.id.btn_next, action(ctx, ACTION_NEXT, 42, -1f));
+            // Each zone jumps to the point of the line under its middle (the line stops short of the ends, so the
+            // point fits there).
             for (int i = 0; i < SEEK_ZONES.length; i++) {
-                rv.setOnClickPendingIntent(SEEK_ZONES[i], action(ctx, ACTION_SEEK, 100 + i, (i + 0.5f) / SEEK_ZONES.length));
+                float middle = (i + 0.5f) / SEEK_ZONES.length * barDp;
+                rv.setOnClickPendingIntent(SEEK_ZONES[i], action(ctx, ACTION_SEEK, 100 + i, SoundControls.fractionAt(middle, barDp)));
             }
         }
-        rv.setImageViewBitmap(R.id.btn_play, SoundControls.playButton(scene, t.playing, 46));
-        boolean timed = t.duration > 0;
-        boolean times = timed && wDp >= 300;
+        rv.setImageViewBitmap(R.id.btn_play, SoundControls.playButton(scene, t.playing, 50));
         rv.setViewVisibility(R.id.seek, timed ? View.VISIBLE : View.INVISIBLE);
         rv.setViewVisibility(R.id.t_elapsed, times ? View.VISIBLE : View.GONE);
         rv.setViewVisibility(R.id.t_total, times ? View.VISIBLE : View.GONE);
         if (!timed) return;
-        // The line's width: what's left of the row after its margins, the buttons and the times.
-        float used = 6 + 14 + 42 + 46 + 42 + 12;
         if (times) {
-            Bitmap done = TextBmp.tight(Theme.uiMedium(ctx), 11, SoundControls.clock(at), Theme.MUTED);
-            Bitmap all = TextBmp.tight(Theme.uiMedium(ctx), 11, SoundControls.clock(t.duration), Theme.MUTED);
             rv.setImageViewBitmap(R.id.t_elapsed, done);
             rv.setImageViewBitmap(R.id.t_total, all);
-            used += 8 + (done.getWidth() + all.getWidth()) / 2.5f; // the time pictures are 2.5 px per dp
         }
-        rv.setImageViewBitmap(R.id.bar, SoundControls.bar(scene, at / (float) t.duration, Math.max(24, Math.round(wDp - used))));
+        rv.setImageViewBitmap(R.id.bar, SoundControls.bar(scene, at / (float) t.duration, barDp));
     }
 
     private static PendingIntent action(Context ctx, String action, int code, float at) {
