@@ -38,6 +38,8 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
             R.id.seek_5, R.id.seek_6, R.id.seek_7, R.id.seek_8, R.id.seek_9, R.id.seek_10, R.id.seek_11, R.id.seek_12,
             R.id.seek_13, R.id.seek_14, R.id.seek_15, R.id.seek_16, R.id.seek_17, R.id.seek_18, R.id.seek_19,
             R.id.seek_20, R.id.seek_21, R.id.seek_22, R.id.seek_23};
+    /** The times beside the progress line, in dp (their views are 0.82 of this tall, see TextBmp.tight). */
+    private static final float TIME_DP = 13f;
     /** The picture is drawn at up to 2 pixels per dp, and no more than this many pixels. */
     private static final float MOST_PIXELS = 450_000f;
 
@@ -288,8 +290,8 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
         float used = 10 + 18 + 46 + 50 + 46;
         Bitmap done = null, all = null;
         if (times) {
-            done = TextBmp.tight(Theme.uiMedium(ctx), 11, SoundControls.clock(at), Theme.MUTED);
-            all = TextBmp.tight(Theme.uiMedium(ctx), 11, SoundControls.clock(t.duration), Theme.MUTED);
+            done = TextBmp.tight(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(at), Theme.MUTED);
+            all = TextBmp.tight(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), Theme.MUTED);
             used += 8 + (done.getWidth() + all.getWidth()) / 2.5f; // the time pictures are 2.5 px per dp
         }
         int barDp = Math.max(40, Math.round(wDp - used));
