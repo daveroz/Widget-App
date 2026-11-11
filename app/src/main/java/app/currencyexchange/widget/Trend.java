@@ -6,8 +6,6 @@ import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.LruCache;
@@ -22,7 +20,7 @@ import java.util.Locale;
 /**
  * The trend behind each conversion row: the last month of market rates as a soft area chart, a curve through
  * every day's rate with a fill that fades out downwards. Only the shape: no axis, no numbers, no markers. It
- * uses the one amber accent at low opacity so the row's flags and numbers stay on top.
+ * uses the shared light's colour (the playing song's, or amber) at low opacity so the row's flags and numbers stay on top.
  */
 final class Trend {
     private Trend() {}
@@ -70,19 +68,39 @@ final class Trend {
     }
 
     /** The chart for an area of wDp x hDp (a row inside its 1 dp border), with the row's round ends cut out. */
-    static Bitmap bitmap(double[][] pts, int wDp, int hDp) {
-        StringBuilder k = new StringBuilder().append(wDp).append('x').append(hDp);
-        for (double[] p : pts) k.append('|').append(p[0]).append(':').append(p[1]);
+    /**
+     * The row's picture, {@code wDp} × {@code hDp} (the row inside its 1 dp border): its panel, lit by the light that
+     * all the widgets share, with the chart over it in that light ({@code pts} null: no chart yet). Rows take turns
+     * a touch lighter and darker ({@code light}).
+     */
+    static Bitmap bitmap(double[][] pts, int wDp, int hDp, Scene scene, boolean light) {
+        StringBuilder k = new StringBuilder().append(wDp).append('x').append(hDp).append('|').append(scene.key)
+                .append('|').append(light);
+        if (pts != null) for (double[] p : pts) k.append('|').append(p[0]).append(':').append(p[1]);
         String key = k.toString();
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
-        Bitmap made = draw(pts, wDp, hDp);
+        Bitmap made = draw(pts, wDp, hDp, scene, light);
         CACHE.put(key, made);
         return made;
     }
 
-    private static Bitmap draw(double[][] pts, int wDp, int hDp) {
-        int w = Math.round(wDp * PXDP), h = Math.round(hDp * PXDP), n = pts.length;
+    private static Bitmap draw(double[][] pts, int wDp, int hDp, Scene scene, boolean light) {
+        int w = Math.round(wDp * PXDP), h = Math.round(hDp * PXDP);
+        Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(out);
+        // The row's panel, its round ends just inside the row's 1 dp border.
+        float r = Math.min(INNER_RADIUS_DP * PXDP, h / 2f);
+        Stage.paint(c, new RectF(0, 0, w, h), Stage.round(r), scene, 0f,
+                light ? 0xF0101A2B : 0xF00B1220, light ? 0xF00B1220 : Stage.NIGHT, 0f, true);
+        if (pts != null) chart(c, pts, w, h, scene);
+        c.restore();
+        return out;
+    }
+
+    /** The chart: the curve as a thread of light in the shared light's colour, over a soft area fading downward. */
+    private static void chart(Canvas c, double[][] pts, int w, int h, Scene scene) {
+        int n = pts.length;
         double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
         for (double[] p : pts) {
             lo = Math.min(lo, p[1]);
@@ -98,16 +116,13 @@ final class Trend {
         }
         Path curve = curve(xs, ys);
 
-        Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(out);
-
         Path area = new Path(curve);
         area.lineTo(xs[n - 1], h);
         area.lineTo(xs[0], h);
         area.close();
         Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         fill.setShader(new LinearGradient(0, top, 0, h,
-                alpha(Theme.AMBER, FILL_ALPHA), alpha(Theme.AMBER, 0), Shader.TileMode.CLAMP));
+                alpha(scene.key, FILL_ALPHA), alpha(scene.key, 0), Shader.TileMode.CLAMP));
         c.drawPath(area, fill);
 
         // The line is a thread of light in the haze: a soft glow of the key around a brighter core.
@@ -116,7 +131,7 @@ final class Trend {
         glow.setStrokeWidth(LINE_DP * PXDP * 3.5f);
         glow.setStrokeCap(Paint.Cap.ROUND);
         glow.setStrokeJoin(Paint.Join.ROUND);
-        glow.setColor(alpha(Theme.AMBER, Math.round(LINE_ALPHA * 0.45f)));
+        glow.setColor(alpha(scene.key, Math.round(LINE_ALPHA * 0.45f)));
         glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 2.5f, BlurMaskFilter.Blur.NORMAL));
         c.drawPath(curve, glow);
 
@@ -125,18 +140,8 @@ final class Trend {
         line.setStrokeWidth(LINE_DP * PXDP);
         line.setStrokeCap(Paint.Cap.ROUND);
         line.setStrokeJoin(Paint.Join.ROUND);
-        line.setColor(alpha(Theme.AMBER_LIGHT, LINE_ALPHA));
+        line.setColor(alpha(scene.label, LINE_ALPHA));
         c.drawPath(curve, line);
-
-        // Cut away what falls outside the row's rounded ends (clipToOutline does this too, but only on Android 12+).
-        float r = Math.min(INNER_RADIUS_DP * PXDP, h / 2f);
-        Path outside = new Path();
-        outside.addRoundRect(new RectF(0, 0, w, h), r, r, Path.Direction.CW);
-        outside.setFillType(Path.FillType.INVERSE_WINDING);
-        Paint clear = new Paint(Paint.ANTI_ALIAS_FLAG);
-        clear.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
-        c.drawPath(outside, clear);
-        return out;
     }
 
     /** Smooth curve through the points that never overshoots them (Steffen's monotone cubic, as Bezier segments). */

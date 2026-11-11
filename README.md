@@ -69,8 +69,13 @@ Everything is cached, so the widget keeps showing the last values when offline.
   converter's amount and chip) is *lit*: a touch of amber on the glass, an amber edge and a soft glow,
   not a solid block. Lines drawn in the light (the 30-day trend) glow; today in the calendar is lit.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
-- **Widgets** use the same night glass and hairlines, with a faint amber wash from the top right, and
-  the clocks' sun-phase strip glows up into the picture above it.
+- **One light for every widget.** All four widgets sit on the same panel (`Stage`): night glass lit by
+  two washes of the light (top right and low left) with a fine film grain and a hairline edge. The light
+  is the colour of what's playing (`Ambience`): the album cover's primary colour, or the playing app's
+  own for videos, or Worldly's amber when nothing plays. When the song changes, every widget takes on its
+  colour: the panels' haze, the Currency icons, arrows, trend lines and daytime strip, the Calendar's
+  today and accents, and the glow around the SBB clock's face (the clock keeps SBB's black, white and
+  red). It follows the music through notification access, with or without a Sound widget.
 
 The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,
 well and lit looks live in `Theme.java`; the settings screen, the converter and the widgets all read

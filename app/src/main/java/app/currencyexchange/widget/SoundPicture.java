@@ -2,18 +2,13 @@ package app.currencyexchange.widget;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.RadialGradient;
 import android.graphics.RectF;
-import android.graphics.Shader;
 import android.text.TextPaint;
 import android.text.TextUtils;
 
 import java.util.Locale;
-import java.util.Random;
 
 /**
  * One Sound widget's picture, in the Deco launcher's look: the night glass panel with a wash of the
@@ -31,12 +26,7 @@ final class SoundPicture {
 
     private final SoundLights lights = new SoundLights();
     private final SoundRecord record = new SoundRecord();
-    private final Paint panel = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint wash = new Paint(Paint.DITHER_FLAG);
-    private final Paint grain = new Paint();
     private final TextPaint text = new TextPaint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
-    private final Path outline = new Path();
     private final RectF box = new RectF();
     private final RectF wall = new RectF();
     private final RectF sleeve = new RectF();
@@ -46,12 +36,6 @@ final class SoundPicture {
     private boolean access = true;
     /** The cover, and a small copy of it for drawing every frame (players send them up to 1000 px or more). */
     private Bitmap coverFrom, coverSmall;
-
-    SoundPicture() {
-        edge.setStyle(Paint.Style.STROKE);
-        edge.setColor(0x2EAADCFF);
-        grain.setShader(new BitmapShader(grainTile(), Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
-    }
 
     /** What's playing (null for nothing), its light, and whether Worldly may see other apps' media. */
     void set(NowPlaying.Track now, Scene light, boolean mediaAccess) {
@@ -112,23 +96,11 @@ final class SoundPicture {
         Canvas c = new Canvas(out);
         float bass = lights.bass();
 
-        // The panel: night glass with a hairline edge, like the other widgets, lit by washes of the light.
+        // The panel every widget sits on: night glass lit by washes of the light (swelling with the bass), with grain.
         float radius = Math.min(28 * dp, h / 2f);
         box.set(0, 0, w, h);
-        outline.rewind();
-        outline.addRoundRect(box, radius, radius, Path.Direction.CW);
-        c.save();
-        c.clipPath(outline);
-        panel.setColor(0xF0070A10);
-        c.drawRect(box, panel);
-        float big = Math.max(w, h);
-        wash.setShader(new RadialGradient(w * 0.86f, 0, big * 0.62f,
-                new int[]{Scene.alpha(scene.key, 0.16f + 0.08f * bass), Scene.alpha(scene.key, 0.05f), scene.key & 0x00FFFFFF},
-                new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
-        c.drawRect(box, wash);
-        wash.setShader(new RadialGradient(w * 0.12f, h, big * 0.5f,
-                new int[]{Scene.alpha(scene.key, 0.07f + 0.05f * bass), scene.key & 0x00FFFFFF}, null, Shader.TileMode.CLAMP));
-        c.drawRect(box, wash);
+        float[] corners = Stage.round(radius);
+        Stage.paint(c, box, corners, scene, bass, Stage.NIGHT, Stage.NIGHT, 0f, true);
 
         // Zones: on top, the cover with its LP on the right and the words on the left; below, the wall of lamps from
         // margin to margin, its top a little behind the LP; along the bottom, the controls (real views laid over
@@ -149,10 +121,8 @@ final class SoundPicture {
 
         record.draw(c, sleeve, dp, scene);
         drawWords(ctx, c, pad, pad, wall.top - pad, textRight - pad, dp);
-        c.drawRect(box, grain);
         c.restore();
-        edge.setStrokeWidth(Math.max(1f, dp));
-        c.drawRoundRect(new RectF(dp / 2, dp / 2, w - dp / 2, h - dp / 2), radius, radius, edge);
+        Stage.edge(c, box, corners, Math.max(1f, dp));
         return out;
     }
 
@@ -209,16 +179,4 @@ final class SoundPicture {
         }
     }
 
-    /** A tile of faint white specks, like film grain, as on the launcher's stage. */
-    private static Bitmap grainTile() {
-        int size = 96;
-        int[] pixels = new int[size * size];
-        Random random = new Random(7);
-        for (int i = 0; i < pixels.length; i++) {
-            float v = random.nextFloat();
-            int a = v > 0.5f ? Math.round((v - 0.5f) * 2 * 12) : 0;
-            pixels[i] = (a << 24) | 0x00FFFFFF;
-        }
-        return Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888);
-    }
 }

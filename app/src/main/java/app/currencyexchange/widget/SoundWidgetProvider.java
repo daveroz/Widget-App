@@ -51,8 +51,7 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     private static NowPlaying.Track track;
     private static Scene scene = Scene.amber();
     private static boolean access;
-    /** Which picture the light was worked out for, and which app the tap opens. */
-    private static Object sceneFor;
+    /** Which app a tap opens (a full update is sent when it changes). */
     private static String state = "";
     /**
      * What a control just asked for, shown straight away: players take a moment to say they've paused or jumped,
@@ -219,14 +218,8 @@ public class SoundWidgetProvider extends AppWidgetProvider {
         access = NowPlaying.hasAccess(ctx);
         NowPlaying.Track now = expected(access ? NowPlaying.current(ctx) : null);
         track = now;
-        Object key = now == null ? null : now.hasCover() ? now.art : now.packageName;
-        if (key == null) {
-            scene = Scene.amber();
-            sceneFor = null;
-        } else if (!key.equals(sceneFor)) { // a new cover (by picture) or a new app (by name)
-            sceneFor = key;
-            scene = Scene.of(now.hasCover() ? Colours.primary(now.art) : Colours.app(ctx, now.packageName));
-        }
+        scene = Ambience.lightFor(ctx, now);
+        Ambience.show(ctx, scene); // the other widgets share the light
         for (SoundPicture p : PICTURES.values()) p.set(now, scene, access);
         String next = now == null ? "" : now.packageName;
         boolean changed = !next.equals(state);
