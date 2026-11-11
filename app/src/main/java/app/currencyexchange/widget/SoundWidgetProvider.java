@@ -30,6 +30,8 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     static final String ACTION_NEXT = "app.currencyexchange.widget.SOUND_NEXT";
     static final String ACTION_PREV = "app.currencyexchange.widget.SOUND_PREV";
     static final String ACTION_SEEK = "app.currencyexchange.widget.SOUND_SEEK";
+    /** A tap in the gaps of the controls row: it does nothing (rather than opening the app by mistake). */
+    static final String ACTION_NONE = "app.currencyexchange.widget.SOUND_NONE";
     static final String EXTRA_AT = "at";
     /** The progress line is split into these zones, left to right; a tap on one jumps to its middle. */
     private static final int[] SEEK_ZONES = {R.id.seek_0, R.id.seek_1, R.id.seek_2, R.id.seek_3, R.id.seek_4, R.id.seek_5, R.id.seek_6, R.id.seek_7, R.id.seek_8, R.id.seek_9, R.id.seek_10, R.id.seek_11, R.id.seek_12, R.id.seek_13, R.id.seek_14, R.id.seek_15, R.id.seek_16, R.id.seek_17, R.id.seek_18, R.id.seek_19, R.id.seek_20, R.id.seek_21, R.id.seek_22, R.id.seek_23};
@@ -52,6 +54,16 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     /** Which picture the light was worked out for, and which app the tap opens. */
     private static Object sceneFor;
     private static String state = "";
+    /**
+     * What a control just asked for, shown straight away: players take a moment to say they've paused or jumped,
+     * and a button that doesn't change looks like it missed the tap (and gets tapped again, undoing it).
+     */
+    private static Boolean expectPlaying;
+    private static long expectPlayingUntil, expectPosition = -1, expectPositionAt, expectPositionUntil;
+    /** How long a control's answer is shown before the player's own word counts again. */
+    private static final long EXPECT_MS = 2500;
+    /** Frames pause for a moment after a tap, so the home screen is free to take the next one. */
+    private static long quietUntil;
 
     @Override
     public void onUpdate(Context ctx, AppWidgetManager awm, int[] ids) {
@@ -97,17 +109,21 @@ public class SoundWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    /** A control was tapped: tell the player, then show its new state. */
+    /** A control was tapped: tell the player, show what it asked for straight away, and let the player catch up. */
     static void control(Context ctx, String action, float at) {
+        long now = NowPlaying.now();
         MediaController player = NowPlaying.controller(ctx);
         if (player != null) {
             MediaController.TransportControls t = player.getTransportControls();
-            PlaybackState s = player.getPlaybackState();
-            boolean playing = s != null
-                    && (s.getState() == PlaybackState.STATE_PLAYING || s.getState() == PlaybackState.STATE_BUFFERING);
             if (ACTION_PLAY_PAUSE.equals(action)) {
-                if (playing) t.pause();
-                else t.play();
+                // Toggle what the widget shows (which may be a tap ago, ahead of the player), so taps never cancel out.
+                boolean want = !shownPlaying(player, now);
+                if (want) t.play();
+                else t.pause();
+                synchronized (SoundWidgetProvider.class) {
+                    expectPlaying = want;
+                    expectPlayingUntil = now + EXPECT_MS;
+                }
             } else if (ACTION_NEXT.equals(action)) {
                 t.skipToNext();
             } else if (ACTION_PREV.equals(action)) {
@@ -115,12 +131,54 @@ public class SoundWidgetProvider extends AppWidgetProvider {
             } else if (ACTION_SEEK.equals(action) && at >= 0) {
                 MediaMetadata m = player.getMetadata();
                 long duration = m == null ? 0 : m.getLong(MediaMetadata.METADATA_KEY_DURATION);
-                if (duration > 0) t.seekTo((long) (Math.min(1f, at) * duration));
+                if (duration > 0) {
+                    long to = (long) (Math.min(1f, at) * duration);
+                    t.seekTo(to);
+                    synchronized (SoundWidgetProvider.class) {
+                        expectPosition = to;
+                        expectPositionAt = now;
+                        expectPositionUntil = now + EXPECT_MS;
+                    }
+                }
             }
+        }
+        synchronized (SoundWidgetProvider.class) {
+            quietUntil = now + 350;
         }
         refresh(ctx);
         updateAll(ctx);
-        LiveService.ensure(ctx); // the player's new state shows within half a second
+        LiveService.ensure(ctx);
+    }
+
+    /** Whether the widget shows the player as playing: what the last tap asked for, while that's fresh. */
+    private static synchronized boolean shownPlaying(MediaController player, long now) {
+        if (expectPlaying != null && now < expectPlayingUntil) return expectPlaying;
+        PlaybackState s = player.getPlaybackState();
+        return s != null && (s.getState() == PlaybackState.STATE_PLAYING || s.getState() == PlaybackState.STATE_BUFFERING);
+    }
+
+    /** Whether frames should hold off for a moment, right after a tap. */
+    static synchronized boolean quiet() {
+        return NowPlaying.now() < quietUntil;
+    }
+
+    /** What's playing, with what a control just asked for laid over it until the player says the same. */
+    private static NowPlaying.Track expected(NowPlaying.Track now) {
+        if (now == null) return null;
+        long t = NowPlaying.now();
+        if (expectPlaying != null) {
+            if (t < expectPlayingUntil && now.playing != expectPlaying) now = now.withPlaying(expectPlaying);
+            else expectPlaying = null; // the player caught up (or never will): its word counts again
+        }
+        if (expectPosition >= 0) {
+            long target = expectPosition + (now.playing ? t - expectPositionAt : 0);
+            if (t < expectPositionUntil && Math.abs(now.positionAt(t) - target) > 1500) {
+                now = now.withPosition(target, t);
+            } else {
+                expectPosition = -1;
+            }
+        }
+        return now;
     }
 
     static int[] widgetIds(Context ctx) {
@@ -134,7 +192,7 @@ public class SoundWidgetProvider extends AppWidgetProvider {
      */
     static synchronized boolean refresh(Context ctx) {
         access = NowPlaying.hasAccess(ctx);
-        NowPlaying.Track now = access ? NowPlaying.current(ctx) : null;
+        NowPlaying.Track now = expected(access ? NowPlaying.current(ctx) : null);
         track = now;
         Object key = now == null ? null : now.hasCover() ? now.art : now.packageName;
         if (key == null) {
@@ -254,7 +312,7 @@ public class SoundWidgetProvider extends AppWidgetProvider {
         boolean timed = t.duration > 0;
         boolean times = timed && wDp >= 300;
         // The line's width: what's left of the row after its margins, the buttons and the times.
-        float used = 6 + 14 + 46 + 50 + 46 + 12;
+        float used = 6 + 14 + 46 + 50 + 46;
         Bitmap done = null, all = null;
         if (times) {
             done = TextBmp.tight(Theme.uiMedium(ctx), 11, SoundControls.clock(at), Theme.MUTED);
@@ -268,6 +326,7 @@ public class SoundWidgetProvider extends AppWidgetProvider {
             rv.setOnClickPendingIntent(R.id.btn_prev, action(ctx, ACTION_PREV, 40, -1f));
             rv.setOnClickPendingIntent(R.id.btn_play, action(ctx, ACTION_PLAY_PAUSE, 41, -1f));
             rv.setOnClickPendingIntent(R.id.btn_next, action(ctx, ACTION_NEXT, 42, -1f));
+            rv.setOnClickPendingIntent(R.id.controls, action(ctx, ACTION_NONE, 43, -1f));
             // Each zone jumps to the point of the line under its middle (the line stops short of the ends, so the
             // point fits there).
             for (int i = 0; i < SEEK_ZONES.length; i++) {
@@ -288,7 +347,9 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     }
 
     private static PendingIntent action(Context ctx, String action, int code, float at) {
-        Intent i = new Intent(ctx, SoundWidgetProvider.class).setAction(action);
+        // A foreground broadcast: delivered at once, not queued behind other apps' (which could hold a tap back for
+        // a second or more, so a second tap arrived with it and undid it).
+        Intent i = new Intent(ctx, SoundWidgetProvider.class).setAction(action).addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         if (at >= 0) i.putExtra(EXTRA_AT, at);
         return PendingIntent.getBroadcast(ctx, code, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
