@@ -23,7 +23,14 @@ final class SoundControls {
     /** Pixels per dp the pictures are drawn at. */
     private static final float PX = 3f;
     /** Height of the progress picture, in dp. */
-    static final int BAR_DP = 28;
+    static final int BAR_DP = 34;
+    /** The line stops this far (dp) short of each end of its picture, so the point fits at the start and the end. */
+    static final float END_DP = 9f;
+
+    /** How far through the song a point {@code x} dp along a line picture {@code widthDp} wide stands for. */
+    static float fractionAt(float x, int widthDp) {
+        return Math.max(0f, Math.min(1f, (x - END_DP) / Math.max(1f, widthDp - 2 * END_DP)));
+    }
 
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(12);
 
@@ -104,7 +111,7 @@ final class SoundControls {
         int w = Math.max(8, Math.round(widthDp * px)), h = Math.round(BAR_DP * px);
         Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
-        float y = h / 2f, x0 = 3 * px, x1 = w - 3 * px;
+        float y = h / 2f, x0 = END_DP * px, x1 = w - END_DP * px; // room for the point at either end
         float head = x0 + (x1 - x0) * Math.max(0f, Math.min(1f, fraction));
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         line.setStrokeCap(Paint.Cap.ROUND);
@@ -121,11 +128,16 @@ final class SoundControls {
             c.drawLine(x0, y, head, y, line);
             line.setShader(null);
         }
-        // where the song is: an LED-white point with a little glow, which a tap on the line moves
-        line.setColor(Scene.alpha(scene.key, 0.35f));
-        c.drawCircle(head, y, 5.5f * px, line);
+        // where the song is: a big LED-white point in a soft ring of the light, which a tap on the line moves
+        line.setColor(Scene.alpha(scene.key, 0.28f));
+        c.drawCircle(head, y, 9f * px, line);
+        line.setStyle(Paint.Style.STROKE);
+        line.setStrokeWidth(1.4f * px);
+        line.setColor(Scene.alpha(scene.key, 0.85f));
+        c.drawCircle(head, y, 7f * px, line);
+        line.setStyle(Paint.Style.FILL);
         line.setColor(scene.led);
-        c.drawCircle(head, y, 3.4f * px, line);
+        c.drawCircle(head, y, 5f * px, line);
         return b;
     }
 
