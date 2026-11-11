@@ -216,7 +216,7 @@ public class LiveService extends Service {
             if (wave == null) wave = new SoundWave(ctx);
             boolean busy = false;
             try {
-                if (now - soundPoll >= 500) {
+                if (now - soundPoll >= 500 || SoundWidgetProvider.pollSoon()) {
                     soundPoll = now;
                     if (SoundWidgetProvider.refresh(ctx)) SoundWidgetProvider.updateAll(ctx); // a new app to open on tap
                     if (SoundWidgetProvider.playing()) {
