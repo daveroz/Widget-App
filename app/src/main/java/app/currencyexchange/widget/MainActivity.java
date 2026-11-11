@@ -198,9 +198,11 @@ public class MainActivity extends Activity {
         sbb.addView(modeHint);
 
         // ---- Sound widget: what it needs to see and hear what's playing ----
-        LinearLayout sound = card(col, "SOUND WIDGET");
-        TextView soundHint = text("A wall of lights that follows what's playing in any app, in its colour, with the cover as "
-                + "a spinning LP for music. Paused or nothing playing, it plays its light patterns.", 12, Theme.uiMedium(this), Theme.DIM);
+        LinearLayout sound = card(col, "SOUND & MUSIC WIDGETS");
+        TextView soundHint = text("Sound: a wall of lights that follows what's playing in any app, in its colour, with the "
+                + "cover as a spinning LP for music; paused or nothing playing, it plays its light patterns. Music: play, "
+                + "pause, skip and jump through the song. Both need media access; Sound also uses the sound levels.",
+                12, Theme.uiMedium(this), Theme.DIM);
         sound.addView(soundHint);
         mediaStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
         mediaStatus.setPadding(0, dp(12), 0, 0);
@@ -244,6 +246,7 @@ public class MainActivity extends Activity {
         col.addView(secondaryButton("Add SBB clock widget", v -> pin(SbbWidgetProvider.class)), matchWrap(8));
         col.addView(secondaryButton("Add Calendar widget", v -> pin(CalendarWidgetProvider.class)), matchWrap(8));
         col.addView(secondaryButton("Add Sound widget", v -> pin(SoundWidgetProvider.class)), matchWrap(8));
+        col.addView(secondaryButton("Add Music widget", v -> pin(PlayerWidgetProvider.class)), matchWrap(8));
 
         // ---- status ----
         LinearLayout st = card(col, "STATUS");
@@ -300,6 +303,7 @@ public class MainActivity extends Activity {
         CalendarWidgetProvider.updateAll(app);
         SoundWidgetProvider.refresh(app); // media access may have just been turned on
         SoundWidgetProvider.updateAll(app);
+        PlayerWidgetProvider.updateAll(app);
         LiveService.ensure(app); // the app is in front, so Android lets the service start
         WidgetProvider.kick(app); // (re)start the per-minute clock alarms
         statusTicker.run();

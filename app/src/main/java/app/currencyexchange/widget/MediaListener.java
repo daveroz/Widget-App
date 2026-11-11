@@ -20,7 +20,9 @@ import java.util.Map;
  * sessions to apps with notification access. It reads no notifications.
  *
  * While connected it follows the media sessions, and when a song or player changes (or one starts or stops) it has
- * {@link Ambience} look again, so every widget takes on the new song's colour, with or without a Sound widget.
+ * {@link Ambience} look again, so every widget takes on the new song's colour, with or without a Sound widget, and
+ * redraws the Music widget. While something plays (and the screen is on) it moves the Music widget's progress on
+ * once a second.
  */
 public class MediaListener extends NotificationListenerService {
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -29,7 +31,26 @@ public class MediaListener extends NotificationListenerService {
     private MediaSessionManager sessions;
     private final MediaSessionManager.OnActiveSessionsChangedListener onSessions = this::watch;
     /** Looks again a moment after the last change, as players send several at once. */
-    private final Runnable check = () -> Ambience.check(this);
+    private final Runnable check = () -> {
+        Ambience.check(this);
+        PlayerWidgetProvider.updateAll(this);
+        startTicking();
+    };
+    /** The Music widget's progress, once a second while something plays. */
+    private final Runnable tick = new Runnable() {
+        @Override
+        public void run() {
+            if (PlayerWidgetProvider.widgetIds(MediaListener.this).length == 0) return;
+            android.os.PowerManager pm = getSystemService(android.os.PowerManager.class);
+            if (pm == null || pm.isInteractive()) PlayerWidgetProvider.tick(MediaListener.this);
+            if (PlayerWidgetProvider.playing()) handler.postDelayed(this, 1000);
+        }
+    };
+
+    private void startTicking() {
+        handler.removeCallbacks(tick);
+        if (PlayerWidgetProvider.playing()) handler.postDelayed(tick, 1000);
+    }
 
     @Override
     public void onListenerConnected() {
@@ -53,6 +74,7 @@ public class MediaListener extends NotificationListenerService {
         watched.clear();
         callbacks.clear();
         handler.removeCallbacks(check);
+        handler.removeCallbacks(tick);
     }
 
     private void watch(List<MediaController> controllers) {

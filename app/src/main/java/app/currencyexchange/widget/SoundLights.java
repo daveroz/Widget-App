@@ -65,7 +65,8 @@ final class SoundLights {
     private Bitmap soft;
     private Canvas softCanvas;
     private float time;
-    private float left, top, pitch, cell, dp = 1;
+    /** The wall's top-left corner, the distance from one lamp to the next across and down, and a lamp's size. */
+    private float left, top, pitchX, pitchY, cell, dp = 1;
     /** How many rows the wall has, half of them in each panel. */
     private int rows = 10, panelRows = 5;
     private final float[] target = new float[BANDS];
@@ -80,9 +81,14 @@ final class SoundLights {
         glowPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD)); // light adds up
     }
 
-    /** Whether a column is a dark gap between strips: the first of every four. */
+    /** Whether a column is a dark gap between strips: the last of every four (the wall starts and ends on lamps). */
     private static boolean gap(int column) {
-        return column % (STRIP + 1) == 0;
+        return column % (STRIP + 1) == STRIP;
+    }
+
+    /** The first column of a strip. */
+    private static int firstOf(int strip) {
+        return strip * (STRIP + 1);
     }
 
     /**
@@ -94,13 +100,17 @@ final class SoundLights {
         if (key.equals(laidOut)) return;
         laidOut = key;
         dp = dpPx;
-        rows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, 2 * Math.round(wall.height() / (2 * PITCH_DP * dp))));
+        // Whole strips from margin to margin, as many as fit at about PITCH_DP apart: the wall always starts and ends
+        // on a full strip, and the rows fill its height, so resizing adds or takes away strips and rows, never cuts one.
+        float target = PITCH_DP * dp;
+        strips = Math.max(1, Math.round((wall.width() / target + 1) / (STRIP + 1)));
+        columns = strips * (STRIP + 1) - 1;
+        pitchX = wall.width() / columns;
+        rows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, 2 * Math.round(wall.height() / (2 * pitchX))));
         panelRows = rows / 2;
-        pitch = wall.height() / rows;
-        cell = pitch * LAMP;
-        columns = Math.max(0, (int) (wall.width() / pitch));
-        strips = columns <= 1 ? 0 : (columns - 2) / (STRIP + 1) + 1;
-        left = wall.right - columns * pitch;
+        pitchY = wall.height() / rows;
+        cell = Math.min(pitchX, pitchY) * LAMP; // square lamps, each centred in its place
+        left = wall.left;
         top = wall.top;
         values = new float[rows * columns];
         panelLight = new float[strips * 2];
@@ -108,7 +118,7 @@ final class SoundLights {
         soundStrength = new float[columns];
         columnBand = new int[columns];
         for (int c = 0; c < columns; c++) {
-            float x = left + (c + 0.5f) * pitch;
+            float x = left + (c + 0.5f) * pitchX;
             float t = Math.max(0f, Math.min(1f, (x - (textRight - 12 * dp)) / (48 * dp)));
             float ease = t * t * (3 - 2 * t);
             columnStrength[c] = 0.55f + 0.45f * ease;
@@ -127,7 +137,7 @@ final class SoundLights {
     private void mapBands(float edge) {
         if (columns == 0) return;
         int music = 0;
-        for (int c = 0; c < columns; c++) if (!gap(c) && left + (c + 1) * pitch <= edge) music++;
+        for (int c = 0; c < columns; c++) if (!gap(c) && left + (c + 1) * pitchX <= edge) music++;
         music = Math.max(2, music);
         int index = 0;
         for (int c = 0; c < columns; c++) {
@@ -189,18 +199,16 @@ final class SoundLights {
         measurePanels();
 
         soft.eraseColor(0);
-        float gap = (pitch - cell) / 2;
+        float gapX = (pitchX - cell) / 2, gapY = (pitchY - cell) / 2;
         // Beams from the lit panels, falling down and a little to the left into the haze.
         for (int s = 0; s < strips; s++) {
             for (int p = 0; p < 2; p++) {
                 float b = panelLight[s * 2 + p];
                 if (b < 0.15f) continue;
-                int first = s * (STRIP + 1) + 1;
-                int width = Math.min(STRIP, columns - first);
-                if (width <= 0) continue;
-                float x = left + (first + width / 2f) * pitch;
-                float y = top + (p + 1) * panelRows * pitch - gap;
-                drawBeam(scene, x, y, width * pitch * 2.4f, 70 * dp, 0.35f * b);
+                int first = firstOf(s);
+                float x = left + (first + STRIP / 2f) * pitchX;
+                float y = top + (p + 1) * panelRows * pitchY - gapY;
+                drawBeam(scene, x, y, STRIP * pitchX * 2.4f, 70 * dp, 0.35f * b);
             }
         }
         // A soft round glow around every lit lamp.
@@ -208,7 +216,7 @@ final class SoundLights {
             for (int c = 0; c < columns; c++) {
                 float v = values[r * columns + c];
                 if (v < 0.08f) continue;
-                float x = left + c * pitch + gap, y = top + r * pitch + gap;
+                float x = left + c * pitchX + gapX, y = top + r * pitchY + gapY;
                 glowPaint.setColor(Scene.alpha(scene.key, v * 0.5f));
                 rect.set(x - 1.6f * cell, y - 1.6f * cell, x + 2.6f * cell, y + 2.6f * cell);
                 softCanvas.drawBitmap(sprite, null, rect, glowPaint);
@@ -224,7 +232,7 @@ final class SoundLights {
                 float v = values[r * columns + c];
                 int colour = v < 0.02f ? ember : Scene.mix(scene.key, scene.led, 0.5f * v * v);
                 lamp.setColor(Scene.alpha(colour, 0.06f + 0.84f * v));
-                float x = left + c * pitch + gap, y = top + r * pitch + gap;
+                float x = left + c * pitchX + gapX, y = top + r * pitchY + gapY;
                 canvas.drawRect(x, y, x + cell, y + cell, lamp);
             }
         }
@@ -259,8 +267,7 @@ final class SoundLights {
                 int count = 0;
                 for (int r = p * panelRows; r < (p + 1) * panelRows; r++) {
                     for (int k = 0; k < STRIP; k++) {
-                        int c = s * (STRIP + 1) + 1 + k;
-                        if (c >= columns) continue;
+                        int c = firstOf(s) + k;
                         sum += values[r * columns + c];
                         count++;
                     }
@@ -282,8 +289,7 @@ final class SoundLights {
                 float blend = Math.min(1f, local / SWITCH_SECONDS);
                 for (int r = 0; r < panelRows; r++) {
                     for (int k = 0; k < STRIP; k++) {
-                        int c = s * (STRIP + 1) + 1 + k;
-                        if (c >= columns) continue;
+                        int c = firstOf(s) + k;
                         float v = lamp(now, local, r, k, panel, turn);
                         if (blend < 1f) {
                             float old = lamp(before, local + PATTERN_SECONDS, r, k, panel, turn - 1);
