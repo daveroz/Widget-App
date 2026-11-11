@@ -4,11 +4,9 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
-import android.graphics.ComposeShader;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PorterDuff;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -19,11 +17,11 @@ import java.util.Locale;
 import java.util.Random;
 
 /**
- * One Sound widget's picture, laid out like the Deco launcher's Home while something plays: the
- * night glass panel with a wash of the light, the wall of lamps from margin to margin, the LP on the
- * right for music (a square cover), and on the left what's playing: a small label in spaced capitals
- * ("Now playing · Spotify"), the title and the artist, with a progress line lit in the light along
- * the bottom. Videos (a wide picture) and apps without a cover get the light show alone, in the app's
+ * One Sound widget's picture, in the Deco launcher's look: the night glass panel with a wash of the
+ * light; on top, the cover as an LP on the right for music (a square cover) and on the left what's
+ * playing: a small label in spaced capitals ("Now playing · Spotify"), the title and the artist;
+ * below, the wall of lamps from margin to margin, a little of it behind the LP; and a progress line
+ * lit in the light along the bottom. Videos (a wide picture) and apps without a cover get the light show alone, in the app's
  * colour. With nothing playing, the wall plays its patterns in Worldly's amber.
  */
 final class SoundPicture {
@@ -35,7 +33,6 @@ final class SoundPicture {
     private final Paint panel = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint wash = new Paint(Paint.DITHER_FLAG);
-    private final Paint shade = new Paint(Paint.DITHER_FLAG);
     private final Paint grain = new Paint();
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint text = new TextPaint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
@@ -133,32 +130,23 @@ final class SoundPicture {
                 new int[]{Scene.alpha(scene.key, 0.07f + 0.05f * bass), scene.key & 0x00FFFFFF}, null, Shader.TileMode.CLAMP));
         c.drawRect(box, wash);
 
-        // Zones: the wall across, the LP on the right, the text on the left, the progress line below.
+        // Zones: on top, the cover with its LP on the right and the words on the left; below, the wall of lamps from
+        // margin to margin, its top a little behind the LP; along the bottom, how far through.
         float pad = 14 * dp;
         boolean progress = track != null && track.duration > 0;
         float bottom = h - pad - (progress ? 16 * dp : 0);
-        wall.set(pad, pad, w - pad, bottom);
+        float size = Math.max(28 * dp, Math.min((bottom - pad) * 0.56f, 84 * dp));
+        float overlap = size * 0.2f;
+        sleeve.set(w - pad - size, pad, w - pad, pad + size);
+        wall.set(pad, pad + size - overlap, w - pad, bottom);
         boolean lp = record.hasCover();
-        float s = wall.height();
-        sleeve.set(w - pad - s, wall.top, w - pad, wall.top + s);
-        float musicEdge = lp ? sleeve.left - s * SoundRecord.DISC / 2 - 8 * dp : Float.MAX_VALUE;
-        float textRight = lp ? musicEdge - 2 * dp : Math.min(w - pad, Math.max(w * 0.6f, 190 * dp));
-        lights.layout(wall, textRight, musicEdge, w, h, dp);
+        float textRight = lp ? sleeve.left - size * SoundRecord.DISC / 2 - 10 * dp : w - pad;
+        // The whole wall follows the music (the LP only covers its top), and the words are above it, so no lamps dim.
+        lights.layout(wall, wall.left - 80 * dp, Float.MAX_VALUE, w, h, dp);
         lights.draw(c, scene);
 
-        // A soft shade behind the words at the top left, so they read over the lamps; the sound fills the wall from
-        // the bottom, so it stays clear of them.
-        float shadeRight = textRight + 28 * dp, shadeBottom = wall.top + wall.height() * 0.72f;
-        shade.setShader(new ComposeShader(
-                new LinearGradient(0, 0, shadeRight, 0, new int[]{0xB805070B, 0x9905070B, 0x0005070B},
-                        new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP),
-                new LinearGradient(0, 0, 0, shadeBottom, new int[]{0xFF000000, 0xFF000000, 0x00000000},
-                        new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP),
-                PorterDuff.Mode.DST_IN));
-        c.drawRect(0, 0, shadeRight, shadeBottom, shade);
-
         record.draw(c, sleeve, dp, scene);
-        drawWords(ctx, c, wall, pad, textRight - pad, dp);
+        drawWords(ctx, c, pad, pad, wall.top - pad, textRight - pad, dp);
         if (progress) drawProgress(ctx, c, pad, w - pad, h - pad - 4 * dp, dp);
         c.drawRect(box, grain);
         c.restore();
@@ -167,8 +155,8 @@ final class SoundPicture {
         return out;
     }
 
-    /** The small label, the title and the artist, at the top left of the wall. */
-    private void drawWords(Context ctx, Canvas c, RectF wall, float x, float width, float dp) {
+    /** The small label, the title and the artist, in the band at the top left, beside the LP. */
+    private void drawWords(Context ctx, Canvas c, float x, float top, float band, float width, float dp) {
         String label, source = null, title, detail;
         if (!access) {
             label = "Sound";
@@ -184,8 +172,11 @@ final class SoundPicture {
             title = track.title.isEmpty() ? track.app : track.title;
             detail = track.artist;
         }
+        // Three lines when there's room, else the label and the title; centred in the band.
+        boolean three = detail != null && !detail.isEmpty() && band >= 46 * dp;
+        float block = three ? 47 * dp : 30 * dp;
         // the label, in spaced capitals: what's happening in the light's colour, the app in grey
-        float y = wall.top + 9 * dp;
+        float y = top + Math.max(0, (band - block) / 2) + 8 * dp;
         text.setTypeface(Theme.uiBold(ctx));
         text.setTextSize(10 * dp);
         text.setLetterSpacing(0.22f);
@@ -207,7 +198,7 @@ final class SoundPicture {
         y += 21 * dp;
         c.drawText(TextUtils.ellipsize(title, text, width, TextUtils.TruncateAt.END).toString(), x, y, text);
         // the artist
-        if (detail != null && !detail.isEmpty()) {
+        if (three) {
             text.setTypeface(Theme.uiMedium(ctx));
             text.setTextSize(12 * dp);
             text.setColor(Theme.MUTED);
