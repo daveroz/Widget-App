@@ -17,7 +17,8 @@ import android.graphics.SweepGradient;
  * to the new cover, and the new record slides out and spins.
  *
  * The record is pressed in the scene's colour, with fine grooves, and has the cover art on its label,
- * so the spin shows; a fixed sheen of light across it makes it read as vinyl. The sleeve glows softly
+ * so the spin shows; a fixed sheen of light across it makes it read as vinyl. It only changes colour
+ * while it's back in the sleeve, so each song's record comes out as a different disc. The sleeve glows softly
  * in the scene's key colour, like a cover lit on a stage.
  */
 final class SoundRecord {
@@ -48,7 +49,8 @@ final class SoundRecord {
     private float fade = 1f;
     private Bitmap disc;
     private String discKey = "";
-    private int tint;
+    /** The colour the record is pressed in, and the one it will be pressed in next time it's out of sight. */
+    private int tint, wantTint;
 
     SoundRecord() {
         edgePaint.setStyle(Paint.Style.STROKE);
@@ -92,9 +94,14 @@ final class SoundRecord {
         return cover != null;
     }
 
-    /** The scene's colour: the record is pressed in it, so the LP shares the cover's colour with the light. */
+    /**
+     * The scene's colour: the record is pressed in it, so the LP shares the cover's colour with the light. A record
+     * only changes colour while it's back in its sleeve, out of sight: the next one comes out in its own colour,
+     * like a different disc, rather than the one on show changing colour.
+     */
     void setTint(int colour) {
-        tint = colour;
+        wantTint = colour;
+        if (slide == 0f) tint = colour;
     }
 
     /** Whether it's still moving (sliding, spinning or changing), so frames should keep coming. */
@@ -127,6 +134,7 @@ final class SoundRecord {
         }
         fade = Math.min(1f, fade + dt / FADE_SECONDS);
         angle = (angle + speed * RPM * 6 * dt) % 360f; // rpm × 360° / 60 s
+        if (slide == 0f) tint = wantTint; // in its sleeve, out of sight: the next one out is in the new colour
     }
 
     /** All the way out and spinning at full speed (for previews). */
