@@ -10,7 +10,8 @@ import java.util.Random;
  *
  * How: a steam field of domain-warped fractal Perlin noise (two warp layers bend the coordinates into swirls, and
  * time inside the warps keeps them churning); its ridges (1 - |noise|) light up only above 1 - WISP_WIDTH, giving
- * thin filaments; the travelling energy envelope scales them; the top row stays lit wherever the energy is above 8%.
+ * thin filaments, lit as brightly as the lamps that follow the music; the travelling energy envelope softens them a
+ * little where it's low; the top row stays lit wherever the energy is above 8%.
  * Coordinates are in lamps: across, every column of the wall (the gaps between strips count, as on the rig); down,
  * every row.
  */
@@ -99,13 +100,17 @@ final class Steam {
         return Math.max(0f, Math.min(1f, e));
     }
 
-    /** How lit a lamp should be, 0 to 1: a filament of steam scaled by the energy; the top row lit by it alone. */
+    /**
+     * How lit a lamp should be, 0 to 1: a filament of steam, the top row lit by the energy alone. A lit lamp is as bright
+     * as the lamps that follow the music when it kicks in (full strength, white-hot), a touch softer at a filament's
+     * edge (as the music's columns are at their tips) and where the energy is low, so the swell still shows.
+     */
     static float target(float gx, float gy, float T, float energy, boolean topRow) {
         float th = 1 - WISP_WIDTH;
         float r = steam(gx, gy, T);
         float t = 0;
-        if (r > th) t = Math.min(1f, (0.75f + 0.25f * (r - th) / WISP_WIDTH) * (0.45f + 0.65f * energy));
-        if (topRow && energy > 0.08f) t = Math.max(t, 0.5f + 0.5f * energy);
+        if (r > th) t = Math.min(1f, (0.85f + 0.3f * (r - th) / WISP_WIDTH) * (0.8f + 0.4f * energy));
+        if (topRow && energy > 0.08f) t = Math.max(t, 0.7f + 0.3f * energy);
         return t;
     }
 }

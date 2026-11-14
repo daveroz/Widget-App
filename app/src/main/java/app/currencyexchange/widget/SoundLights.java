@@ -18,7 +18,8 @@ import android.graphics.RectF;
  * back gently, its top lamp fading in and out. (Columns hidden behind something, like the launcher's
  * LP, can echo the treble instead.) When nothing plays, or it's paused, steam drifts across it
  * ({@link Steam}): wisps of light curling from left to right, with a slow swell of energy travelling
- * the same way, the top row lit wherever there's energy. The two blend into each other.
+ * the same way, the top row lit wherever there's energy, each lit lamp as bright as when the music
+ * kicks in. The two blend into each other.
  *
  * Dark lamps keep a faint ember, so the panels still read. Each lit lamp is sharp, white-hot at full
  * strength, with a soft round glow, and lit panels throw soft beams down into the haze. Lamps behind
@@ -59,8 +60,8 @@ final class SoundLights {
     private Bitmap soft;
     private Canvas softCanvas;
     private float time;
-    /** The steam: each lamp's light, easing toward its target, and its own warmth (a touch of variation). */
-    private float[] steam = new float[0], tone = new float[0];
+    /** The steam: each lamp's light, easing toward its target. */
+    private float[] steam = new float[0];
     /** When the steam was last worked out (to ease it by the time since), and whether it has been yet. */
     private float steamAt;
     private boolean steamStarted;
@@ -113,8 +114,6 @@ final class SoundLights {
         top = wall.top;
         values = new float[rows * columns];
         steam = new float[rows * columns];
-        tone = new float[rows * columns];
-        for (int i = 0; i < tone.length; i++) tone[i] = 0.82f + 0.18f * seed(i * 13 + 7);
         steamStarted = false;
         panelLight = new float[strips * 2];
         columnStrength = new float[columns];
@@ -282,7 +281,8 @@ final class SoundLights {
 
     /**
      * Works out every lamp's strength for now from the steam: each lamp eases toward its target (quickly, so the
-     * filaments keep crisp edges), takes its own warmth, and is dimmer behind the text.
+     * filaments keep crisp edges) and is dimmer behind the text. Lit lamps are as bright as the music's, with no dimming
+     * of their own, so the wall is as bright between songs as during them.
      */
     private void light() {
         float ease = steamStarted ? Math.min(1f, (time - steamAt) * Steam.EASE) : 1f;
@@ -296,7 +296,7 @@ final class SoundLights {
                 int i = r * columns + c;
                 float target = Steam.target(c, r, t, energy, r == 0);
                 steam[i] += (target - steam[i]) * ease;
-                values[i] = steam[i] * tone[i] * columnStrength[c];
+                values[i] = steam[i] * columnStrength[c];
             }
         }
     }
@@ -344,12 +344,6 @@ final class SoundLights {
         }
         bitmap.setPixels(pixels, 0, w, 0, 0, w, h);
         return bitmap;
-    }
-
-    /** A fixed pseudo-random number. */
-    private static float seed(int i) {
-        double s = Math.sin(i * 127.1 + 311.7) * 43758.5453;
-        return (float) (s - Math.floor(s));
     }
 
     /** Moves the show on without listening (for previews). */
