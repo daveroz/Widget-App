@@ -61,6 +61,10 @@ final class Store {
     static long lastFetch(Context c) { return sp(c).getLong("lastFetch", 0L); }
     static void setLastFetch(Context c) { sp(c).edit().putLong("lastFetch", System.currentTimeMillis()).apply(); }
 
+    /** When the market rates were last fetched (0 = never), which the converter shows as "updated". */
+    static long marketAt(Context c) { return sp(c).getLong("mktTs", 0L); }
+    static void setMarketAt(Context c) { sp(c).edit().putLong("mktTs", System.currentTimeMillis()).apply(); }
+
     private static String key(String s) { return s.trim().toLowerCase(Locale.ROOT); }
 
     static JSONObject geo(Context c, String city) {

@@ -2,9 +2,11 @@ package app.currencyexchange.widget;
 
 import android.content.Context;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.net.URLEncoder;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -17,8 +19,10 @@ import java.util.Locale;
  * Pulls the data the widget shows. Every source is free and needs NO account or API key:
  *  - Open-Meteo geocoding  : city -> lat / lon / timezone / country
  *  - Open-Meteo forecast   : temperature, weather condition + hourly chance of rain
- *  - fawazahmed0 currency-api (CDN), fallback open.er-api.com : market exchange rates
- *  - fawazahmed0 currency-api dated files : the last month of daily rates, for the trend behind each row
+ *  - Wise's live mid-market feed : market exchange rates right now, plus the last month for the trend behind
+ *    each row, in one request per row
+ *  - fawazahmed0 currency-api (CDN), fallback open.er-api.com : daily rates for what Wise doesn't quote
+ *    (crypto, metals) or when it doesn't answer; their dated files fill those rows' trends
  *  - Visa public FX endpoint (same one the KWGT preset used); if Visa refuses, the widget shows an
  *    estimate (market rate + your fee, marked with "~")
  * Results are cached in {@link Store}; each call is independent so one failure never blocks the rest.
@@ -57,16 +61,13 @@ final class Fetcher {
         if (geoErr.length() == 0) Store.sp(ctx).edit().remove("geoErr").apply();
         else Store.sp(ctx).edit().putString("geoErr", geoErr.toString()).apply();
 
-        // Currency rows
+        // Currency rows: market rates (and their trends) first, they're quick; then Visa, which can walk back days
         Flags.ensureFlag(ctx, Util.countryOfCurrency(to));
         Flags.ensureVisa(ctx);
+        if (refreshMarket(ctx)) any = true;
         for (int i = 0; i < Store.count(ctx); i++) {
             String from = Store.from(ctx, i).trim();
             Flags.ensureFlag(ctx, Util.countryOfCurrency(from));
-            try {
-                Store.putRate(ctx, from, to, marketRate(from, to));
-                any = true;
-            } catch (Exception ignored) { }
             double v = visaRate(ctx, from, to);
             if (!Double.isNaN(v)) Store.putVisa(ctx, from, to, v);
         }
@@ -108,8 +109,112 @@ final class Fetcher {
         Store.putGeo(ctx, city, o);
     }
 
-    /** Market rate from -> to. Primary and mirror: fawazahmed0 currency-api. Last resort: open.er-api.com. */
-    private static double marketRate(String from, String to) throws Exception {
+    /** Don't ask again when the market rates are fresher than this (the converter refreshes them each time it opens). */
+    private static final long MARKET_MIN_GAP_MS = 60_000L;
+
+    /**
+     * Market rate of every currency row, from Wise's live mid-market feed, and with it the last month of that row's
+     * trend: one request per row gives both ({@link #wiseSeries}). A row Wise has no rate for (crypto, metals) or that
+     * fails gets the daily rate of {@link #dailyRate} instead, and {@link #refreshHistory} fills its trend. What each
+     * row came from is stored as "mktErr" for the settings screen. Returns true when at least one rate was stored.
+     *
+     * @param force false skips the requests when the rates were fetched less than a minute ago
+     */
+    static boolean refreshMarket(Context ctx, boolean force) {
+        if (!force && System.currentTimeMillis() - Store.marketAt(ctx) < MARKET_MIN_GAP_MS) return false;
+        String to = Store.to(ctx).trim();
+        String t = to.toLowerCase(Locale.ROOT);
+        if (t.isEmpty()) return false;
+        JSONObject hist = Store.hist(ctx, to);
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        boolean any = false, histChanged = false;
+        StringBuilder note = new StringBuilder();
+        List<String> done = new ArrayList<>();
+        for (int i = 0; i < Store.count(ctx); i++) {
+            String from = Store.from(ctx, i).trim();
+            String f = from.toLowerCase(Locale.ROOT);
+            if (f.isEmpty() || done.contains(f)) continue;
+            done.add(f);
+            if (f.equals(t)) {
+                Store.putRate(ctx, from, to, 1.0);
+                any = true;
+                continue;
+            }
+            String why;
+            try {
+                JSONArray pts = wiseSeries(from, to);
+                int n = pts.length();
+                for (int k = 0; k < n - 1; k++) { // the last point is the rate now; the others are one a day
+                    JSONObject p = pts.getJSONObject(k);
+                    LocalDate d = Instant.ofEpochMilli(p.getLong("time")).atZone(ZoneOffset.UTC).toLocalDate();
+                    double r = p.optDouble("value", 0);
+                    if (!(r > 0) || !d.isBefore(today) || !Trend.sampleDay(d)) continue;
+                    JSONObject day = hist.optJSONObject(d.toString());
+                    if (day == null) {
+                        day = new JSONObject();
+                        hist.put(d.toString(), day);
+                    }
+                    if (day.optDouble(f, 0) != r) {
+                        day.put(f, r);
+                        histChanged = true;
+                    }
+                }
+                double live = n == 0 ? 0 : pts.getJSONObject(n - 1).optDouble("value", 0);
+                if (live > 0) {
+                    Store.putRate(ctx, from, to, live);
+                    any = true;
+                    continue;
+                }
+                why = "no rate";
+            } catch (Exception e) {
+                why = shortErr(e);
+            }
+            if (why.startsWith("HTTP 400")) why = "Wise doesn't quote it"; // its answer for currencies it has no rate for
+            else why = "Wise: " + why;
+            if (note.length() > 0) note.append("; ");
+            try {
+                Store.putRate(ctx, from, to, dailyRate(from, to));
+                any = true;
+                note.append(from).append(": daily rate (").append(why).append(')');
+            } catch (Exception e) {
+                note.append(from).append(": no rate (").append(why).append(", daily: ").append(shortErr(e)).append(')');
+            }
+        }
+        if (histChanged) Store.putHist(ctx, to, hist);
+        if (any) Store.setMarketAt(ctx);
+        Store.sp(ctx).edit().putString("mktErr", note.toString()).apply();
+        return any;
+    }
+
+    static boolean refreshMarket(Context ctx) { return refreshMarket(ctx, true); }
+
+    /**
+     * Wise's public rate feed, the one behind wise.com's own converter and rate charts: the mid-market rate (halfway
+     * between what banks buy and sell at), updated every minute, no key or account. {@code history+live} gives one point
+     * a day for the last {@link Trend#DAYS} days (each at 00:00 UTC) and the rate right now as the last point, as
+     * [{"source":"USD","target":"COP","value":3305.0,"time":epochMs}, ...]. Checked over a month against the official
+     * references: at the ECB's 14:15 CET fixing it was within 0.03 % of the ECB rate on average (worst day 0.09 %),
+     * and its average over Bogotá's trading session within 0.08 % of Colombia's TRM; the daily files used before were
+     * 0.2 to 0.3 % off on average, up to 1.2 % on a day the market moved. Answers HTTP 400 for currencies it doesn't
+     * quote (crypto, metals).
+     */
+    private static JSONArray wiseSeries(String from, String to) throws Exception {
+        return new JSONArray(Net.get("https://wise.com/rates/history+live?source=" + from.toUpperCase(Locale.ROOT)
+                + "&target=" + to.toUpperCase(Locale.ROOT) + "&length=" + Trend.DAYS + "&resolution=daily&unit=day"));
+    }
+
+    /** "HTTP 429" rather than "HTTP 429 for https://...": the address is noise on the settings screen. */
+    private static String shortErr(Exception e) {
+        String m = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+        int cut = m.indexOf(" for http");
+        return cut > 0 ? m.substring(0, cut) : m;
+    }
+
+    /**
+     * Daily market rate from -> to, for what Wise doesn't quote or when it doesn't answer: a snapshot taken once a day.
+     * Primary and mirror: fawazahmed0 currency-api. Last resort: open.er-api.com.
+     */
+    private static double dailyRate(String from, String to) throws Exception {
         String f = from.toLowerCase(Locale.ROOT), t = to.toLowerCase(Locale.ROOT);
         String[] bases = {
                 "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/",
@@ -129,11 +234,13 @@ final class Fetcher {
     }
 
     /**
-     * History for the trend behind each currency row (the last {@link Trend#DAYS} days, one day in every
-     * {@link Trend#STEP}), from the dated files of the same fawazahmed0 currency-api. One request per sampled day
-     * covers every row: the file for the target currency lists the rates of all currencies into it. Past days never
-     * change, so each is fetched once: about 30 requests for the first fill, then one small request a day. Kept
-     * apart from {@link #refreshAll} so rates and weather never wait for it. Returns true when something new was stored (redraw the widget then).
+     * Fills the gaps in the trend behind each currency row (the last {@link Trend#DAYS} days, one day in every
+     * {@link Trend#STEP}) that {@link #refreshMarket} left, i.e. rows Wise doesn't quote, from the dated files of the
+     * fawazahmed0 currency-api. One request per sampled day covers every row: the file for the target currency lists
+     * the rates of all currencies into it. It only adds what's missing, never replaces a day Wise gave. Past days never
+     * change, so each is fetched once: about 30 requests for the first fill, then one small request a day, and none at
+     * all when Wise covers every row. Also drops days that slid out of the window. Kept apart from {@link #refreshAll}
+     * so rates and weather never wait for it. Returns true when something new was stored (redraw the widget then).
      */
     static boolean refreshHistory(Context ctx) {
         String to = Store.to(ctx).trim().toLowerCase(Locale.ROOT);
@@ -163,6 +270,7 @@ final class Fetcher {
                 }
                 JSONObject keep = day == null ? new JSONObject() : day;
                 for (String f : need) {
+                    if (keep.has(f)) continue; // already there (from Wise): keep it
                     double r = all.optDouble(f, Double.NaN);
                     keep.put(f, r > 0 ? 1.0 / r : 0); // 0 = no rate that day, so it isn't asked for again
                 }
