@@ -443,6 +443,11 @@ public class MainActivity extends Activity {
                 : DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(t));
         statusRow("Data refresh", last != null, last == null ? "Not refreshed yet" : "Last successful: " + last);
 
+        String mktErr = Store.sp(this).getString("mktErr", "");
+        statusRow("Market rate", mktErr.isEmpty() && Store.marketAt(this) > 0,
+                Store.marketAt(this) == 0 ? "Waiting for first update"
+                        : mktErr.isEmpty() ? "Live mid-market rate from Wise" : mktErr);
+
         String visaErr = Store.sp(this).getString("visaErr", "");
         statusRow("Visa rate", visaErr.isEmpty(),
                 visaErr.isEmpty() ? "Live rate from Visa" : visaErr);

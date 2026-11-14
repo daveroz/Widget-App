@@ -30,7 +30,8 @@ import java.util.Locale;
 
 /**
  * Converter that opens over the home screen when a currency row of the widget is tapped: type an amount and it
- * shows the market and Visa values, from the same cached rates as the widget. The swap button converts the other
+ * shows the market and Visa values, from the same cached rates as the widget, then from the live market rate it
+ * fetches as it opens. The swap button converts the other
  * way (from the target currency), the chips switch between the configured currencies. Taps outside close it.
  */
 public class ConverterActivity extends Activity {
@@ -62,6 +63,20 @@ public class ConverterActivity extends Activity {
         refreshPair();
         amount.requestFocus();
         amount.selectAll();
+    }
+
+    /** Each time it opens: the live market rates (at most once a minute), so a conversion is of the rate right now. */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        final Context app = getApplicationContext();
+        new Thread(() -> {
+            if (!Fetcher.refreshMarket(app, false)) return;
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed()) refreshValues();
+            });
+            WidgetProvider.updateAll(app); // the widget shows the same, newer rate
+        }, "converter-rates").start();
     }
 
     @Override
@@ -264,7 +279,7 @@ public class ConverterActivity extends Activity {
         if (Double.isNaN(market)) {
             rateLine.setText("No rate yet - open Worldly to refresh");
         } else {
-            long at = Store.lastFetch(this);
+            long at = Store.marketAt(this) > 0 ? Store.marketAt(this) : Store.lastFetch(this);
             String when = at <= 0 ? "" : "  ·  updated " + Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault())
                     .format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()));
             rateLine.setText("1 " + from + " = " + Util.fmtMoney(market) + " " + to + when
