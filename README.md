@@ -96,7 +96,8 @@ from there, so one edit restyles everything.
 
 ## How it updates
 - Clocks and day/night: redrawn every minute with an exact alarm.
-- Rates / weather / Visa: refreshed about every 30 minutes (weather at most every 10 minutes).
+- Rates / weather: refreshed about every 15 minutes, the shortest period Android allows (weather at most every
+  10 minutes). Visa publishes once a day, so it's asked at most every 30 minutes (Save & refresh always asks).
 - Market rates and their 30-day trend: one request per currency row (Wise), with every refresh and each time the
   converter opens (at most once a minute). Rows Wise doesn't quote fill their trend from dated files once
   (about 30 small requests), then one new day a day, after the rates so they never wait for it.

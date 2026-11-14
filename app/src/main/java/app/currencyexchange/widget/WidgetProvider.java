@@ -15,7 +15,10 @@ import android.widget.RemoteViews;
 public class WidgetProvider extends AppWidgetProvider {
     static final String ACTION_TICK = "app.currencyexchange.widget.TICK";
     private static final int JOB_PERIODIC = 1, JOB_NOW = 2;
-    private static final long STALE_MS = 40L * 60_000L;
+    /** Background refresh every 15 minutes, the shortest period Android allows for a periodic job. */
+    private static final long PERIOD_MS = 15L * 60_000L;
+    /** Older than this and the per-minute tick asks for a refresh itself (for when the system holds the job back). */
+    private static final long STALE_MS = 20L * 60_000L;
 
     @Override
     public void onUpdate(Context ctx, AppWidgetManager awm, int[] ids) {
@@ -150,10 +153,12 @@ public class WidgetProvider extends AppWidgetProvider {
 
     private static void ensurePeriodicJob(Context ctx) {
         JobScheduler js = (JobScheduler) ctx.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        if (js.getPendingJob(JOB_PERIODIC) != null) return;
+        JobInfo pending = js.getPendingJob(JOB_PERIODIC);
+        if (pending != null && pending.getIntervalMillis() == PERIOD_MS) return;
+        // none yet, or one from an older version with another period: (re)schedule, which replaces it
         js.schedule(new JobInfo.Builder(JOB_PERIODIC, new ComponentName(ctx, RefreshJobService.class))
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .setPeriodic(30L * 60_000L)
+                .setPeriodic(PERIOD_MS)
                 .setPersisted(true)
                 .build());
     }

@@ -32,6 +32,7 @@ final class Fetcher {
     private Fetcher() {}
 
     private static final long WEATHER_MIN_GAP_MS = 10L * 60_000L;
+    private static final long VISA_MIN_GAP_MS = 30L * 60_000L;
 
     static void refreshAll(Context ctx) {
         refreshAll(ctx, false);
@@ -65,9 +66,13 @@ final class Fetcher {
         Flags.ensureFlag(ctx, Util.countryOfCurrency(to));
         Flags.ensureVisa(ctx);
         if (refreshMarket(ctx)) any = true;
+        // Visa publishes once a day, so it's asked at most every half hour (Save & refresh always asks)
+        boolean visaDue = force || System.currentTimeMillis() - Store.sp(ctx).getLong("visaTs", 0L) >= VISA_MIN_GAP_MS;
+        if (visaDue) Store.sp(ctx).edit().putLong("visaTs", System.currentTimeMillis()).apply();
         for (int i = 0; i < Store.count(ctx); i++) {
             String from = Store.from(ctx, i).trim();
             Flags.ensureFlag(ctx, Util.countryOfCurrency(from));
+            if (!visaDue) continue;
             double v = visaRate(ctx, from, to);
             if (!Double.isNaN(v)) Store.putVisa(ctx, from, to, v);
         }
