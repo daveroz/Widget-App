@@ -75,6 +75,9 @@ final class CurrencyView {
         return R.drawable.wx_cloud; // 3 = overcast, or unknown
     }
 
+    /** The world clocks glow much more faintly than other text (a quarter as strongly), so the flags stay clear. */
+    private static final float CLOCK_GLOW = 0.25f;
+
     /** Height of a currency row in the layouts (dp). */
     private static final int ROW_DP = 54;
 
@@ -139,9 +142,9 @@ final class CurrencyView {
             } else {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), pcs[0]);
             }
-            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, soft, 11, Glow.QUIET);
-            txt(ctx, rv, id(ctx, "clk_time_" + i), now.format(timeF), bold, white, 22, Glow.MAIN);
-            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11, Glow.SOFT);
+            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, soft, 11, Glow.QUIET * CLOCK_GLOW);
+            txt(ctx, rv, id(ctx, "clk_time_" + i), now.format(timeF), bold, white, 22, Glow.MAIN * CLOCK_GLOW);
+            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11, Glow.SOFT * CLOCK_GLOW);
         }
 
         // currency rows
