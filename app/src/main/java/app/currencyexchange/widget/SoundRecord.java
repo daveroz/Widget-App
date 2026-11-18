@@ -72,7 +72,7 @@ final class SoundRecord {
      * How much the light tints the cover art (on the sleeve and the label): its bright parts take on this share of
      * the light's colour, and a wash of the light this strong lies over it. Kept low, so the art keeps its own colours.
      */
-    private static final float ART_TINT = 0.4f, ART_WASH = 0.05f;
+    private static final float ART_TINT = 0.25f, ART_WASH = 0.03f;
     /** How far the light from the sleeve's mouth reaches across the record, as a share of its radius. */
     private static final float MOUTH = 0.7f;
 
