@@ -21,9 +21,9 @@ import android.graphics.SweepGradient;
  * to the new cover, and the new record slides out and spins.
  *
  * The record is pressed in the scene's colour, luminous like lit coloured vinyl, with fine grooves, and has the cover
- * art on its label, so the spin shows. Warm light catches in its grooves, in two soft wedges that stay where the light
- * is while the record turns (so it reads as vinyl), and a soft luminous halo rings its edge, as if the disc gave off
- * light into the haze. It only changes colour while it's back in the sleeve, so each song's record comes out as a
+ * art on its label, so the spin shows; the label is lit just like the cover on the sleeve. Warm light catches in its
+ * grooves, in two soft wedges that stay where the light is while the record turns (so it reads as vinyl), and a soft
+ * luminous halo rings its edge, as if the disc gave off light into the haze. It only changes colour while it's back in the sleeve, so each song's record comes out as a
  * different disc.
  *
  * The light comes from inside the sleeve, not from behind it: on a dark cover, its bright parts shine as if lit from
@@ -57,8 +57,12 @@ final class SoundRecord {
     private final Paint seamPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint shinePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Matrix shift = new Matrix();
-    /** The record's vinyl, without its label (which the light from the mouth doesn't reach: it's matte paper). */
-    private final Path vinylRing = new Path();
+    /**
+     * The record's vinyl, without its label, and the label: the light from the mouth falls on both, near white on the
+     * vinyl and warmer on the label (matte paper, so a white light would only grey it).
+     */
+    private final Path vinylRing = new Path(), labelDisc = new Path();
+    private final Paint labelLightPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     /** The colour and sleeve the inside light and the seam were made for. */
     private String insideKey = "";
     private final Path clip = new Path();
@@ -218,6 +222,8 @@ final class SoundRecord {
             shift.setTranslate(sleeve.left - cx, 0);
             mouthPaint.getShader().setLocalMatrix(shift);
             canvas.drawPath(vinylRing, mouthPaint);
+            labelLightPaint.getShader().setLocalMatrix(shift);
+            canvas.drawPath(labelDisc, labelLightPaint);
             // The halo around its edge, out in the haze as it comes out of the sleeve.
             haloPaint.setAlpha(Math.round(255 * eased));
             canvas.drawCircle(0, 0, r * HALO, haloPaint);
@@ -351,11 +357,11 @@ final class SoundRecord {
         float cx = r;
         Scene light = new Scene(tint != 0 ? tint : Theme.AMBER);
         int vinyl = vinylFrom(light.deep);
-        int shine = Scene.mix(vinyl, light.hot, 0.6f);
+        int lustre = Scene.mix(vinyl, light.hot, 0.6f);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         // Coloured vinyl, lit: deeper toward the middle, brightest near the edge.
         p.setShader(new RadialGradient(cx, cx, r,
-                new int[]{darker(vinyl, 0.5f), darker(vinyl, 0.72f), vinyl, Scene.alpha(shine, 0.95f)},
+                new int[]{darker(vinyl, 0.5f), darker(vinyl, 0.72f), vinyl, Scene.alpha(lustre, 0.95f)},
                 new float[]{0f, 0.5f, 0.92f, 1f}, Shader.TileMode.CLAMP));
         c.drawCircle(cx, cx, r, p);
         p.setShader(null);
@@ -367,7 +373,7 @@ final class SoundRecord {
         int ring = 0;
         for (float g = label + 3 * dp; g < r - 2 * dp; g += 1.6f * dp) {
             float band = 0.5f + 0.5f * (float) Math.sin(ring++ * 0.55f);
-            p.setColor(dark ? 0x26000000 : Scene.alpha(shine, 0.05f + 0.1f * band));
+            p.setColor(dark ? 0x26000000 : Scene.alpha(lustre, 0.05f + 0.1f * band));
             c.drawCircle(cx, cx, g, p);
             dark = !dark;
         }
@@ -377,18 +383,34 @@ final class SoundRecord {
             p.setColor(0x30000000);
             c.drawCircle(cx, cx, r * gap, p);
             p.setStrokeWidth(0.6f * dp);
-            p.setColor(Scene.alpha(shine, 0.3f));
+            p.setColor(Scene.alpha(lustre, 0.3f));
             c.drawCircle(cx, cx, r * gap + 1.1f * dp, p);
         }
         p.setStrokeWidth(dp);
-        p.setColor(Scene.alpha(shine, 0.6f));
+        p.setColor(Scene.alpha(lustre, 0.6f));
         c.drawCircle(cx, cx, r - 0.5f * dp, p); // the rim
-        // The label: the cover art, cut round.
+        // The label: the cover art, cut round, lit like the cover on the sleeve: on a dark cover its bright parts shine as
+        // if lit from within (a thin halo, then the light's colour), and the stage's warm light falls softly on it.
         c.save();
         Path round = new Path();
         round.addCircle(cx, cx, label, Path.Direction.CW);
         c.clipPath(round);
-        drawArt(c, cover, new RectF(cx - label, cx - label, cx + label, cx + label), 255);
+        RectF face = new RectF(cx - label, cx - label, cx + label, cx + label);
+        drawArt(c, cover, face, 255);
+        if (shineFrom != cover) makeShine();
+        if (shine != null && shineStrength > 0f) {
+            Paint lit = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+            lit.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
+            lit.setColor(Scene.alpha(light.deep, 0.45f * shineStrength));
+            drawArt(c, shineHalo, face, lit);
+            lit.setXfermode(null);
+            lit.setColor(Scene.alpha(Scene.gain(light.deep, 1.3f), 0.85f * shineStrength));
+            drawArt(c, shine, face, lit);
+        }
+        Paint warm = new Paint();
+        warm.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
+        warm.setColor(Scene.alpha(light.deep, 0.1f));
+        c.drawRect(face, warm);
         c.restore();
         p.setColor(0x40000000);
         c.drawCircle(cx, cx, label, p);
@@ -398,7 +420,7 @@ final class SoundRecord {
         c.drawCircle(cx, cx, Math.max(2 * dp, r * 0.03f), p);
 
         // The glint: warm light caught in the grooves, in two soft wedges (the key light from above, and the wall's
-        // light from below, on the side out of the sleeve), plus a broad soft sheen in the same places.
+        // light from below, on the side out of the sleeve), plus a broad soft sheen in the same places, over the label too.
         glint = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas g = new Canvas(glint);
         Paint q = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -420,9 +442,6 @@ final class SoundRecord {
                 new float[]{0f, 0.08f, 0.16f, 0.27f, 0.37f, 0.47f, 0.52f, 0.6f, 0.7f, 1f}));
         q.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
         g.drawRect(0, 0, size, size, q);
-        q.setShader(null);
-        q.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
-        g.drawCircle(cx, cx, label + 1.5f * dp, q);
 
         // The halo: a bright rim of light at the record's edge, fading quickly out into the haze around it.
         float reach = r * HALO;
@@ -437,6 +456,13 @@ final class SoundRecord {
         vinylRing.setFillType(Path.FillType.EVEN_ODD);
         vinylRing.addCircle(0, 0, r - 0.5f * dp, Path.Direction.CW);
         vinylRing.addCircle(0, 0, label, Path.Direction.CW);
+        labelDisc.rewind();
+        labelDisc.addCircle(0, 0, label, Path.Direction.CW);
+        labelLightPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
+        labelLightPaint.setShader(new LinearGradient(0, 0, -r * MOUTH, 0,
+                new int[]{Scene.alpha(light.deep, 0.65f), Scene.alpha(light.deep, 0.25f), Scene.alpha(light.deep, 0.07f),
+                        light.deep & 0x00FFFFFF},
+                new float[]{0f, 0.22f, 0.55f, 1f}, Shader.TileMode.CLAMP));
         int white = Scene.mix(light.hot, light.led, 0.55f);
         mouthPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
         mouthPaint.setShader(new LinearGradient(0, 0, -r * MOUTH, 0,
