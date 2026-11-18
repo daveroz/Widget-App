@@ -94,7 +94,7 @@ public class MainActivity extends Activity {
         Theme.label(this, tagline);
         tagline.setTextSize(10);
         tagline.setLetterSpacing(0.14f);
-        Theme.color(tagline, Theme.AMBER_LIGHT);
+        tagline.setTextColor(Theme.AMBER_LIGHT);
         titles.addView(tagline);
         head.addView(titles);
         col.addView(head);
@@ -382,24 +382,24 @@ public class MainActivity extends Activity {
         boolean loc = Locator.allowed(this);
         locStatus.setText(loc ? "Location allowed - weather and sunrise/sunset follow where you are."
                 : "Needs location to show weather and sunrise/sunset where you are.");
-        Theme.color(locStatus, loc ? Theme.TEXT : Theme.AMBER);
+        locStatus.setTextColor(loc ? Theme.TEXT : Theme.AMBER);
         locButton.setVisibility(loc ? View.GONE : View.VISIBLE);
         boolean cal = CalendarData.allowed(this);
         calStatus.setText(cal ? "Calendar allowed - the Calendar widget shows your next events."
                 : "Needs calendar access for the Calendar widget. Events never leave your phone.");
-        Theme.color(calStatus, cal ? Theme.TEXT : Theme.AMBER);
+        calStatus.setTextColor(cal ? Theme.TEXT : Theme.AMBER);
         calButton.setVisibility(cal ? View.GONE : View.VISIBLE);
         android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
         boolean bat = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
         batStatus.setText(bat ? "Background allowed - the clocks keep ticking every minute."
                 : "Battery saving may pause the clocks. Allow Worldly to run in the background.");
-        Theme.color(batStatus, bat ? Theme.TEXT : Theme.AMBER);
+        batStatus.setTextColor(bat ? Theme.TEXT : Theme.AMBER);
         batButton.setVisibility(bat ? View.GONE : View.VISIBLE);
 
         boolean media = NowPlaying.hasAccess(this);
         mediaStatus.setText(media ? "Media access on - the Sound widget sees what's playing in any app."
                 : "Needs notification access to see what's playing. Worldly reads no notifications.");
-        Theme.color(mediaStatus, media ? Theme.TEXT : Theme.AMBER);
+        mediaStatus.setTextColor(media ? Theme.TEXT : Theme.AMBER);
         mediaButton.setVisibility(media ? View.GONE : View.VISIBLE);
         boolean levels = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
         String heard = Store.sp(this).getString("soundStatus", "");
@@ -415,7 +415,7 @@ public class MainActivity extends Activity {
             levelsText = "Sound levels on - the lights follow the sound once something plays.";
         }
         soundStatus.setText(levelsText);
-        Theme.color(soundStatus, levels ? Theme.TEXT : Theme.AMBER);
+        soundStatus.setTextColor(levels ? Theme.TEXT : Theme.AMBER);
         soundButton.setVisibility(levels ? View.GONE : View.VISIBLE);
     }
 
@@ -509,7 +509,7 @@ public class MainActivity extends Activity {
     private void paintModes() {
         for (int i = 0; i < 3; i++) {
             boolean on = MODES[i].equals(sbbMode);
-            Theme.color(modeBtn[i], on ? 0xFFFFFFFF : Theme.MUTED);
+            modeBtn[i].setTextColor(on ? 0xFFFFFFFF : Theme.MUTED);
             modeBtn[i].setBackground(on ? Theme.lit(this, 14, false) : Theme.well(this, 14, false));
         }
     }
@@ -726,7 +726,7 @@ public class MainActivity extends Activity {
         t.setText(s);
         t.setTextSize(sp);
         t.setTypeface(tf);
-        Theme.color(t, color);
+        t.setTextColor(color);
         return t;
     }
 
@@ -752,7 +752,7 @@ public class MainActivity extends Activity {
         e.setHint(hint);
         e.setTextSize(14);
         e.setTypeface(mono ? Theme.monoMedium(this) : Theme.uiMedium(this));
-        Theme.color(e, Theme.TEXT);
+        e.setTextColor(Theme.TEXT);
         e.setHintTextColor(Theme.DIM);
         e.setHighlightColor(0x55EB9438);
         e.setPadding(dp(12), dp(11), dp(12), dp(11));
