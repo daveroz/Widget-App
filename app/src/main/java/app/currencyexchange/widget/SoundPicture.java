@@ -129,8 +129,11 @@ final class SoundPicture {
 
         record.draw(c, sleeve, dp, scene);
         c.drawBitmap(words(ctx, w, h, pad, wall.top - pad, textRight - pad, dp), 0, 0, null);
-        // Film grain over everything, the light included, for a cinematic, physical texture.
+        // Film grain over everything, the light included, for a cinematic, physical texture; but not on the cover art.
+        c.save();
+        record.clipOutArt(c, dp);
         Stage.film(c, box);
+        c.restore();
         c.restore();
         Stage.edge(c, box, corners, Math.max(1f, dp));
         return out;
