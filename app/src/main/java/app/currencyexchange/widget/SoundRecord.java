@@ -22,8 +22,8 @@ import android.graphics.SweepGradient;
  * art on its label, so the spin shows. Warm light catches in its grooves, in two soft wedges that stay where the light
  * is while the record turns (so it reads as vinyl), and a soft luminous halo rings its edge, as if the disc gave off
  * light into the haze. It only changes colour while it's back in the sleeve, so each song's record comes out as a
- * different disc. The sleeve glows in the scene's key colour, like a cover lit on a stage, with a warm rim of light
- * just outside it. The cover art itself, on the sleeve and on the label, is shown as it is: no light or grain on it.
+ * different disc. The sleeve glows in the scene's key colour, like a cover lit on a stage, with a warm rim of light;
+ * the stage's warm light falls softly on its art and the film grain lies over it, but the art itself doesn't glow.
  */
 final class SoundRecord {
     static final float RPM = 100f / 3; // 33⅓
@@ -42,6 +42,7 @@ final class SoundRecord {
     private final Paint haloPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     /** Light over light: screened, so it brightens and never darkens. */
     private final Paint screenPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final Paint washPaint = new Paint();
     private final Path clip = new Path();
     /** The label's size, as a share of the record's radius. */
     private static final float LABEL = 0.34f;
@@ -61,16 +62,13 @@ final class SoundRecord {
     private String discKey = "";
     /** The light caught in the grooves, drawn still over the turning record. */
     private Bitmap glint;
-    /** Where the cover art was last drawn: the sleeve, and the label (its middle and radius; radius 0 when hidden). */
-    private final RectF artSleeve = new RectF();
-    private final Path artShape = new Path();
-    private float labelX, labelY, labelR;
     /** The colour the record is pressed in, and the one it will be pressed in next time it's out of sight. */
     private int tint, wantTint;
 
     SoundRecord() {
         edgePaint.setStyle(Paint.Style.STROKE);
         screenPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
+        washPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
     }
 
     /**
@@ -177,14 +175,10 @@ final class SoundRecord {
         float s = sleeve.height();
         float r = s * DISC / 2;
         buildDisc(Math.round(r * 2), dp);
-        labelR = 0f;
         if (disc != null && slide > 0f) {
             float eased = slide * slide * (3 - 2 * slide);
             float cx = sleeve.centerX() + (sleeve.left - sleeve.centerX()) * eased;
             float cy = sleeve.centerY();
-            labelX = cx;
-            labelY = cy;
-            labelR = r * LABEL;
             canvas.save();
             canvas.translate(cx, cy);
             canvas.save();
@@ -210,28 +204,14 @@ final class SoundRecord {
         canvas.clipPath(clip);
         if (previous != null && fade < 1f) drawArt(canvas, previous, sleeve, Math.round(255 * (1 - fade)));
         drawArt(canvas, cover, sleeve, Math.round(255 * fade));
+        // The stage's warm light falls softly on the cover (its art doesn't glow of its own).
+        washPaint.setColor(Scene.alpha(scene.deep, 0.08f * fade));
+        canvas.drawRect(sleeve, washPaint);
         canvas.restore();
-        artSleeve.set(sleeve);
-        // A warm rim of light around the sleeve, just outside it, so it doesn't touch the art.
-        float half = dp / 2;
+        // A warm rim of light around the sleeve.
         edgePaint.setStrokeWidth(dp);
         edgePaint.setColor(Scene.alpha(Scene.mix(scene.deep, scene.hot, 0.3f), 0.65f));
-        canvas.drawRoundRect(sleeve.left - half, sleeve.top - half, sleeve.right + half, sleeve.bottom + half,
-                corner + half, corner + half, edgePaint);
-    }
-
-    /**
-     * Keeps whatever is drawn next off the cover art (the sleeve, and the label on the record) as last drawn: for the
-     * film grain over the picture. Call between {@code save()} and {@code restore()}.
-     */
-    void clipOutArt(Canvas canvas, float dp) {
-        if (cover == null) return;
-        float corner = CORNER_DP * dp;
-        artShape.rewind();
-        artShape.addRoundRect(artSleeve, corner, corner, Path.Direction.CW);
-        if (labelR > 0f) artShape.addCircle(labelX, labelY, labelR, Path.Direction.CW);
-        artShape.setFillType(Path.FillType.WINDING);
-        canvas.clipOutPath(artShape);
+        canvas.drawRoundRect(sleeve, corner, corner, edgePaint);
     }
 
     /**
