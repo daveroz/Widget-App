@@ -124,16 +124,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    /** How much more faintly the big day number and the month glow than other text. */
-    private static final float HEADER_GLOW = 0.25f;
-
-    /**
-     * Text as a picture in the original Carbon+ font; sizeDp is the intended font size. It glows in the shared light,
-     * {@code glow} strong (see {@link Glow}).
-     */
+    /** Text as a picture in the original Carbon+ font; sizeDp is the intended font size. Plain: no glow, no tint. */
     private static void t(RemoteViews rv, android.graphics.Typeface tf, int viewId, String s, int color,
-                          float sizeDp, float fill, boolean italic, float glow) {
-        rv.setImageViewBitmap(viewId, TextBmp.lit(tf, sizeDp * 2.5f, fill, italic, s, color, Ambience.scene().deep, glow));
+                          float sizeDp, float fill, boolean italic) {
+        rv.setImageViewBitmap(viewId, TextBmp.make(tf, sizeDp * 2.5f, fill, italic, false, s, color));
     }
 
     private static int rid(Context ctx, String name) {
@@ -151,15 +145,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         long now = System.currentTimeMillis();
         java.util.Locale loc = java.util.Locale.getDefault();
 
-        // Lit like the Sound widget's words: the main text a warm white glowing softly, quiet text barely, and what's
-        // drawn in the light (today, "in 5 minutes") glowing most.
-        int white = Glow.white(scene), soft = Glow.soft(scene), muted = Glow.muted(scene), label = Glow.label(scene);
-        // The big date glows much more faintly (a quarter as strongly), as the Currency widget's clocks do.
-        t(rv, tf, R.id.cal_day, String.valueOf(today.getDayOfMonth()), white, 32, 0.82f, false, Glow.MAIN * HEADER_GLOW);
-        t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false, Glow.MAIN * HEADER_GLOW);
+        // The text is plain, in its own colours (no glow, no tint); only today and "in 5 minutes" are in the light.
+        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED, label = scene.label;
+        t(rv, tf, R.id.cal_day, String.valueOf(today.getDayOfMonth()), white, 32, 0.82f, false);
+        t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false);
         int week = today.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.SUNDAY, 1).weekOfYear());
         t(rv, tf, R.id.cal_sub, "Today, " + today.format(java.time.format.DateTimeFormatter.ofPattern("EEEE", loc))
-                + "  \u00B7  Week " + week, muted, 11, 0.8f, false, Glow.QUIET);
+                + "  \u00B7  Week " + week, muted, 11, 0.8f, false);
 
         // week row, Sunday first
         LocalDate sunday = today.minusDays(today.getDayOfWeek().getValue() % 7);
@@ -168,12 +160,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             boolean isToday = d.equals(today);
             int lab = rid(ctx, "wk_label_" + i), num = rid(ctx, "wk_num_" + i);
             t(rv, tf, lab, d.format(java.time.format.DateTimeFormatter.ofPattern("EEE", loc)).toUpperCase(loc),
-                    isToday ? label : muted, 9.5f, 0.8f, false, isToday ? Glow.LABEL : Glow.QUIET);
-            if (isToday) { // lit in the light: a touch of it inside a glowing ring of it
-                rv.setImageViewBitmap(num, lit(scene, TextBmp.lit(tf, 13 * 2.5f, 0.58f, false, String.valueOf(d.getDayOfMonth()),
-                        scene.led, scene.deep, Glow.MAIN)));
+                    isToday ? label : muted, 9.5f, 0.8f, false);
+            if (isToday) { // lit in the light: a touch of it inside a glowing ring of it, the number white on top
+                rv.setImageViewBitmap(num, lit(scene, TextBmp.make(tf, 13 * 2.5f, 0.58f, false, false,
+                        String.valueOf(d.getDayOfMonth()), 0xFFFFFFFF)));
             } else {
-                t(rv, tf, num, String.valueOf(d.getDayOfMonth()), soft, 13, 0.58f, false, Glow.SOFT);
+                t(rv, tf, num, String.valueOf(d.getDayOfMonth()), soft, 13, 0.58f, false);
             }
         }
 
@@ -187,9 +179,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             rv.setViewVisibility(row, android.view.View.VISIBLE);
             if (!allowed || events.isEmpty()) {
                 rv.setViewVisibility(bar, android.view.View.INVISIBLE);
-                t(rv, tf, title, allowed ? "No upcoming events" : "Calendar access needed", white, 15, 0.8f, false, Glow.MAIN);
-                t(rv, tf, time, allowed ? "Nothing in the next 120 days" : "Tap to open settings", muted, 11, 0.8f, false, Glow.QUIET);
-                t(rv, tf, hint, "", muted, 11, 0.8f, false, 0f);
+                t(rv, tf, title, allowed ? "No upcoming events" : "Calendar access needed", white, 15, 0.8f, false);
+                t(rv, tf, time, allowed ? "Nothing in the next 120 days" : "Tap to open settings", muted, 11, 0.8f, false);
+                t(rv, tf, hint, "", muted, 11, 0.8f, false);
                 continue;
             }
             CalendarData.Event ev = events.get(i);
@@ -205,7 +197,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             if (!ev.date.equals(today)) {
                 tm = ev.date.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", loc)) + "  \u00B7  " + tm;
             }
-            t(rv, tf, time, tm, muted, 11, 0.8f, false, Glow.QUIET);
+            t(rv, tf, time, tm, muted, 11, 0.8f, false);
             String h = "";
             if (!ev.allDay && ev.date.equals(today)) {
                 if (ev.begin <= now) h = "now";
@@ -214,13 +206,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                     if (mins <= 90) h = "in " + mins + (mins == 1 ? " minute" : " minutes");
                 }
             }
-            t(rv, tf, hint, h, label, 11, 0.8f, true, Glow.LABEL);
-            t(rv, tf, title, Util.ellipsize(Util.capWords(ev.title), 30), white, 15, 0.8f, false, Glow.MAIN);
+            t(rv, tf, hint, h, label, 11, 0.8f, true);
+            t(rv, tf, title, Util.ellipsize(Util.capWords(ev.title), 30), white, 15, 0.8f, false);
         }
         int hidden = allowed ? events.size() - k : 0;
         if (k > 0 && hidden > 0) {
             rv.setViewVisibility(R.id.cal_more, android.view.View.VISIBLE);
-            t(rv, tf, R.id.cal_more, "+" + hidden + " more", muted, 9.5f, 0.8f, false, Glow.QUIET);
+            t(rv, tf, R.id.cal_more, "+" + hidden + " more", muted, 9.5f, 0.8f, false);
         } else {
             rv.setViewVisibility(R.id.cal_more, android.view.View.GONE);
         }
@@ -231,7 +223,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
     /**
      * Today's number, lit like a lamp: a touch of the light inside a ring of it, the ring glowing out into the haze
-     * (a wide bloom and a tight halo), the number LED-white and glowing on top.
+     * (a wide bloom and a tight halo), the number white on top (plain, like the rest of the text).
      */
     private static android.graphics.Bitmap lit(Scene scene, android.graphics.Bitmap number) {
         int s = Math.max(number.getWidth(), number.getHeight());
