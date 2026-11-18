@@ -6,6 +6,8 @@ import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.LruCache;
@@ -20,7 +22,8 @@ import java.util.Locale;
 /**
  * The trend behind each conversion row: the last month of market rates as a soft area chart, a curve through
  * every day's rate with a fill that fades out downwards. Only the shape: no axis, no numbers, no markers. It
- * uses the shared light's colour (the playing song's, or amber) at low opacity so the row's flags and numbers stay on top.
+ * uses the shared light's colour (the playing song's, or amber), and dims towards the row's end, so the numbers
+ * there stay clear on top of it.
  */
 final class Trend {
     private Trend() {}
@@ -37,6 +40,11 @@ final class Trend {
     private static final float BAND_TOP = 0.24f, BAND_BOTTOM = 0.78f;
     private static final int LINE_ALPHA = 0x80, FILL_ALPHA = 0x3A; // 50 % line, 23 % fill at its top
     private static final float LINE_DP = 1.5f;
+    /**
+     * The chart dims towards the row's end, where the numbers are: full strength up to FADE_FROM of the width, down to
+     * FADE_END strength by FADE_TO, and that dim for the rest, so the line never competes with the numbers over it.
+     */
+    private static final float FADE_FROM = 0.46f, FADE_TO = 0.66f, FADE_END = 0.15f;
     /** Moves smaller than this share of the rate are drawn flatter, so a pegged currency doesn't look volatile. */
     private static final double MIN_SPAN = 0.004;
     /** Radius just inside a row's 1 dp border (res/values/dimens.xml widget_radius_inner). */
@@ -95,7 +103,18 @@ final class Trend {
         Stage.paint(c, box, Stage.round(r), scene, 0f,
                 light ? 0xF0101A2B : 0xF00B1220, light ? 0xF00B1220 : Stage.NIGHT, 0f, true);
         Stage.haze(c, box, scene);
-        if (pts != null) chart(c, pts, w, h, scene);
+        if (pts != null) {
+            // The chart on a layer of its own, dimmed towards the end of the row where the numbers sit.
+            c.saveLayer(box, null);
+            chart(c, pts, w, h, scene);
+            Paint fade = new Paint();
+            fade.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+            int dim = Math.round(FADE_END * 255) << 24;
+            fade.setShader(new LinearGradient(0, 0, w, 0, new int[]{0xFF000000, 0xFF000000, dim, dim},
+                    new float[]{0f, FADE_FROM, FADE_TO, 1f}, Shader.TileMode.CLAMP));
+            c.drawRect(box, fade);
+            c.restore();
+        }
         Stage.film(c, box);
         c.restore();
         return out;
