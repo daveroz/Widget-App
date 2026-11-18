@@ -91,8 +91,8 @@ stays at Friday's close.
   widgets keep their text plain, in its own colours. Today in the calendar, the
   Music widget's play button and progress line, and the 30-day trend lines glow like lamps (a warm core,
   a tight halo, a wide bloom); the sun-phase strips under the clocks glow up into the haze; the SBB
-  clock's face is lit from within. On the settings screen and the converter, text glows in amber
-  (strongest for amber and white text), lit controls bloom, and film grain lies over everything.
+  clock's face is lit from within. On the settings screen and the converter the text is plain; lit
+  controls bloom, and film grain lies over everything.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 - **One light for every widget.** All four widgets sit on the same panel (`Stage`): night glass lit by
   two washes of the light (top right and low left) with a fine film grain and a hairline edge. The light

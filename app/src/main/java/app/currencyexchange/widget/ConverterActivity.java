@@ -128,7 +128,7 @@ public class ConverterActivity extends Activity {
         amount.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         amount.setTextSize(26);
         amount.setTypeface(Theme.monoMedium(this));
-        Theme.color(amount, Theme.TEXT);
+        amount.setTextColor(Theme.TEXT);
         amount.setHint("0");
         amount.setHintTextColor(Theme.DIM);
         amount.setHighlightColor(0x55EB9438);
@@ -279,7 +279,7 @@ public class ConverterActivity extends Activity {
         double amt = Util.parseAmount(amount.getText().toString());
         mktVal.setText(Util.fmtMoney(convert(amt, market)));
         visaVal.setText((estimate ? "~" : "") + Util.fmtMoney(convert(amt, visa)));
-        Theme.color(visaVal, estimate ? Theme.MUTED : Theme.TEXT_SOFT);
+        visaVal.setTextColor(estimate ? Theme.MUTED : Theme.TEXT_SOFT);
         if (Double.isNaN(market)) {
             rateLine.setText("No rate yet - open Worldly to refresh");
         } else {
@@ -328,7 +328,7 @@ public class ConverterActivity extends Activity {
         t.setText(s);
         t.setTextSize(sp);
         t.setTypeface(tf);
-        Theme.color(t, color);
+        t.setTextColor(color);
         return t;
     }
 }

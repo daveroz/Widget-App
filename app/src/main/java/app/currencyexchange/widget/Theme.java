@@ -195,30 +195,12 @@ final class Theme {
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
-    /**
-     * Sets a text's colour and lights it like a light source (see {@link Glow}): a soft glow of the key light around
-     * the letters, strongest for text drawn in the light (amber, or white on something lit), soft for the main text,
-     * fainter for softer text, none for quiet hints.
-     */
-    static void color(TextView t, int colour) {
-        t.setTextColor(colour);
-        float strength = colour == AMBER || colour == AMBER_LIGHT || colour == LED || colour == 0xFFFFFFFF ? 1f
-                : colour == TEXT ? 0.5f : colour == TEXT_SOFT ? 0.3f : 0f;
-        if (strength == 0f) t.setShadowLayer(0, 0, 0, 0);
-        else t.setShadowLayer(Math.min(24f, t.getTextSize() * 0.5f), 0, 0, alpha(AMBER, 0.75f * strength));
-    }
-
-    private static int alpha(int colour, float a) {
-        return (Math.round(Math.max(0f, Math.min(1f, a)) * 255) << 24) | (colour & 0x00FFFFFF);
-    }
-
     /** Small label: bold capitals, spaced out, like markings on a piece of equipment. */
     static void label(Context c, TextView t) {
         t.setAllCaps(true);
         t.setTypeface(uiBold(c));
         t.setTextSize(11);
         t.setLetterSpacing(0.22f);
-        color(t, t.getCurrentTextColor()); // the glow follows the new size
     }
 
     static StateListDrawable pressable(Drawable normal, Drawable pressed) {
