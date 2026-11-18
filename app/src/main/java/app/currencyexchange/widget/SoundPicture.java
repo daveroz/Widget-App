@@ -6,6 +6,8 @@ import android.graphics.Canvas;
 import android.graphics.RectF;
 import android.text.TextPaint;
 
+import java.util.Arrays;
+
 
 /**
  * One Sound widget's picture, in the Deco launcher's look: the night glass panel with a wash of the
@@ -25,6 +27,9 @@ final class SoundPicture {
     private final RectF box = new RectF();
     private final RectF wall = new RectF();
     private final RectF sleeve = new RectF();
+    /** What's playing, written with its glow, drawn once and reused every frame until it changes. */
+    private Bitmap words;
+    private String wordsKey = "";
 
     private NowPlaying.Track track;
     private Scene scene = Scene.amber();
@@ -123,10 +128,25 @@ final class SoundPicture {
         lights.draw(c, scene);
 
         record.draw(c, sleeve, dp, scene);
-        Words.draw(ctx, c, text, Words.of(track, access, "Sound", "Music from any app lights this up"), scene, pad, pad, wall.top - pad, textRight - pad, dp);
+        c.drawBitmap(words(ctx, w, h, pad, wall.top - pad, textRight - pad, dp), 0, 0, null);
+        // Film grain over everything, the light included, for a cinematic, physical texture.
+        Stage.film(c, box);
         c.restore();
         Stage.edge(c, box, corners, Math.max(1f, dp));
         return out;
     }
 
+    /** The words with their glow, at the picture's top left: drawn again only when they, the light or the size change. */
+    private Bitmap words(Context ctx, int w, int h, float pad, float band, float width, float dp) {
+        String[] say = Words.of(track, access, "Sound", "Music from any app lights this up");
+        int lw = Math.max(1, Math.min(w, (int) Math.ceil(pad + width + 14 * dp)));
+        int lh = Math.max(1, Math.min(h, (int) Math.ceil(pad + band + 14 * dp)));
+        String key = Arrays.toString(say) + '|' + scene.key + '|' + lw + 'x' + lh + '|' + band + '|' + width + '|' + dp;
+        if (words == null || !key.equals(wordsKey)) {
+            wordsKey = key;
+            words = Bitmap.createBitmap(lw, lh, Bitmap.Config.ARGB_8888);
+            Words.draw(ctx, new Canvas(words), text, say, scene, pad, pad, band, width, dp);
+        }
+        return words;
+    }
 }
