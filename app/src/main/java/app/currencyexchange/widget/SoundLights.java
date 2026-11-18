@@ -2,11 +2,13 @@ package app.currencyexchange.widget;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Shader;
 
 /**
  * The Sound widget's wall of lights, as on the Deco launcher's Home: square lamps right across the
@@ -21,10 +23,12 @@ import android.graphics.RectF;
  * the same way, the top row lit wherever there's energy, each lit lamp as bright as when the music
  * kicks in. The two blend into each other.
  *
- * Dark lamps keep a faint ember, so the panels still read. Each lit lamp is sharp, white-hot at full
- * strength, with a soft round glow, and lit panels throw soft beams down into the haze. Lamps behind
- * text can be dimmer, so it stays easy to read. The lamps are about the same size on every widget: a
- * short wall has fewer rows, a tall one more.
+ * The lamps are light sources in a dark, hazy room, not a brighter picture: each lit lamp has a warm core (white-hot
+ * only at full strength) with a soft, diffused edge; its light blooms out around it (a tight bloom filling the gaps
+ * between lamps, and a wider glow), scatters in the air over each lit strip (volumetric haze) and in a fog over the
+ * whole widget, and lit panels throw soft beams down into it. Dark lamps keep a faint ember, caught by the light of the lamps
+ * next to them, so the panels still read. Lamps behind text can be dimmer, so it stays easy to read. The lamps are
+ * about the same size on every widget: a short wall has fewer rows, a tall one more.
  */
 final class SoundLights {
     /**
@@ -37,28 +41,40 @@ final class SoundLights {
     private static final int STRIP = 3;
     /** Each lamp's size, as a share of the pitch. */
     private static final float LAMP = 0.7f;
+    /** The haze and wide glows are drawn at this share of the picture's size, the tight bloom at {@link #BLOOM}. */
     private static final float SOFT = 1 / 8f;
+    private static final float BLOOM = 1 / 4f;
     private static final int BANDS = SoundWave.COLUMNS;
     /** Following the sound: the top lamp of each column, and the one under it, are a little softer. */
     private static final float[] TIP = {0.6f, 0.85f};
     /** How long the wall takes to go from the steam to the sound, or back. */
     private static final float REACT_SECONDS = 0.6f;
 
-    private final Paint lamp = new Paint();
+    private final Paint lamp = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /** Dark lamps are too faint for their rounded corners to show: plain squares, quicker to draw. */
+    private final Paint emberPaint = new Paint();
     private final Paint glowPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint softPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+    /** The tight bloom is light on light: screened, so it brightens and never darkens. */
+    private final Paint bloomPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+    private final Paint bloomLamp = new Paint();
+    private final Paint fogPaint = new Paint(Paint.DITHER_FLAG);
     private final Bitmap sprite = glowSprite();
     private final Bitmap beam = beamSprite();
     private final RectF rect = new RectF();
     private final Rect softBounds = new Rect();
     private float[] values = new float[0];
     private float[] panelLight = new float[0];
+    /** Each strip's light (all its lamps, 0 to 1) and how high it sits (the light-weighted middle, in pixels). */
+    private float[] stripLight = new float[0], stripY = new float[0];
     private float[] columnStrength = new float[0];
     private int[] columnBand = new int[0];
     private float[] soundStrength = new float[0];
     private int columns, strips;
-    private Bitmap soft;
-    private Canvas softCanvas;
+    private Bitmap soft, bloom;
+    private Canvas softCanvas, bloomCanvas;
+    /** The colour the fog was made for. */
+    private int fogKey;
     private float time;
     /** The steam: each lamp's light, easing toward its target. */
     private float[] steam = new float[0];
@@ -79,6 +95,7 @@ final class SoundLights {
 
     SoundLights() {
         glowPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD)); // light adds up
+        bloomPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
     }
 
     /** Whether a column is a dark gap between strips: the last of every four (the wall starts and ends on lamps). */
@@ -116,6 +133,9 @@ final class SoundLights {
         steam = new float[rows * columns];
         steamStarted = false;
         panelLight = new float[strips * 2];
+        stripLight = new float[strips];
+        stripY = new float[strips];
+        fogKey = 0;
         columnStrength = new float[columns];
         soundStrength = new float[columns];
         columnBand = new int[columns];
@@ -133,6 +153,11 @@ final class SoundLights {
                 Bitmap.Config.ARGB_8888);
         softCanvas = new Canvas(soft);
         softCanvas.scale(SOFT, SOFT);
+        if (bloom != null) bloom.recycle();
+        bloom = Bitmap.createBitmap(Math.max(1, Math.round(width * BLOOM)), Math.max(1, Math.round(height * BLOOM)),
+                Bitmap.Config.ARGB_8888);
+        bloomCanvas = new Canvas(bloom);
+        bloomCanvas.scale(BLOOM, BLOOM);
     }
 
     /** Shares the music out between the lamp columns, bass first, up to {@code edge}; behind it, echoes. */
@@ -193,7 +218,11 @@ final class SoundLights {
         }
     }
 
-    /** Draws the wall: soft glows and beams, then the sharp lamps. */
+    /**
+     * Draws the wall as light in haze: under the lamps, the light they scatter (fog off the wall, haze over each lit
+     * strip, beams, a wide glow around every lit lamp and a tight bloom); then the lamps, each with a warm core and a
+     * soft edge.
+     */
     void draw(Canvas canvas, Scene scene) {
         if (soft == null || columns == 0) return;
         light();
@@ -202,6 +231,7 @@ final class SoundLights {
 
         soft.eraseColor(0);
         float gapX = (pitchX - cell) / 2, gapY = (pitchY - cell) / 2;
+        haze(scene);
         // Beams from the lit panels, falling down and a little to the left into the haze.
         for (int s = 0; s < strips; s++) {
             for (int p = 0; p < 2; p++) {
@@ -213,31 +243,99 @@ final class SoundLights {
                 drawBeam(scene, x, y, STRIP * pitchX * 2.4f, 70 * dp, 0.35f * b);
             }
         }
-        // A soft round glow around every lit lamp.
+        // A wide, soft glow around every lit lamp.
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < columns; c++) {
                 float v = values[r * columns + c];
                 if (v < 0.08f) continue;
                 float x = left + c * pitchX + gapX, y = top + r * pitchY + gapY;
-                glowPaint.setColor(Scene.alpha(scene.key, v * 0.5f));
-                rect.set(x - 1.6f * cell, y - 1.6f * cell, x + 2.6f * cell, y + 2.6f * cell);
+                glowPaint.setColor(Scene.alpha(scene.deep, v * 0.3f));
+                rect.set(x - 1.8f * cell, y - 1.8f * cell, x + 2.8f * cell, y + 2.8f * cell);
                 softCanvas.drawBitmap(sprite, null, rect, glowPaint);
             }
         }
         canvas.drawBitmap(soft, null, softBounds, softPaint);
 
-        // The lamps: a faint ember when dark, white-hot at full strength.
-        int ember = Scene.mix(scene.key, 0xFF000000, 0.35f);
+        // The bloom: the lit lamps again, blurred (drawn small, spread out as it's scaled back up) and screened onto
+        // the dark around them, so their light bleeds softly into the gaps between them without washing out their cores.
+        float spread = cell * 0.12f;
+        bloom.eraseColor(0);
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < columns; c++) {
+                float v = values[r * columns + c];
+                if (v < 0.08f) continue;
+                float x = left + c * pitchX + gapX, y = top + r * pitchY + gapY;
+                bloomLamp.setColor(Scene.alpha(scene.deep, 0.95f * v));
+                bloomCanvas.drawRect(x - spread, y - spread, x + cell + spread, y + cell + spread, bloomLamp);
+            }
+        }
+        canvas.drawBitmap(bloom, null, softBounds, bloomPaint);
+
+        // The lamps. Lit: a warm core (deeper when dim, hot when bright, white-hot only at the very top), its edge
+        // softened by a faint skirt of its light. Dark: a faint ember, catching the light of the lamps around it.
+        int ember = Scene.mix(scene.deep, 0xFF000000, 0.3f);
+        float round = cell * 0.18f, skirt = cell * 0.16f;
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < columns; c++) {
                 if (gap(c)) continue; // the dark column between strips
                 float v = values[r * columns + c];
-                int colour = v < 0.02f ? ember : Scene.mix(scene.key, scene.led, 0.5f * v * v);
-                lamp.setColor(Scene.alpha(colour, 0.06f + 0.84f * v));
                 float x = left + c * pitchX + gapX, y = top + r * pitchY + gapY;
-                canvas.drawRect(x, y, x + cell, y + cell, lamp);
+                if (v < 0.02f) {
+                    emberPaint.setColor(Scene.alpha(ember, 0.03f + 0.2f * spill(r, c)));
+                    canvas.drawRect(x, y, x + cell, y + cell, emberPaint);
+                    continue;
+                }
+                lamp.setColor(Scene.alpha(scene.deep, 0.35f * v));
+                rect.set(x - skirt, y - skirt, x + cell + skirt, y + cell + skirt);
+                canvas.drawRoundRect(rect, round + skirt, round + skirt, lamp);
+                int core = Scene.mix(Scene.mix(scene.deep, scene.hot, v), scene.led, 0.06f * v * v * v * v);
+                lamp.setColor(Scene.alpha(core, Math.min(1f, 0.15f + v)));
+                rect.set(x, y, x + cell, y + cell);
+                canvas.drawRoundRect(rect, round, round, lamp);
             }
         }
+    }
+
+    /**
+     * The light the wall scatters into the air: a fog over the whole picture, lit from below by the whole wall (so the
+     * dark around it is never quite black while it's lit), and a haze around each lit strip's light, reaching up
+     * past its top into the dark.
+     */
+    private void haze(Scene scene) {
+        float all = 0f;
+        for (int s = 0; s < strips; s++) all += stripLight[s];
+        all /= strips;
+        float wallBottom = top + rows * pitchY;
+        if (fogKey != scene.key) {
+            fogKey = scene.key;
+            fogPaint.setShader(new LinearGradient(0, wallBottom, 0, 0,
+                    new int[]{scene.deep, Scene.alpha(scene.deep, 0.45f), Scene.alpha(scene.deep, 0.12f)},
+                    new float[]{0f, (wallBottom - top) / wallBottom, 1f}, Shader.TileMode.CLAMP));
+        }
+        fogPaint.setAlpha(Math.round(255 * Math.min(0.24f, 0.08f + 0.4f * all)));
+        softCanvas.drawRect(softBounds, fogPaint);
+        for (int s = 0; s < strips; s++) {
+            float light = stripLight[s];
+            if (light < 0.03f) continue;
+            float x = left + (firstOf(s) + STRIP / 2f) * pitchX;
+            float rx = STRIP * pitchX * 2.2f, ry = Math.max(rows * pitchY * 0.6f, 5 * pitchY);
+            glowPaint.setColor(Scene.alpha(scene.deep, Math.min(0.6f, 0.8f * light)));
+            rect.set(x - rx, stripY[s] - ry, x + rx, stripY[s] + ry);
+            softCanvas.drawBitmap(sprite, null, rect, glowPaint);
+        }
+    }
+
+    /** How much light a dark lamp catches from the lamps around it, 0 to 1. */
+    private float spill(int r, int c) {
+        float s = 0.6f * Math.max(at(r - 1, c), at(r + 1, c));
+        s = Math.max(s, 0.45f * Math.max(at(r, c - 1), at(r, c + 1)));
+        s = Math.max(s, 0.3f * Math.max(at(r - 2, c), at(r + 2, c)));
+        s = Math.max(s, 0.3f * Math.max(Math.max(at(r - 1, c - 1), at(r - 1, c + 1)), Math.max(at(r + 1, c - 1), at(r + 1, c + 1))));
+        return s;
+    }
+
+    private float at(int r, int c) {
+        return r < 0 || r >= rows || c < 0 || c >= columns ? 0f : values[r * columns + c];
     }
 
     /** Blends each lamp toward the sound: columns filling up from the bottom with their part of the music. */
@@ -261,9 +359,19 @@ final class SoundLights {
         }
     }
 
-    /** Each panel's average light, for its beam. */
+    /** Each panel's average light, for its beam, and each strip's light and its middle, for the haze. */
     private void measurePanels() {
         for (int s = 0; s < strips; s++) {
+            float all = 0f, at = 0f;
+            for (int r = 0; r < rows; r++) {
+                for (int k = 0; k < STRIP; k++) {
+                    float v = values[r * columns + firstOf(s) + k];
+                    all += v;
+                    at += v * r;
+                }
+            }
+            stripLight[s] = all / (STRIP * rows);
+            stripY[s] = top + (all > 0f ? at / all + 0.5f : rows) * pitchY;
             for (int p = 0; p < 2; p++) {
                 float sum = 0f;
                 int count = 0;

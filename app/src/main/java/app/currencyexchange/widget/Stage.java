@@ -27,6 +27,7 @@ final class Stage {
     static final int EDGE = 0x2EAADCFF;
 
     private static final Paint GRAIN = new Paint();
+    private static final Paint FILM = new Paint();
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(10);
 
     static {
@@ -40,6 +41,21 @@ final class Stage {
         }
         GRAIN.setShader(new BitmapShader(Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888),
                 Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
+        // Film grain: specks both lighter and darker, so it shows on the light as well as in the dark.
+        size = 128;
+        pixels = new int[size * size];
+        for (int i = 0; i < pixels.length; i++) {
+            float v = random.nextFloat();
+            if (v > 0.6f) pixels[i] = (Math.round((v - 0.6f) / 0.4f * 10) << 24) | 0x00FFFFFF;
+            else if (v < 0.3f) pixels[i] = Math.round((0.3f - v) / 0.3f * 11) << 24;
+        }
+        FILM.setShader(new BitmapShader(Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888),
+                Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
+    }
+
+    /** Film grain over everything drawn on a panel, the light included, for a cinematic, physical texture. */
+    static void film(Canvas c, RectF box) {
+        c.drawRect(box, FILM);
     }
 
     /**
