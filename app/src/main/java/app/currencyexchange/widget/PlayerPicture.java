@@ -10,9 +10,9 @@ import android.text.TextPaint;
 import java.util.Locale;
 
 /**
- * The Music widget's picture: the panel every widget sits on, lit by the light of what's playing. The controls are
- * real views laid over it ({@link PlayerWidgetProvider}). With nothing playing (or no media access) it says so,
- * quietly, in the middle.
+ * The Music widget's picture: the panel every widget sits on, lit by the light of what's playing, in its haze and
+ * with a fine film grain. The controls are real views laid over it ({@link PlayerWidgetProvider}). With nothing
+ * playing (or no media access) it says so, quietly, in the middle, the words glowing in the light.
  */
 final class PlayerPicture {
     private PlayerPicture() {}
@@ -24,16 +24,21 @@ final class PlayerPicture {
         RectF box = new RectF(0, 0, w, h);
         float[] corners = Stage.round(radius);
         Stage.paint(c, box, corners, scene, 0f, Stage.NIGHT, Stage.NIGHT, 0f, true);
+        Stage.haze(c, box, scene);
         if (!access || track == null) {
-            String say = !access ? "Media access needed  ·  tap to turn it on" : "Nothing playing";
+            String say = (!access ? "Media access needed  ·  tap to turn it on" : "Nothing playing").toUpperCase(Locale.getDefault());
             TextPaint text = Words.paint();
             text.setTypeface(Theme.uiBold(ctx));
             text.setTextSize(Words.LABEL_DP * dp);
             text.setLetterSpacing(0.22f);
-            text.setColor(scene.label);
             text.setTextAlign(Paint.Align.CENTER);
-            c.drawText(say.toUpperCase(Locale.getDefault()), w / 2f, h / 2f + Words.LABEL_DP * dp * 0.36f, text);
+            int colour = Glow.label(scene);
+            float y = h / 2f + Words.LABEL_DP * dp * 0.36f;
+            Glow.text(c, text, say, w / 2f, y, colour, scene.deep, Glow.LABEL, 12 * dp);
+            text.setColor(colour);
+            c.drawText(say, w / 2f, y, text);
         }
+        Stage.film(c, box);
         c.restore();
         Stage.edge(c, box, corners, Math.max(1f, dp));
         return out;

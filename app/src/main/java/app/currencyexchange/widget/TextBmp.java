@@ -2,7 +2,11 @@ package app.currencyexchange.widget;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.util.LruCache;
 
@@ -18,9 +22,28 @@ final class TextBmp {
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(300);
 
     static Bitmap make(Typeface tf, float px, float fill, boolean italic, boolean shadow, String[] parts, int[] colors) {
+        return make(tf, px, fill, italic, shadow, parts, colors, 0, 0f);
+    }
+
+    /**
+     * Text lit like a light source (see {@link Glow}): {@code color} letters glowing in {@code light}, {@code strength}
+     * strong (0: no glow). The glow needs a little room, so the picture is a touch wider than an unlit one; where it
+     * still reaches the picture's edge it fades out softly rather than being cut.
+     */
+    static Bitmap lit(Typeface tf, float px, float fill, boolean italic, String s, int color, int light, float strength) {
+        return make(tf, px, fill, italic, false, new String[]{s == null ? "" : s}, new int[]{color}, light, strength);
+    }
+
+    /** The glow's reach (its wide bloom), as a share of the font size, and the room left for it beside the text. */
+    private static final float GLOW_REACH = 0.3f, GLOW_PAD = 0.14f;
+
+    private static Bitmap make(Typeface tf, float px, float fill, boolean italic, boolean shadow, String[] parts,
+                               int[] colors, int light, float strength) {
+        boolean glow = strength > 0f;
         StringBuilder k = new StringBuilder();
         k.append(System.identityHashCode(tf)).append('|').append(px).append('|').append(fill).append('|')
                 .append(italic).append(shadow);
+        if (glow) k.append("|g").append(light).append(':').append(strength);
         for (int i = 0; i < parts.length; i++) k.append('|').append(colors[i]).append(':').append(parts[i]);
         String key = k.toString();
         Bitmap hit = CACHE.get(key);
@@ -36,11 +59,24 @@ final class TextBmp {
         float total = 0;
         float[] w = new float[parts.length];
         for (int i = 0; i < parts.length; i++) { w[i] = p.measureText(parts[i]); total += w[i]; }
-        float pad = shadow ? px * 0.15f : px * 0.08f;
+        float pad = glow ? px * GLOW_PAD : shadow ? px * 0.15f : px * 0.08f;
         int bw = Math.max(2, (int) Math.ceil(total + 2 * pad));
         Bitmap b = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
         float base = (h - line) / 2f - fm.ascent;
+        if (glow) {
+            // The glow on its own layer, faded out towards the picture's edges so it never ends in a hard line.
+            Bitmap halo = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
+            Canvas hc = new Canvas(halo);
+            float x = pad;
+            for (int i = 0; i < parts.length; i++) {
+                Glow.text(hc, p, parts[i], x, base, colors[i], light, strength, px * GLOW_REACH);
+                x += w[i];
+            }
+            fadeEdges(hc, bw, h, pad);
+            c.drawBitmap(halo, 0, 0, null);
+            halo.recycle();
+        }
         float x = pad;
         for (int i = 0; i < parts.length; i++) {
             p.setColor(colors[i]);
@@ -50,6 +86,19 @@ final class TextBmp {
         }
         CACHE.put(key, b);
         return b;
+    }
+
+    /** Fades what's on {@code c} out to nothing over {@code edge} pixels at the left and right, and a little at the top and bottom. */
+    private static void fadeEdges(Canvas c, int w, int h, float edge) {
+        Paint m = new Paint();
+        m.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+        float e = Math.max(1f, Math.min(edge, w / 2f)) / w;
+        m.setShader(new LinearGradient(0, 0, w, 0, new int[]{0, 0xFF000000, 0xFF000000, 0},
+                new float[]{0f, e, 1f - e, 1f}, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, m);
+        m.setShader(new LinearGradient(0, 0, 0, h, new int[]{0, 0xFF000000, 0xFF000000, 0},
+                new float[]{0f, 0.12f, 0.88f, 1f}, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, m);
     }
 
     /**

@@ -124,8 +124,9 @@ final class Theme {
     }
 
     /**
-     * Something that's on: a touch of the key light on the glass, a key edge, and a soft glow of the key just
-     * outside it. The glow needs room, so the panel is drawn {@link Lit#INSET_DP} in from the view's edges.
+     * Something that's on, lit like a lamp: a touch of the key light on the glass, the light bleeding into the glass
+     * along its edge, a bright key edge, and outside it a wide, soft bloom with a tight halo hugging the edge. The
+     * glow needs room, so the panel is drawn {@link Lit#INSET_DP} in from the view's edges.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
         return new Lit(dp(c, radiusDp), dp(c, Lit.INSET_DP), dp(c, 1), pressed ? KEY_GLASS_HI : KEY_GLASS);
@@ -160,9 +161,13 @@ final class Theme {
                 RectF r = new RectF(inset, inset, b.width() - inset, b.height() - inset);
                 Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
                 glow.setStyle(Paint.Style.STROKE);
-                glow.setStrokeWidth(inset * 0.9f);
-                glow.setColor(0x73EB9438);
+                glow.setStrokeWidth(inset);
+                glow.setColor(0x8CEB9438);
                 glow.setMaskFilter(new BlurMaskFilter(inset * 0.9f, BlurMaskFilter.Blur.NORMAL));
+                c.drawRoundRect(r, radius, radius, glow);
+                glow.setStrokeWidth(line * 1.5f);
+                glow.setColor(0x99F0AE6A);
+                glow.setMaskFilter(new BlurMaskFilter(line * 1.5f, BlurMaskFilter.Blur.NORMAL));
                 c.drawRoundRect(r, radius, radius, glow);
                 Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
                 p.setColor(BG);
@@ -171,9 +176,14 @@ final class Theme {
                 p.setXfermode(null);
                 p.setColor(fill);
                 c.drawRoundRect(r, radius, radius, p);
+                // the light bleeding into the glass along its edge
+                p.setColor(0x38EB9438);
+                p.setMaskFilter(new BlurMaskFilter(inset * 1.1f, BlurMaskFilter.Blur.INNER));
+                c.drawRoundRect(r, radius, radius, p);
+                p.setMaskFilter(null);
                 p.setStyle(Paint.Style.STROKE);
                 p.setStrokeWidth(line);
-                p.setColor(KEY_EDGE);
+                p.setColor(0xCCF0AE6A);
                 float h = line / 2;
                 c.drawRoundRect(new RectF(r.left + h, r.top + h, r.right - h, r.bottom - h), radius, radius, p);
             }
@@ -185,12 +195,30 @@ final class Theme {
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
+    /**
+     * Sets a text's colour and lights it like a light source (see {@link Glow}): a soft glow of the key light around
+     * the letters, strongest for text drawn in the light (amber, or white on something lit), soft for the main text,
+     * fainter for softer text, none for quiet hints.
+     */
+    static void color(TextView t, int colour) {
+        t.setTextColor(colour);
+        float strength = colour == AMBER || colour == AMBER_LIGHT || colour == LED || colour == 0xFFFFFFFF ? 1f
+                : colour == TEXT ? 0.5f : colour == TEXT_SOFT ? 0.3f : 0f;
+        if (strength == 0f) t.setShadowLayer(0, 0, 0, 0);
+        else t.setShadowLayer(Math.min(24f, t.getTextSize() * 0.5f), 0, 0, alpha(AMBER, 0.75f * strength));
+    }
+
+    private static int alpha(int colour, float a) {
+        return (Math.round(Math.max(0f, Math.min(1f, a)) * 255) << 24) | (colour & 0x00FFFFFF);
+    }
+
     /** Small label: bold capitals, spaced out, like markings on a piece of equipment. */
     static void label(Context c, TextView t) {
         t.setAllCaps(true);
         t.setTypeface(uiBold(c));
         t.setTextSize(11);
         t.setLetterSpacing(0.22f);
+        color(t, t.getCurrentTextColor()); // the glow follows the new size
     }
 
     static StateListDrawable pressable(Drawable normal, Drawable pressed) {

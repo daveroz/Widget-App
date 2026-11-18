@@ -124,10 +124,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    /** Text as a picture in the original Carbon+ font; sizeDp is the intended font size. */
+    /**
+     * Text as a picture in the original Carbon+ font; sizeDp is the intended font size. It glows in the shared light,
+     * {@code glow} strong (see {@link Glow}).
+     */
     private static void t(RemoteViews rv, android.graphics.Typeface tf, int viewId, String s, int color,
-                          float sizeDp, float fill, boolean italic) {
-        rv.setImageViewBitmap(viewId, TextBmp.make(tf, sizeDp * 2.5f, fill, italic, false, s, color));
+                          float sizeDp, float fill, boolean italic, float glow) {
+        rv.setImageViewBitmap(viewId, TextBmp.lit(tf, sizeDp * 2.5f, fill, italic, s, color, Ambience.scene().deep, glow));
     }
 
     private static int rid(Context ctx, String name) {
@@ -145,11 +148,14 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         long now = System.currentTimeMillis();
         java.util.Locale loc = java.util.Locale.getDefault();
 
-        t(rv, tf, R.id.cal_day, String.valueOf(today.getDayOfMonth()), Theme.TEXT, 32, 0.82f, false);
-        t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), Theme.TEXT, 16, 0.82f, false);
+        // Lit like the Sound widget's words: the main text a warm white glowing softly, quiet text barely, and what's
+        // drawn in the light (today, "in 5 minutes") glowing most.
+        int white = Glow.white(scene), soft = Glow.soft(scene), muted = Glow.muted(scene), label = Glow.label(scene);
+        t(rv, tf, R.id.cal_day, String.valueOf(today.getDayOfMonth()), white, 32, 0.82f, false, Glow.MAIN);
+        t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false, Glow.MAIN);
         int week = today.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.SUNDAY, 1).weekOfYear());
         t(rv, tf, R.id.cal_sub, "Today, " + today.format(java.time.format.DateTimeFormatter.ofPattern("EEEE", loc))
-                + "  \u00B7  Week " + week, Theme.MUTED, 11, 0.8f, false);
+                + "  \u00B7  Week " + week, muted, 11, 0.8f, false, Glow.QUIET);
 
         // week row, Sunday first
         LocalDate sunday = today.minusDays(today.getDayOfWeek().getValue() % 7);
@@ -158,11 +164,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             boolean isToday = d.equals(today);
             int lab = rid(ctx, "wk_label_" + i), num = rid(ctx, "wk_num_" + i);
             t(rv, tf, lab, d.format(java.time.format.DateTimeFormatter.ofPattern("EEE", loc)).toUpperCase(loc),
-                    isToday ? scene.label : Theme.MUTED, 9.5f, 0.8f, false);
-            if (isToday) { // lit in the light: a touch of it inside a ring of it
-                rv.setImageViewBitmap(num, lit(scene, TextBmp.make(tf, 13 * 2.5f, 0.58f, false, false, String.valueOf(d.getDayOfMonth()), 0xFFFFFFFF)));
+                    isToday ? label : muted, 9.5f, 0.8f, false, isToday ? Glow.LABEL : Glow.QUIET);
+            if (isToday) { // lit in the light: a touch of it inside a glowing ring of it
+                rv.setImageViewBitmap(num, lit(scene, TextBmp.lit(tf, 13 * 2.5f, 0.58f, false, String.valueOf(d.getDayOfMonth()),
+                        scene.led, scene.deep, Glow.MAIN)));
             } else {
-                t(rv, tf, num, String.valueOf(d.getDayOfMonth()), Theme.TEXT_SOFT, 13, 0.58f, false);
+                t(rv, tf, num, String.valueOf(d.getDayOfMonth()), soft, 13, 0.58f, false, Glow.SOFT);
             }
         }
 
@@ -176,9 +183,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             rv.setViewVisibility(row, android.view.View.VISIBLE);
             if (!allowed || events.isEmpty()) {
                 rv.setViewVisibility(bar, android.view.View.INVISIBLE);
-                t(rv, tf, title, allowed ? "No upcoming events" : "Calendar access needed", Theme.TEXT, 15, 0.8f, false);
-                t(rv, tf, time, allowed ? "Nothing in the next 120 days" : "Tap to open settings", Theme.MUTED, 11, 0.8f, false);
-                t(rv, tf, hint, "", Theme.MUTED, 11, 0.8f, false);
+                t(rv, tf, title, allowed ? "No upcoming events" : "Calendar access needed", white, 15, 0.8f, false, Glow.MAIN);
+                t(rv, tf, time, allowed ? "Nothing in the next 120 days" : "Tap to open settings", muted, 11, 0.8f, false, Glow.QUIET);
+                t(rv, tf, hint, "", muted, 11, 0.8f, false, 0f);
                 continue;
             }
             CalendarData.Event ev = events.get(i);
@@ -194,7 +201,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             if (!ev.date.equals(today)) {
                 tm = ev.date.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", loc)) + "  \u00B7  " + tm;
             }
-            t(rv, tf, time, tm, Theme.MUTED, 11, 0.8f, false);
+            t(rv, tf, time, tm, muted, 11, 0.8f, false, Glow.QUIET);
             String h = "";
             if (!ev.allDay && ev.date.equals(today)) {
                 if (ev.begin <= now) h = "now";
@@ -203,13 +210,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                     if (mins <= 90) h = "in " + mins + (mins == 1 ? " minute" : " minutes");
                 }
             }
-            t(rv, tf, hint, h, scene.label, 11, 0.8f, true);
-            t(rv, tf, title, Util.ellipsize(Util.capWords(ev.title), 30), Theme.TEXT, 15, 0.8f, false);
+            t(rv, tf, hint, h, label, 11, 0.8f, true, Glow.LABEL);
+            t(rv, tf, title, Util.ellipsize(Util.capWords(ev.title), 30), white, 15, 0.8f, false, Glow.MAIN);
         }
         int hidden = allowed ? events.size() - k : 0;
         if (k > 0 && hidden > 0) {
             rv.setViewVisibility(R.id.cal_more, android.view.View.VISIBLE);
-            t(rv, tf, R.id.cal_more, "+" + hidden + " more", Theme.MUTED, 9.5f, 0.8f, false);
+            t(rv, tf, R.id.cal_more, "+" + hidden + " more", muted, 9.5f, 0.8f, false, Glow.QUIET);
         } else {
             rv.setViewVisibility(R.id.cal_more, android.view.View.GONE);
         }
@@ -218,19 +225,34 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return rv;
     }
 
-    /** Today's number, lit: a touch of the light inside a ring of it, the number white on top. */
+    /**
+     * Today's number, lit like a lamp: a touch of the light inside a ring of it, the ring glowing out into the haze
+     * (a wide bloom and a tight halo), the number LED-white and glowing on top.
+     */
     private static android.graphics.Bitmap lit(Scene scene, android.graphics.Bitmap number) {
         int s = Math.max(number.getWidth(), number.getHeight());
         android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas c = new android.graphics.Canvas(b);
         android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        float ring = s * 0.05f, r = s / 2f - ring;
-        p.setColor(Scene.alpha(scene.key, 0.25f));
-        c.drawCircle(s / 2f, s / 2f, r, p);
+        float ring = s * 0.05f, bloom = s * 0.07f, r = s / 2f - ring - bloom; // room for the bloom round the ring
+        float m = s / 2f;
+        p.setStyle(android.graphics.Paint.Style.STROKE);
+        p.setStrokeWidth(ring * 2);
+        p.setColor(Scene.alpha(scene.deep, 0.6f));
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(bloom, android.graphics.BlurMaskFilter.Blur.NORMAL));
+        c.drawCircle(m, m, r, p);
+        p.setStrokeWidth(ring);
+        p.setColor(Scene.alpha(scene.hot, 0.7f));
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(ring, android.graphics.BlurMaskFilter.Blur.NORMAL));
+        c.drawCircle(m, m, r, p);
+        p.setMaskFilter(null);
+        p.setStyle(android.graphics.Paint.Style.FILL);
+        p.setColor(Scene.alpha(scene.deep, 0.28f));
+        c.drawCircle(m, m, r, p);
         p.setStyle(android.graphics.Paint.Style.STROKE);
         p.setStrokeWidth(ring);
-        p.setColor(Scene.alpha(scene.key, 0.9f));
-        c.drawCircle(s / 2f, s / 2f, r, p);
+        p.setColor(Scene.mix(scene.key, scene.hot, 0.5f));
+        c.drawCircle(m, m, r, p);
         c.drawBitmap(number, (s - number.getWidth()) / 2f, (s - number.getHeight()) / 2f, null);
         return b;
     }

@@ -73,13 +73,25 @@ stays at Friday's close.
 
 ## Visual language: light in fog (shared with the Deco launcher and SAB Monitor)
 - **A night stage in haze.** The settings screen sits on a dark stage (`#05070b`): two slow washes of
-  amber light, fog banks drifting through, a row of small lamps along the top running a slow chase,
-  and a fine film grain (`StageView`).
+  amber light, fog banks drifting through, a row of small lamps along the top running a slow chase
+  (each blooming in the haze), and a fine film grain, lighter and darker specks, over the whole screen,
+  its cards and text included (`StageView`).
 - **Glass.** Cards are the night at 72% (`#0a0f16`) with a hairline edge of cool light
   (`rgba(170,220,255,0.12)`); inputs and pickers are darker wells inside the glass.
 - **One key light: amber `#eb9438`.** Something that's on (the save button, the chosen SBB mode, the
-  converter's amount and chip) is *lit*: a touch of amber on the glass, an amber edge and a soft glow,
-  not a solid block. Lines drawn in the light (the 30-day trend) glow; today in the calendar is lit.
+  converter's amount and chip) is *lit*: a touch of amber on the glass, the light bleeding into the glass
+  along a bright amber edge, and outside it a soft bloom with a tight halo, not a solid block. Lines drawn
+  in the light (the 30-day trend) glow; today in the calendar is lit.
+- **Light sources in a hazy room** (first worked out on the Sound widget, now everywhere). Whatever gives
+  light is drawn as a light source in a dark, hazy room, never as a brighter picture or a colour filter:
+  *bloom* (light bleeding softly around anything bright), *volumetric haze* (the light scattered in the
+  air of every panel, warming the night and lying in two soft banks of fog), *light diffusion* (soft
+  edges) and *film grain*. Text glows (`Glow`): what's drawn in the light (labels, today, "in 5 minutes")
+  glows most, the main text is a warm white glowing softly, quiet text barely. Today in the calendar, the
+  Music widget's play button and progress line, and the 30-day trend lines glow like lamps (a warm core,
+  a tight halo, a wide bloom); the sun-phase strips under the clocks glow up into the haze; the SBB
+  clock's face is lit from within. On the settings screen and the converter, text glows in amber
+  (strongest for amber and white text), lit controls bloom, and film grain lies over everything.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 - **One light for every widget.** All four widgets sit on the same panel (`Stage`): night glass lit by
   two washes of the light (top right and low left) with a fine film grain and a hairline edge. The light
@@ -111,7 +123,8 @@ Sound widget: `NowPlaying` reads the playing media session (through `MediaListen
 wall of lamps, `SoundRecord` the LP, `SoundPicture` lays out one widget's picture, `Scene` and `Colours` give its
 light, and `SoundWidgetProvider` + `LiveService` send the frames. Music widget: `PlayerPicture` and
 `PlayerWidgetProvider` (controls drawn by `SoundControls`), updated by `MediaListener`. `Words` writes what's playing
-for both; `Stage` is the panel every widget sits on and `Ambience` the light they share.
+for both; `Stage` is the panel every widget sits on (with its haze and grain), `Ambience` the light they share,
+and `Glow` how text and lit things glow in it (`TextBmp.lit` for the widgets' text pictures).
 Layout units are the 750-wide grid of the original preset.
 
 Layout note: the Calendar and Currency widgets are native views with weighted rows/columns (fonts bundled in res/font), so they follow the widget's real width and height; only flags, the Visa logo and clock backgrounds are small bitmaps.

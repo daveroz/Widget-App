@@ -22,7 +22,8 @@ import java.util.Random;
  * drift through, and a row of small lamps along the top runs a slow chase, like a lighting rig seen through haze.
  *
  * Every light has two parts: a soft glow, drawn at 1/8 of the screen's size and stretched so it spreads like
- * light in fog, and a sharp core drawn at full detail. A fine grain over the haze keeps its gradients smooth.
+ * light in fog (the rig's lamps add a tighter bloom), and a sharp core drawn at full detail. A fine film grain,
+ * lighter and darker specks, lies over the haze; {@link Film} lays the same grain over the screen's content.
  */
 final class StageView extends View {
     private static final int SOFT = 8;
@@ -85,6 +86,7 @@ final class StageView extends View {
         glow(key, w * (0.16f + 0.05f * (float) Math.sin(air * 0.06 + 1)), h * 0.9f, big * 0.4f, big * 0.4f, 0.075f);
         for (int i = 0; i < rig; i++) {
             glow(i % 2 == 1 ? led : key, w * (i + 0.5f) / rig, 12 * dp, 44 * dp, 44 * dp, brightness(i, rig) * 0.3f);
+            glow(led, w * (i + 0.5f) / rig, 5 * dp, 16 * dp, 12 * dp, brightness(i, rig) * 0.35f); // its bloom
         }
         for (int i = 0; i < 2; i++) {
             float x = ((air * (7 + i * 4) / 1280f + i * 0.6f) % 1.6f - 0.3f) * w;
@@ -137,16 +139,64 @@ final class StageView extends View {
         return 0xFF000000 | (r << 16) | (g << 8) | bl;
     }
 
-    /** A tile of faint white specks, like film grain. */
-    private static Bitmap grain() {
+    /** A tile of film grain: faint specks, lighter and darker, so it shows on light as well as in the dark. */
+    static Bitmap grain() {
         int size = 128;
         int[] pixels = new int[size * size];
         Random random = new Random(7);
         for (int i = 0; i < pixels.length; i++) {
             float v = random.nextFloat();
-            int a = v > 0.5f ? Math.round((v - 0.5f) * 2 * 14) : 0;
-            pixels[i] = (a << 24) | 0x00FFFFFF;
+            if (v > 0.55f) pixels[i] = (Math.round((v - 0.55f) / 0.45f * 14) << 24) | 0x00FFFFFF;
+            else if (v < 0.3f) pixels[i] = Math.round((0.3f - v) / 0.3f * 12) << 24;
         }
         return Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888);
+    }
+
+    /**
+     * Film grain laid over a screen's content (the cards, text and buttons as well as the stage), so the whole
+     * screen has the same cinematic, physical texture. It takes no touches. {@code radiusDp} rounds its corners to
+     * match a rounded card under it (0 for a full screen).
+     */
+    static final class Film extends View {
+        private final Paint paint = new Paint();
+        private final android.graphics.Path clip = new android.graphics.Path();
+        private final float radius;
+
+        Film(Context context, float radiusDp) {
+            super(context);
+            radius = radiusDp * getResources().getDisplayMetrics().density;
+            paint.setShader(new BitmapShader(grain(), Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
+            setClickable(false);
+            setFocusable(false);
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
+
+        /** It takes the size it's given and asks for none, so a card that wraps its content isn't stretched by it. */
+        @Override
+        protected void onMeasure(int widthSpec, int heightSpec) {
+            setMeasuredDimension(exact(widthSpec), exact(heightSpec));
+        }
+
+        private static int exact(int spec) {
+            return MeasureSpec.getMode(spec) == MeasureSpec.EXACTLY ? MeasureSpec.getSize(spec) : 0;
+        }
+
+        @Override
+        protected void onSizeChanged(int w, int h, int oldW, int oldH) {
+            clip.rewind();
+            clip.addRoundRect(0, 0, w, h, radius, radius, android.graphics.Path.Direction.CW);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            if (radius > 0) {
+                canvas.save();
+                canvas.clipPath(clip);
+                canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
+                canvas.restore();
+            } else {
+                canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
+            }
+        }
     }
 }

@@ -57,7 +57,11 @@ public class ConverterActivity extends Activity {
         row = Math.max(0, Math.min(Store.count(this) - 1,
                 getIntent().getIntExtra(EXTRA_ROW, Store.sp(this).getInt("convRow", 0))));
         reverse = Store.sp(this).getBoolean("convRev", false);
-        setContentView(build());
+        // The card, with film grain over it, the numbers included.
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+        frame.addView(build(), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        frame.addView(new StageView.Film(this, 16), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        setContentView(frame);
         int w = Math.min(Math.round(getResources().getDisplayMetrics().widthPixels * 0.92f), dp(420));
         getWindow().setLayout(w, ViewGroup.LayoutParams.WRAP_CONTENT);
         refreshPair();
@@ -124,7 +128,7 @@ public class ConverterActivity extends Activity {
         amount.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         amount.setTextSize(26);
         amount.setTypeface(Theme.monoMedium(this));
-        amount.setTextColor(Theme.TEXT);
+        Theme.color(amount, Theme.TEXT);
         amount.setHint("0");
         amount.setHintTextColor(Theme.DIM);
         amount.setHighlightColor(0x55EB9438);
@@ -275,7 +279,7 @@ public class ConverterActivity extends Activity {
         double amt = Util.parseAmount(amount.getText().toString());
         mktVal.setText(Util.fmtMoney(convert(amt, market)));
         visaVal.setText((estimate ? "~" : "") + Util.fmtMoney(convert(amt, visa)));
-        visaVal.setTextColor(estimate ? Theme.MUTED : Theme.TEXT_SOFT);
+        Theme.color(visaVal, estimate ? Theme.MUTED : Theme.TEXT_SOFT);
         if (Double.isNaN(market)) {
             rateLine.setText("No rate yet - open Worldly to refresh");
         } else {
@@ -324,7 +328,7 @@ public class ConverterActivity extends Activity {
         t.setText(s);
         t.setTextSize(sp);
         t.setTypeface(tf);
-        t.setTextColor(color);
+        Theme.color(t, color);
         return t;
     }
 }

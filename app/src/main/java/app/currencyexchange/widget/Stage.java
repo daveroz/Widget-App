@@ -18,6 +18,10 @@ import java.util.Random;
  * strong one from the top right, a faint one low on the left), with a fine film grain over it and a hairline edge.
  * The light is the colour of what's playing ({@link Ambience}), so all the widgets share it. The Sound widget's
  * washes also swell with the bass.
+ *
+ * The other widgets' panels also hold a haze ({@link #haze}): the light scattered in the air, warming the night and
+ * lying in two soft banks of fog, so whatever glows on them glows in a room rather than on a flat colour. (The Sound
+ * widget's wall of lamps lights its own fog.)
  */
 final class Stage {
     private Stage() {}
@@ -51,6 +55,32 @@ final class Stage {
         }
         FILM.setShader(new BitmapShader(Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888),
                 Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
+    }
+
+    /**
+     * The light scattered in the air of a panel: a faint warmth of the light over the night, and two soft, wide banks
+     * of fog lit by it, one high on the left, one low on the right. Draw it inside the panel's clip.
+     */
+    static void haze(Canvas c, RectF box, Scene scene) {
+        Paint p = new Paint(Paint.DITHER_FLAG);
+        p.setColor(Scene.alpha(scene.deep, 0.035f));
+        c.drawRect(box, p);
+        float w = box.width(), h = box.height();
+        bank(c, p, scene, box.left + w * 0.3f, box.top + h * 0.36f, w * 0.75f, h * 0.28f, 0.07f);
+        bank(c, p, scene, box.left + w * 0.72f, box.top + h * 0.78f, w * 0.7f, h * 0.24f, 0.055f);
+    }
+
+    /** One bank of fog: a wide, soft oval of the light, {@code strength} strong at its middle. */
+    private static void bank(Canvas c, Paint p, Scene scene, float x, float y, float rx, float ry, float strength) {
+        android.graphics.Matrix m = new android.graphics.Matrix();
+        RadialGradient g = new RadialGradient(0, 0, 1, Scene.alpha(scene.deep, strength), scene.deep & 0x00FFFFFF,
+                Shader.TileMode.CLAMP);
+        m.setScale(rx, ry);
+        m.postTranslate(x, y);
+        g.setLocalMatrix(m);
+        p.setShader(g);
+        c.drawRect(x - rx, y - ry, x + rx, y + ry, p);
+        p.setShader(null);
     }
 
     /** Film grain over everything drawn on a panel, the light included, for a cinematic, physical texture. */
@@ -112,9 +142,9 @@ final class Stage {
     }
 
     /**
-     * A panel picture, {@code wDp} × {@code hDp} at {@code px} pixels per dp, with no edge (the widget's own crisp
-     * edge goes over it): for the backgrounds of the Calendar, the Currency header and rows, drawn once per light
-     * and size.
+     * A panel picture, {@code wDp} × {@code hDp} at {@code px} pixels per dp, with its haze and film grain and no edge
+     * (the widget's own crisp edge goes over it): for the backgrounds of the Calendar and the Currency header, drawn
+     * once per light and size.
      */
     static Bitmap panel(Scene scene, int wDp, int hDp, float px, float[] radiiDp, int fillLeft, int fillRight) {
         StringBuilder k = new StringBuilder().append(scene.key).append('|').append(wDp).append('x').append(hDp)
@@ -127,7 +157,12 @@ final class Stage {
         Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         float[] radii = new float[8];
         for (int i = 0; i < 8; i++) radii[i] = radiiDp[i] * px;
-        paint(new Canvas(b), new RectF(0, 0, w, h), radii, scene, 0f, fillLeft, fillRight, 0f, false);
+        Canvas c = new Canvas(b);
+        RectF box = new RectF(0, 0, w, h);
+        paint(c, box, radii, scene, 0f, fillLeft, fillRight, 0f, true);
+        haze(c, box, scene);
+        film(c, box);
+        c.restore();
         CACHE.put(key, b);
         return b;
     }
