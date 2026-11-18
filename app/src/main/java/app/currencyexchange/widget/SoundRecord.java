@@ -40,8 +40,6 @@ final class SoundRecord {
     private static final float FADE_SECONDS = 0.35f;
     /** The record's size, as a share of the sleeve's. */
     static final float DISC = 0.94f;
-    /** The sleeve's corners: nearly square, like a real LP. */
-    private static final float CORNER_DP = 3f;
 
     private final Paint sleevePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint edgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -231,13 +229,12 @@ final class SoundRecord {
         }
 
         // The sleeve on top of the record, with only a soft glow around it: its light is inside.
-        float corner = CORNER_DP * dp;
         insideLight(sleeve, dp, scene);
         sleevePaint.setColor(0xFF0B1220);
         sleevePaint.setShadowLayer(12 * dp, 0, 0, Scene.alpha(scene.deep, 0.45f));
-        canvas.drawRoundRect(sleeve, corner, corner, sleevePaint);
+        canvas.drawRect(sleeve, sleevePaint); // square corners, like a real LP sleeve
         clip.rewind();
-        clip.addRoundRect(sleeve, corner, corner, Path.Direction.CW);
+        clip.addRect(sleeve, Path.Direction.CW);
         canvas.save();
         canvas.clipPath(clip);
         if (previous != null && fade < 1f) drawArt(canvas, previous, sleeve, Math.round(255 * (1 - fade)));
@@ -259,9 +256,9 @@ final class SoundRecord {
         // A faint rim around the sleeve, and a line of light along its mouth, where the light comes out.
         edgePaint.setStrokeWidth(dp);
         edgePaint.setColor(Scene.alpha(Scene.mix(scene.deep, scene.hot, 0.3f), 0.28f));
-        canvas.drawRoundRect(sleeve, corner, corner, edgePaint);
+        canvas.drawRect(sleeve, edgePaint);
         seamPaint.setAlpha(Math.round(255 * (0.55f + 0.45f * (disc != null ? slide : 0f))));
-        canvas.drawRect(sleeve.left - 0.6f * dp, sleeve.top + corner, sleeve.left + 0.6f * dp, sleeve.bottom - corner, seamPaint);
+        canvas.drawRect(sleeve.left - 0.6f * dp, sleeve.top, sleeve.left + 0.6f * dp, sleeve.bottom, seamPaint);
     }
 
     /** The light inside the sleeve, by its mouth: on the cover, and the seam of light along the mouth. */
