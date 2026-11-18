@@ -124,6 +124,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         }
     }
 
+    /** How much more faintly the big day number and the month glow than other text. */
+    private static final float HEADER_GLOW = 0.25f;
+
     /**
      * Text as a picture in the original Carbon+ font; sizeDp is the intended font size. It glows in the shared light,
      * {@code glow} strong (see {@link Glow}).
@@ -151,8 +154,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         // Lit like the Sound widget's words: the main text a warm white glowing softly, quiet text barely, and what's
         // drawn in the light (today, "in 5 minutes") glowing most.
         int white = Glow.white(scene), soft = Glow.soft(scene), muted = Glow.muted(scene), label = Glow.label(scene);
-        t(rv, tf, R.id.cal_day, String.valueOf(today.getDayOfMonth()), white, 32, 0.82f, false, Glow.MAIN);
-        t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false, Glow.MAIN);
+        // The big date glows much more faintly (a quarter as strongly), as the Currency widget's clocks do.
+        t(rv, tf, R.id.cal_day, String.valueOf(today.getDayOfMonth()), white, 32, 0.82f, false, Glow.MAIN * HEADER_GLOW);
+        t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false, Glow.MAIN * HEADER_GLOW);
         int week = today.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.SUNDAY, 1).weekOfYear());
         t(rv, tf, R.id.cal_sub, "Today, " + today.format(java.time.format.DateTimeFormatter.ofPattern("EEEE", loc))
                 + "  \u00B7  Week " + week, muted, 11, 0.8f, false, Glow.QUIET);
