@@ -2,11 +2,7 @@ package app.currencyexchange.widget;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
-import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.util.LruCache;
 
@@ -22,28 +18,9 @@ final class TextBmp {
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(300);
 
     static Bitmap make(Typeface tf, float px, float fill, boolean italic, boolean shadow, String[] parts, int[] colors) {
-        return make(tf, px, fill, italic, shadow, parts, colors, 0, 0f);
-    }
-
-    /**
-     * Text lit like a light source (see {@link Glow}): {@code color} letters glowing in {@code light}, {@code strength}
-     * strong (0: no glow). The glow needs a little room, so the picture is a touch wider than an unlit one; where it
-     * still reaches the picture's edge it fades out softly rather than being cut.
-     */
-    static Bitmap lit(Typeface tf, float px, float fill, boolean italic, String s, int color, int light, float strength) {
-        return make(tf, px, fill, italic, false, new String[]{s == null ? "" : s}, new int[]{color}, light, strength);
-    }
-
-    /** The glow's reach (its wide bloom), as a share of the font size, and the room left for it beside the text. */
-    private static final float GLOW_REACH = 0.3f, GLOW_PAD = 0.14f;
-
-    private static Bitmap make(Typeface tf, float px, float fill, boolean italic, boolean shadow, String[] parts,
-                               int[] colors, int light, float strength) {
-        boolean glow = strength > 0f;
         StringBuilder k = new StringBuilder();
         k.append(System.identityHashCode(tf)).append('|').append(px).append('|').append(fill).append('|')
                 .append(italic).append(shadow);
-        if (glow) k.append("|g").append(light).append(':').append(strength);
         for (int i = 0; i < parts.length; i++) k.append('|').append(colors[i]).append(':').append(parts[i]);
         String key = k.toString();
         Bitmap hit = CACHE.get(key);
@@ -59,24 +36,11 @@ final class TextBmp {
         float total = 0;
         float[] w = new float[parts.length];
         for (int i = 0; i < parts.length; i++) { w[i] = p.measureText(parts[i]); total += w[i]; }
-        float pad = glow ? px * GLOW_PAD : shadow ? px * 0.15f : px * 0.08f;
+        float pad = shadow ? px * 0.15f : px * 0.08f;
         int bw = Math.max(2, (int) Math.ceil(total + 2 * pad));
         Bitmap b = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
         float base = (h - line) / 2f - fm.ascent;
-        if (glow) {
-            // The glow on its own layer, faded out towards the picture's edges so it never ends in a hard line.
-            Bitmap halo = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
-            Canvas hc = new Canvas(halo);
-            float x = pad;
-            for (int i = 0; i < parts.length; i++) {
-                Glow.text(hc, p, parts[i], x, base, colors[i], light, strength, px * GLOW_REACH);
-                x += w[i];
-            }
-            fadeEdges(hc, bw, h, pad);
-            c.drawBitmap(halo, 0, 0, null);
-            halo.recycle();
-        }
         float x = pad;
         for (int i = 0; i < parts.length; i++) {
             p.setColor(colors[i]);
@@ -86,19 +50,6 @@ final class TextBmp {
         }
         CACHE.put(key, b);
         return b;
-    }
-
-    /** Fades what's on {@code c} out to nothing over {@code edge} pixels at the left and right, and a little at the top and bottom. */
-    private static void fadeEdges(Canvas c, int w, int h, float edge) {
-        Paint m = new Paint();
-        m.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
-        float e = Math.max(1f, Math.min(edge, w / 2f)) / w;
-        m.setShader(new LinearGradient(0, 0, w, 0, new int[]{0, 0xFF000000, 0xFF000000, 0},
-                new float[]{0f, e, 1f - e, 1f}, Shader.TileMode.CLAMP));
-        c.drawRect(0, 0, w, h, m);
-        m.setShader(new LinearGradient(0, 0, 0, h, new int[]{0, 0xFF000000, 0xFF000000, 0},
-                new float[]{0f, 0.12f, 0.88f, 1f}, Shader.TileMode.CLAMP));
-        c.drawRect(0, 0, w, h, m);
     }
 
     /**
@@ -129,5 +80,56 @@ final class TextBmp {
 
     static Bitmap make(Typeface tf, float px, float fill, boolean italic, boolean shadow, String s, int color) {
         return make(tf, px, fill, italic, shadow, new String[]{s == null ? "" : s}, new int[]{color});
+    }
+
+    /**
+     * A tight text picture ({@link #tight}) for a number that ticks, whose size never changes with its digits: every
+     * digit takes the width of the widest one, and the picture is as wide as {@code template} (the longest the
+     * number can be, its digits as zeros, like "00:00"), the text at its right edge when {@code right}, else its left.
+     * So whatever sits beside it (the Music widget's progress line) stays put as the number changes.
+     */
+    static Bitmap tightFixed(Typeface tf, float sizeDp, String s, String template, int color, boolean right) {
+        if (s == null) s = "";
+        String key = "F|" + System.identityHashCode(tf) + "|" + sizeDp + "|" + color + "|" + right + "|" + template + "|" + s;
+        Bitmap hit = CACHE.get(key);
+        if (hit != null) return hit;
+        float px = sizeDp * 2.5f;
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+        p.setTypeface(tf);
+        p.setTextSize(px);
+        p.setColor(color);
+        android.graphics.Rect cap = new android.graphics.Rect();
+        p.getTextBounds("H0", 0, 2, cap);
+        float top = -cap.top, below = px * 0.2f, pad = px * 0.04f; // as tight(): the same height and placement
+        float digit = 0f;
+        for (char d = '0'; d <= '9'; d++) digit = Math.max(digit, p.measureText(String.valueOf(d)));
+        float wide = Math.max(fixedWidth(p, template, digit), fixedWidth(p, s, digit));
+        int h = Math.max(2, (int) Math.ceil(top + below + pad));
+        int w = Math.max(2, (int) Math.ceil(wide + 2 * pad));
+        Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        float x = pad + (right ? wide - fixedWidth(p, s, digit) : 0f);
+        for (int i = 0; i < s.length(); i++) {
+            String ch = String.valueOf(s.charAt(i));
+            float cw = p.measureText(ch);
+            if (Character.isDigit(s.charAt(i))) {
+                c.drawText(ch, x + (digit - cw) / 2f, top + pad, p); // centred in a digit-wide cell
+                x += digit;
+            } else {
+                c.drawText(ch, x, top + pad, p);
+                x += cw;
+            }
+        }
+        CACHE.put(key, b);
+        return b;
+    }
+
+    /** How wide {@code s} is with every digit {@code digit} wide. */
+    private static float fixedWidth(Paint p, String s, float digit) {
+        float w = 0f;
+        for (int i = 0; i < s.length(); i++) {
+            w += Character.isDigit(s.charAt(i)) ? digit : p.measureText(String.valueOf(s.charAt(i)));
+        }
+        return w;
     }
 }

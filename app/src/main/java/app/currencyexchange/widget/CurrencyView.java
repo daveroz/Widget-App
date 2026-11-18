@@ -35,11 +35,11 @@ final class CurrencyView {
     }
 
     /**
-     * Text as a picture at a fixed size (sizeDp = font size); the ImageView height in the layout is sizeDp * 1.46. It
-     * glows in the shared light, {@code glow} strong (see {@link Glow}).
+     * Text as a picture at a fixed size (sizeDp = font size); the ImageView height in the layout is sizeDp * 1.46.
+     * Plain: no glow, no tint.
      */
-    private static void txt(Context ctx, RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp, float glow) {
-        rv.setImageViewBitmap(viewId, TextBmp.lit(tf, sizeDp * 2.5f, 0.8f, false, s, color, Ambience.scene().deep, glow));
+    private static void txt(Context ctx, RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp) {
+        rv.setImageViewBitmap(viewId, TextBmp.make(tf, sizeDp * 2.5f, 0.8f, false, false, s, color));
     }
 
     static final int[] LAYOUTS = {R.layout.widget_k1, R.layout.widget_k2, R.layout.widget_k3,
@@ -75,9 +75,6 @@ final class CurrencyView {
         return R.drawable.wx_cloud; // 3 = overcast, or unknown
     }
 
-    /** The world clocks glow much more faintly than other text (a quarter as strongly), so the flags stay clear. */
-    private static final float CLOCK_GLOW = 0.25f;
-
     /** Height of a currency row in the layouts (dp). */
     private static final int ROW_DP = 54;
 
@@ -87,13 +84,13 @@ final class CurrencyView {
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
         // The light all the widgets share: the playing song's colour, or amber.
         Scene scene = Ambience.scene();
-        // Lit like the Sound widget's words: the main text a warm white glowing softly, quiet text barely.
-        int white = Glow.white(scene), soft = Glow.soft(scene), muted = Glow.muted(scene);
+        // The text is plain, in its own colours (no glow, no tint).
+        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED;
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
         // the weather strip's panel (just inside the clocks card's 1 dp border), and its icons in the light
         rv.setImageViewBitmap(R.id.hdr_bg, Stage.panel(scene, rowW - 2, 30, 1.5f, Stage.roundTop(27),
                 0xF00A101B, Stage.NIGHT));
-        for (int icon : new int[]{R.id.hdr_wx, R.id.ic0, R.id.ic1, R.id.ic2}) rv.setInt(icon, "setColorFilter", Glow.label(scene));
+        for (int icon : new int[]{R.id.hdr_wx, R.id.ic0, R.id.ic1, R.id.ic2}) rv.setInt(icon, "setColorFilter", scene.label);
 
         // header where you are, four equal slots: weather now (icon + temperature), chance of rain in the coming
         // hours, sunrise, sunset
@@ -109,11 +106,11 @@ final class CurrencyView {
         boolean day = SunCalc.isDay(ll[0], ll[1], ZoneId.systemDefault(), here);
         rv.setImageViewResource(R.id.hdr_wx, weatherIcon(wx == null ? -1 : wx.code, day));
         txt(ctx, rv, R.id.hdr_temp, (wx == null ? "--" : String.valueOf(Math.round(wx.temp))) + "\u00B0C",
-                reg, white, 12, Glow.SOFT);
+                reg, white, 12);
         int rain = wx == null ? -1 : wx.rainChance(System.currentTimeMillis(), RAIN_HOURS);
-        txt(ctx, rv, R.id.hdr_rain, rain < 0 ? "--%" : rain + "%", reg, white, 12, Glow.SOFT);
-        txt(ctx, rv, R.id.hdr_rise, rise, reg, white, 12, Glow.SOFT);
-        txt(ctx, rv, R.id.hdr_set, set, reg, white, 12, Glow.SOFT);
+        txt(ctx, rv, R.id.hdr_rain, rain < 0 ? "--%" : rain + "%", reg, white, 12);
+        txt(ctx, rv, R.id.hdr_rise, rise, reg, white, 12);
+        txt(ctx, rv, R.id.hdr_set, set, reg, white, 12);
 
         // world clocks
         DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault());
@@ -142,9 +139,9 @@ final class CurrencyView {
             } else {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), pcs[0]);
             }
-            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, soft, 11, Glow.QUIET * CLOCK_GLOW);
-            txt(ctx, rv, id(ctx, "clk_time_" + i), now.format(timeF), bold, white, 22, Glow.MAIN * CLOCK_GLOW);
-            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11, Glow.SOFT * CLOCK_GLOW);
+            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, soft, 11);
+            txt(ctx, rv, id(ctx, "clk_time_" + i), now.format(timeF), bold, white, 22);
+            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11);
         }
 
         // currency rows
@@ -156,9 +153,9 @@ final class CurrencyView {
             String from = Store.from(ctx, i).trim().toUpperCase(Locale.ROOT);
             rv.setOnClickPendingIntent(id(ctx, "row_" + i), ConverterActivity.intentFor(ctx, i)); // tap a row: converter
             rv.setImageViewBitmap(id(ctx, "fl_a_" + i), flagOrLabel(ctx, Util.countryOfCurrency(from), from));
-            txt(ctx, rv, id(ctx, "code_a_" + i), from, reg, white, 15, Glow.SOFT);
+            txt(ctx, rv, id(ctx, "code_a_" + i), from, reg, white, 15);
             rv.setImageViewBitmap(id(ctx, "fl_b_" + i), toFlag);
-            txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, white, 15, Glow.SOFT);
+            txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, white, 15);
             double market = Store.rate(ctx, from, to);
             // the row's panel in the shared light, with the last month as a soft area chart over it (the picture fills
             // the row inside its 1 dp border)

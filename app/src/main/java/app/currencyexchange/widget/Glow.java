@@ -14,13 +14,8 @@ import android.graphics.Paint;
 final class Glow {
     private Glow() {}
 
-    /** How strongly each kind of text glows (0 to 1). */
-    static final float LABEL = 1f, MAIN = 0.6f, SOFT = 0.35f, QUIET = 0.18f;
-
-    /** The main text colour, a warm white lit by the light. */
-    static int white(Scene s) {
-        return Scene.mix(Theme.TEXT, s.hot, 0.16f);
-    }
+    /** How strongly text drawn in the light glows (0 to 1). */
+    static final float LABEL = 1f;
 
     /** The softer text colour, lit a little less. */
     static int soft(Scene s) {

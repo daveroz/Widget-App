@@ -290,8 +290,11 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
         float used = 10 + 18 + 46 + 50 + 46;
         Bitmap done = null, all = null;
         if (times) {
-            done = TextBmp.tight(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(at), Theme.MUTED);
-            all = TextBmp.tight(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), Theme.MUTED);
+            // Both times as wide as the song's longest, with every digit as wide as the widest: their pictures don't
+            // change size as the seconds tick, so the progress line between them keeps its width.
+            String longest = SoundControls.clock(Math.max(t.duration, at)).replaceAll("\\d", "0");
+            done = TextBmp.tightFixed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(at), longest, Theme.MUTED, true);
+            all = TextBmp.tightFixed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), longest, Theme.MUTED, false);
             used += 8 + (done.getWidth() + all.getWidth()) / 2.5f; // the time pictures are 2.5 px per dp
         }
         int barDp = Math.max(40, Math.round(wDp - used));
