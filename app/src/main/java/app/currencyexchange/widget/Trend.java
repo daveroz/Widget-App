@@ -91,14 +91,20 @@ final class Trend {
         Canvas c = new Canvas(out);
         // The row's panel, its round ends just inside the row's 1 dp border.
         float r = Math.min(INNER_RADIUS_DP * PXDP, h / 2f);
-        Stage.paint(c, new RectF(0, 0, w, h), Stage.round(r), scene, 0f,
+        RectF box = new RectF(0, 0, w, h);
+        Stage.paint(c, box, Stage.round(r), scene, 0f,
                 light ? 0xF0101A2B : 0xF00B1220, light ? 0xF00B1220 : Stage.NIGHT, 0f, true);
+        Stage.haze(c, box, scene);
         if (pts != null) chart(c, pts, w, h, scene);
+        Stage.film(c, box);
         c.restore();
         return out;
     }
 
-    /** The chart: the curve as a thread of light in the shared light's colour, over a soft area fading downward. */
+    /**
+     * The chart: the curve as a thread of light in the shared light's colour (a warm core, a tight glow and a wide,
+     * faint bloom in the haze), over a soft area of its light fading downward.
+     */
     private static void chart(Canvas c, double[][] pts, int w, int h, Scene scene) {
         int n = pts.length;
         double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
@@ -122,17 +128,21 @@ final class Trend {
         area.close();
         Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         fill.setShader(new LinearGradient(0, top, 0, h,
-                alpha(scene.key, FILL_ALPHA), alpha(scene.key, 0), Shader.TileMode.CLAMP));
+                alpha(scene.deep, FILL_ALPHA), alpha(scene.deep, 0), Shader.TileMode.CLAMP));
         c.drawPath(area, fill);
 
-        // The line is a thread of light in the haze: a soft glow of the key around a brighter core.
+        // The line is a thread of light in the haze: a wide, faint bloom, a tight glow, and a warm core.
         Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
         glow.setStyle(Paint.Style.STROKE);
-        glow.setStrokeWidth(LINE_DP * PXDP * 3.5f);
         glow.setStrokeCap(Paint.Cap.ROUND);
         glow.setStrokeJoin(Paint.Join.ROUND);
-        glow.setColor(alpha(scene.key, Math.round(LINE_ALPHA * 0.45f)));
-        glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 2.5f, BlurMaskFilter.Blur.NORMAL));
+        glow.setStrokeWidth(LINE_DP * PXDP * 5f);
+        glow.setColor(alpha(scene.deep, Math.round(LINE_ALPHA * 0.5f)));
+        glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 5f, BlurMaskFilter.Blur.NORMAL));
+        c.drawPath(curve, glow);
+        glow.setStrokeWidth(LINE_DP * PXDP * 2f);
+        glow.setColor(alpha(scene.deep, Math.round(LINE_ALPHA * 0.9f)));
+        glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 1.5f, BlurMaskFilter.Blur.NORMAL));
         c.drawPath(curve, glow);
 
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -140,7 +150,7 @@ final class Trend {
         line.setStrokeWidth(LINE_DP * PXDP);
         line.setStrokeCap(Paint.Cap.ROUND);
         line.setStrokeJoin(Paint.Join.ROUND);
-        line.setColor(alpha(scene.label, LINE_ALPHA));
+        line.setColor(alpha(scene.hot, Math.round(LINE_ALPHA * 1.4f)));
         c.drawPath(curve, line);
     }
 

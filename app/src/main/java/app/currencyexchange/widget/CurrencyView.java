@@ -34,9 +34,12 @@ final class CurrencyView {
         return c.getResources().getIdentifier(name, "id", c.getPackageName());
     }
 
-    /** Text as a picture at a fixed size (sizeDp = font size); the ImageView height in the layout is sizeDp * 1.46. */
-    private static void txt(Context ctx, RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp, boolean shadow) {
-        rv.setImageViewBitmap(viewId, TextBmp.make(tf, sizeDp * 2.5f, 0.8f, false, shadow, s, color));
+    /**
+     * Text as a picture at a fixed size (sizeDp = font size); the ImageView height in the layout is sizeDp * 1.46. It
+     * glows in the shared light, {@code glow} strong (see {@link Glow}).
+     */
+    private static void txt(Context ctx, RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp, float glow) {
+        rv.setImageViewBitmap(viewId, TextBmp.lit(tf, sizeDp * 2.5f, 0.8f, false, s, color, Ambience.scene().deep, glow));
     }
 
     static final int[] LAYOUTS = {R.layout.widget_k1, R.layout.widget_k2, R.layout.widget_k3,
@@ -81,11 +84,13 @@ final class CurrencyView {
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
         // The light all the widgets share: the playing song's colour, or amber.
         Scene scene = Ambience.scene();
+        // Lit like the Sound widget's words: the main text a warm white glowing softly, quiet text barely.
+        int white = Glow.white(scene), soft = Glow.soft(scene), muted = Glow.muted(scene);
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
         // the weather strip's panel (just inside the clocks card's 1 dp border), and its icons in the light
         rv.setImageViewBitmap(R.id.hdr_bg, Stage.panel(scene, rowW - 2, 30, 1.5f, Stage.roundTop(27),
                 0xF00A101B, Stage.NIGHT));
-        for (int icon : new int[]{R.id.hdr_wx, R.id.ic0, R.id.ic1, R.id.ic2}) rv.setInt(icon, "setColorFilter", scene.label);
+        for (int icon : new int[]{R.id.hdr_wx, R.id.ic0, R.id.ic1, R.id.ic2}) rv.setInt(icon, "setColorFilter", Glow.label(scene));
 
         // header where you are, four equal slots: weather now (icon + temperature), chance of rain in the coming
         // hours, sunrise, sunset
@@ -101,11 +106,11 @@ final class CurrencyView {
         boolean day = SunCalc.isDay(ll[0], ll[1], ZoneId.systemDefault(), here);
         rv.setImageViewResource(R.id.hdr_wx, weatherIcon(wx == null ? -1 : wx.code, day));
         txt(ctx, rv, R.id.hdr_temp, (wx == null ? "--" : String.valueOf(Math.round(wx.temp))) + "\u00B0C",
-                reg, Theme.TEXT, 12, false);
+                reg, white, 12, Glow.SOFT);
         int rain = wx == null ? -1 : wx.rainChance(System.currentTimeMillis(), RAIN_HOURS);
-        txt(ctx, rv, R.id.hdr_rain, rain < 0 ? "--%" : rain + "%", reg, Theme.TEXT, 12, false);
-        txt(ctx, rv, R.id.hdr_rise, rise, reg, Theme.TEXT, 12, false);
-        txt(ctx, rv, R.id.hdr_set, set, reg, Theme.TEXT, 12, false);
+        txt(ctx, rv, R.id.hdr_rain, rain < 0 ? "--%" : rain + "%", reg, white, 12, Glow.SOFT);
+        txt(ctx, rv, R.id.hdr_rise, rise, reg, white, 12, Glow.SOFT);
+        txt(ctx, rv, R.id.hdr_set, set, reg, white, 12, Glow.SOFT);
 
         // world clocks
         DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault());
@@ -134,9 +139,9 @@ final class CurrencyView {
             } else {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), pcs[0]);
             }
-            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, Theme.TEXT_SOFT, 11, false);
-            txt(ctx, rv, id(ctx, "clk_time_" + i), now.format(timeF), bold, Theme.TEXT, 22, false);
-            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, Theme.TEXT, 11, false);
+            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, soft, 11, Glow.QUIET);
+            txt(ctx, rv, id(ctx, "clk_time_" + i), now.format(timeF), bold, white, 22, Glow.MAIN);
+            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11, Glow.SOFT);
         }
 
         // currency rows
@@ -148,27 +153,27 @@ final class CurrencyView {
             String from = Store.from(ctx, i).trim().toUpperCase(Locale.ROOT);
             rv.setOnClickPendingIntent(id(ctx, "row_" + i), ConverterActivity.intentFor(ctx, i)); // tap a row: converter
             rv.setImageViewBitmap(id(ctx, "fl_a_" + i), flagOrLabel(ctx, Util.countryOfCurrency(from), from));
-            txt(ctx, rv, id(ctx, "code_a_" + i), from, reg, Theme.TEXT, 15, false);
+            txt(ctx, rv, id(ctx, "code_a_" + i), from, reg, white, 15, Glow.SOFT);
             rv.setImageViewBitmap(id(ctx, "fl_b_" + i), toFlag);
-            txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, Theme.TEXT, 15, false);
+            txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, white, 15, Glow.SOFT);
             double market = Store.rate(ctx, from, to);
             // the row's panel in the shared light, with the last month as a soft area chart over it (the picture fills
             // the row inside its 1 dp border)
             double[][] trend = Trend.series(hist, from, market);
             rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW - 2, ROW_DP - 2, scene, i % 2 == 0));
             rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
-            rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), TextBmp.tight(reg, CITY_SP, "Market", Theme.MUTED));
-            rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), TextBmp.tight(reg, HEADER_SP, Util.fmt0(market), Theme.TEXT));
+            rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), TextBmp.tight(reg, CITY_SP, "Market", muted));
+            rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), TextBmp.tight(reg, HEADER_SP, Util.fmt0(market), white));
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
             double visa = Util.alignToMarket(Store.visa(ctx, from, to), market);
             int vv = id(ctx, "visa_val_" + i);
             if (!Double.isNaN(visa)) {
-                rv.setImageViewBitmap(vv, TextBmp.tight(reg, HEADER_SP, Util.fmt0(visa), Theme.TEXT_SOFT));
+                rv.setImageViewBitmap(vv, TextBmp.tight(reg, HEADER_SP, Util.fmt0(visa), soft));
             } else if (!Double.isNaN(market)) {
                 // Visa did not answer: estimate = market + fee, marked "~" and muted
-                rv.setImageViewBitmap(vv, TextBmp.tight(reg, HEADER_SP, "~" + Util.fmt0(market * (1.0 + Store.fee(ctx) / 100.0)), Theme.MUTED));
+                rv.setImageViewBitmap(vv, TextBmp.tight(reg, HEADER_SP, "~" + Util.fmt0(market * (1.0 + Store.fee(ctx) / 100.0)), muted));
             } else {
-                rv.setImageViewBitmap(vv, TextBmp.tight(reg, HEADER_SP, "", Theme.MUTED));
+                rv.setImageViewBitmap(vv, TextBmp.tight(reg, HEADER_SP, "", muted));
             }
         }
         return rv;
@@ -309,16 +314,27 @@ final class CurrencyView {
         Paint gp = new Paint();
         gp.setShader(new LinearGradient(0, 0, 0, split, 0x66000000, Theme.DEEP, Shader.TileMode.CLAMP));
         c.drawRect(fr, gp);
-        // The sun-phase band is a strip of light: it glows up into the haze above it.
+        // The sun-phase band is a strip of light: it glows up into the haze above it, its top edge brightest, like a
+        // lamp seen edge-on (the night strip is no light, so it only tints the haze).
         int band = phaseColor(phase);
-        float rise = h * 0.3f;
+        boolean light = phase != SunCalc.NIGHT;
+        float rise = h * (light ? 0.42f : 0.3f);
         Paint haze = new Paint(Paint.DITHER_FLAG);
-        haze.setShader(new LinearGradient(0, split - rise, 0, split, band & 0x00FFFFFF, (band & 0x00FFFFFF) | 0x4D000000,
-                Shader.TileMode.CLAMP));
+        haze.setShader(new LinearGradient(0, split - rise, 0, split, new int[]{band & 0x00FFFFFF,
+                (band & 0x00FFFFFF) | (light ? 0x2E000000 : 0x1A000000), (band & 0x00FFFFFF) | (light ? 0x80000000 : 0x4D000000)},
+                new float[]{0f, 0.6f, 1f}, Shader.TileMode.CLAMP));
         c.drawRect(0, split - rise, w, split, haze);
         Paint sp = new Paint();
         sp.setColor(band);
         c.drawRect(0, split, w, h, sp);
+        if (light) {
+            Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
+            edge.setColor(Scene.mix(band, 0xFFFFFFFF, 0.45f));
+            edge.setMaskFilter(new android.graphics.BlurMaskFilter(PXDP * 2.5f, android.graphics.BlurMaskFilter.Blur.NORMAL));
+            c.drawRect(0, split - PXDP * 0.8f, w, split + PXDP * 0.8f, edge);
+            edge.setMaskFilter(null);
+            c.drawRect(0, split, w, split + PXDP * 0.75f, edge);
+        }
         return out;
     }
 

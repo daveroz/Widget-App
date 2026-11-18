@@ -1,7 +1,6 @@
 package app.currencyexchange.widget;
 
 import android.content.Context;
-import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
@@ -62,9 +61,9 @@ final class Words {
             more = TextUtils.ellipsize(detail, text, width, TextUtils.TruncateAt.END).toString();
         }
         float titleY = y + 20 * dp, detailY = titleY + 16 * dp;
-        int labelColour = Scene.readable(Scene.gain(scene.deep, 1.25f), 0.4f);
-        int titleColour = Scene.mix(Theme.TEXT, scene.hot, 0.3f); // a warm white, lit by the key
-        int detailColour = Scene.mix(Theme.MUTED, scene.hot, 0.15f);
+        int labelColour = Glow.label(scene);
+        int titleColour = Scene.mix(Theme.TEXT, scene.hot, 0.3f); // a warm white, lit by the key (warmer than elsewhere: it's the star)
+        int detailColour = Glow.muted(scene);
 
         // Then twice: first the glow of every line (so no glow lies over another line's letters), then the letters.
         for (int pass = 0; pass < 2; pass++) {
@@ -96,16 +95,7 @@ final class Words {
             c.drawText(s, x, y, text);
             return;
         }
-        text.setMaskFilter(new BlurMaskFilter(12 * dp, BlurMaskFilter.Blur.NORMAL));
-        text.setColor(Scene.alpha(light, 0.7f * glow));
-        c.drawText(s, x, y, text);
-        text.setMaskFilter(new BlurMaskFilter(4.5f * dp, BlurMaskFilter.Blur.NORMAL));
-        text.setColor(Scene.alpha(light, 0.75f * glow));
-        c.drawText(s, x, y, text);
-        text.setMaskFilter(new BlurMaskFilter(1.5f * dp, BlurMaskFilter.Blur.NORMAL));
-        text.setColor(Scene.alpha(Scene.mix(light, colour, 0.5f), 0.8f * glow));
-        c.drawText(s, x, y, text);
-        text.setMaskFilter(null);
+        Glow.text(c, text, s, x, y, colour, light, glow, 12 * dp);
     }
 
     static TextPaint paint() {

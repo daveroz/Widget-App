@@ -21,8 +21,9 @@ import java.time.ZonedDateTime;
  * 10.5 diameter centred 31.2 from the centre. Motion comes from {@link SbbClock}.
  *
  * The clock sits on the panel every widget shares ({@link Stage}): night glass lit by the light of what's playing
- * ({@link Ambience}), its face glowing softly in that light, like a cover on a stage. The clock itself keeps SBB's
- * own black, white and red.
+ * ({@link Ambience}), in its haze. The face is lit from within, like a station clock at night: its light blooms out
+ * into the haze, a tight bright halo at its rim and a wide, soft bloom in the light's colour; a fine film grain lies
+ * over it all. The clock itself keeps SBB's own black, white and red.
  */
 final class SbbRenderer {
     private SbbRenderer() {}
@@ -44,15 +45,23 @@ final class SbbRenderer {
         Canvas c = new Canvas(b);
         float corner = n * 0.19f, px = n / 150f; // the panel stands for a widget about 150 dp across
         RectF box = new RectF(0, 0, n, n);
-        Stage.paint(c, box, Stage.round(corner), scene, 0f, Stage.NIGHT, Stage.NIGHT, Math.max(1f, px), false);
-        // the face, lit like a cover on a stage: a soft glow of the light around it
+        float[] corners = Stage.round(corner);
+        Stage.paint(c, box, corners, scene, 0f, Stage.NIGHT, Stage.NIGHT, 0f, true);
+        Stage.haze(c, box, scene);
+        // the face, lit from within: a wide, soft bloom of the light around it and a tight bright halo at its rim
         int f = Math.round(n * FACE);
         float r = f / 2f * (52.5f / 56f);
         Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-        glow.setColor(Scene.alpha(scene.key, 0.42f));
-        glow.setMaskFilter(new BlurMaskFilter(n * 0.06f, BlurMaskFilter.Blur.OUTER));
+        glow.setColor(Scene.alpha(scene.deep, 0.55f));
+        glow.setMaskFilter(new BlurMaskFilter(n * 0.08f, BlurMaskFilter.Blur.OUTER));
+        c.drawCircle(n / 2f, n / 2f, r, glow);
+        glow.setColor(Scene.alpha(Scene.mix(scene.hot, 0xFFFFFFFF, 0.5f), 0.75f));
+        glow.setMaskFilter(new BlurMaskFilter(n * 0.018f, BlurMaskFilter.Blur.OUTER));
         c.drawCircle(n / 2f, n / 2f, r, glow);
         c.drawBitmap(face(f), (n - f) / 2f, (n - f) / 2f, null);
+        Stage.film(c, box);
+        c.restore();
+        Stage.edge(c, box, corners, Math.max(1f, px));
         lit = b;
         litKey = key;
         return b;

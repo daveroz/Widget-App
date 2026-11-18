@@ -296,8 +296,8 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
         }
         int barDp = Math.max(40, Math.round(wDp - used));
         if (full) {
-            rv.setImageViewBitmap(R.id.btn_prev, SoundControls.skip(false, 46));
-            rv.setImageViewBitmap(R.id.btn_next, SoundControls.skip(true, 46));
+            rv.setImageViewBitmap(R.id.btn_prev, SoundControls.skip(scene, false, 46));
+            rv.setImageViewBitmap(R.id.btn_next, SoundControls.skip(scene, true, 46));
             rv.setOnClickPendingIntent(R.id.btn_prev, action(ctx, ACTION_PREV, 60, -1f));
             rv.setOnClickPendingIntent(R.id.btn_play, action(ctx, ACTION_PLAY_PAUSE, 61, -1f));
             rv.setOnClickPendingIntent(R.id.btn_next, action(ctx, ACTION_NEXT, 62, -1f));
