@@ -22,8 +22,8 @@ import android.graphics.SweepGradient;
  * art on its label, so the spin shows. Warm light catches in its grooves, in two soft wedges that stay where the light
  * is while the record turns (so it reads as vinyl), and a soft luminous halo rings its edge, as if the disc gave off
  * light into the haze. It only changes colour while it's back in the sleeve, so each song's record comes out as a
- * different disc. The sleeve glows in the scene's key colour, like a cover lit on a stage, with a warm rim of light,
- * and the bright parts of its art bloom a little.
+ * different disc. The sleeve glows in the scene's key colour, like a cover lit on a stage, with a warm rim of light;
+ * the stage's warm light falls softly on its art and the film grain lies over it, but the art itself doesn't glow.
  */
 final class SoundRecord {
     static final float RPM = 100f / 3; // 33⅓
@@ -44,6 +44,8 @@ final class SoundRecord {
     private final Paint screenPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint washPaint = new Paint();
     private final Path clip = new Path();
+    /** The label's size, as a share of the record's radius. */
+    private static final float LABEL = 0.34f;
     /** The halo's reach beyond the record's edge, as a share of its radius. */
     private static final float HALO = 1.34f;
 
@@ -60,9 +62,6 @@ final class SoundRecord {
     private String discKey = "";
     /** The light caught in the grooves, drawn still over the turning record. */
     private Bitmap glint;
-    /** The cover, blurred, for its bloom, and which cover it was made from. */
-    private Bitmap coverGlow;
-    private Bitmap glowFrom;
     /** The colour the record is pressed in, and the one it will be pressed in next time it's out of sight. */
     private int tint, wantTint;
 
@@ -205,85 +204,14 @@ final class SoundRecord {
         canvas.clipPath(clip);
         if (previous != null && fade < 1f) drawArt(canvas, previous, sleeve, Math.round(255 * (1 - fade)));
         drawArt(canvas, cover, sleeve, Math.round(255 * fade));
-        // The stage's warm light falls on the cover, and its bright parts bloom, bleeding into the dark around them.
+        // The stage's warm light falls softly on the cover (its art doesn't glow of its own).
         washPaint.setColor(Scene.alpha(scene.deep, 0.08f * fade));
         canvas.drawRect(sleeve, washPaint);
-        Bitmap bloom = coverGlow();
-        if (bloom != null) {
-            screenPaint.setAlpha(Math.round(255 * fade));
-            canvas.drawBitmap(bloom, null, sleeve, screenPaint);
-            screenPaint.setAlpha(255);
-        }
         canvas.restore();
         // A warm rim of light around the sleeve.
         edgePaint.setStrokeWidth(dp);
         edgePaint.setColor(Scene.alpha(Scene.mix(scene.deep, scene.hot, 0.3f), 0.65f));
         canvas.drawRoundRect(sleeve, corner, corner, edgePaint);
-    }
-
-    /** The cover, small and blurred (made once per cover), for its bloom. */
-    private Bitmap coverGlow() {
-        if (glowFrom == cover) return coverGlow;
-        glowFrom = cover;
-        coverGlow = null;
-        try {
-            Bitmap art = cover.getConfig() == Bitmap.Config.HARDWARE ? cover.copy(Bitmap.Config.ARGB_8888, false) : cover;
-            int side = Math.min(art.getWidth(), art.getHeight());
-            if (side <= 0) return null;
-            int n = 56;
-            Bitmap square = Bitmap.createBitmap(art, (art.getWidth() - side) / 2, (art.getHeight() - side) / 2, side, side);
-            Bitmap small = Bitmap.createScaledBitmap(square, n, n, true);
-            int[] px = new int[n * n];
-            small.getPixels(px, 0, n, 0, 0, n, n);
-            brightPass(px, 70); // only the bright parts bloom
-            for (int pass = 0; pass < 3; pass++) {
-                blur(px, n, 1);
-                blur(px, n, n);
-            }
-            boost(px, 4f); // thin bright lines lose their light when blurred: give it back
-            coverGlow = Bitmap.createBitmap(px, n, n, Bitmap.Config.ARGB_8888);
-        } catch (RuntimeException ignored) { }
-        return coverGlow;
-    }
-
-    /** One pass of a box blur, 5 wide, over an {@code n} × {@code n} picture, along rows ({@code step} 1) or columns ({@code step} n). */
-    private static void blur(int[] px, int n, int step) {
-        int[] line = new int[n];
-        for (int a = 0; a < n; a++) {
-            int start = step == 1 ? a * n : a;
-            for (int i = 0; i < n; i++) line[i] = px[start + i * step];
-            for (int i = 0; i < n; i++) {
-                int r = 0, g = 0, b = 0;
-                for (int k = -2; k <= 2; k++) {
-                    int c = line[Math.max(0, Math.min(n - 1, i + k))];
-                    r += (c >> 16) & 0xFF;
-                    g += (c >> 8) & 0xFF;
-                    b += c & 0xFF;
-                }
-                px[start + i * step] = 0xFF000000 | (r / 5 << 16) | (g / 5 << 8) | (b / 5);
-            }
-        }
-    }
-
-    /** Keeps only a picture's light: each channel above {@code floor}, the rest dark. */
-    private static void brightPass(int[] px, int floor) {
-        for (int i = 0; i < px.length; i++) {
-            int c = px[i];
-            int r = Math.max(0, ((c >> 16) & 0xFF) - floor), g = Math.max(0, ((c >> 8) & 0xFF) - floor);
-            int b = Math.max(0, (c & 0xFF) - floor);
-            px[i] = 0xFF000000 | (r << 16) | (g << 8) | b;
-        }
-    }
-
-    /** Brightens a picture's light, as bloom does: {@code gain} times, clipped. */
-    private static void boost(int[] px, float gain) {
-        for (int i = 0; i < px.length; i++) {
-            int c = px[i];
-            int r = Math.min(255, Math.round(((c >> 16) & 0xFF) * gain));
-            int g = Math.min(255, Math.round(((c >> 8) & 0xFF) * gain));
-            int b = Math.min(255, Math.round((c & 0xFF) * gain));
-            px[i] = 0xFF000000 | (r << 16) | (g << 8) | b;
-        }
     }
 
     /**
@@ -313,7 +241,7 @@ final class SoundRecord {
         c.drawCircle(cx, cx, r, p);
         p.setShader(null);
         // Grooves: fine dark lines, each with a warm glint beside it, and bands where the pressing catches more light.
-        float label = r * 0.34f;
+        float label = r * LABEL;
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(0.6f * dp);
         boolean dark = true;
