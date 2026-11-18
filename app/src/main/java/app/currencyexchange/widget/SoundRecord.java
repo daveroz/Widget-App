@@ -27,7 +27,7 @@ import android.graphics.SweepGradient;
  * different disc.
  *
  * The light comes from inside the sleeve, not from behind it: on a dark cover, its bright parts shine as if lit from
- * within (taking on the light's colour, with a thin halo hugging them; a bright cover has nothing to shine against, so
+ * within (taking on a little of the light's colour, with a thin halo hugging them; a bright cover has nothing to shine against, so
  * it's left as it is), the sleeve is brightest along its mouth, where a line
  * of light comes out, and that light falls on the record as it comes out, brightest nearest the sleeve. Around the
  * sleeve there's only a soft glow and a faint rim; the stage's warm light falls softly on the cover, and the film
@@ -68,6 +68,11 @@ final class SoundRecord {
     private static final float LABEL = 0.34f;
     /** The halo's reach beyond the record's edge, as a share of its radius. */
     private static final float HALO = 1.24f;
+    /**
+     * How much the light tints the cover art (on the sleeve and the label): its bright parts take on this share of
+     * the light's colour, and a wash of the light this strong lies over it. Kept low, so the art keeps its own colours.
+     */
+    private static final float ART_TINT = 0.4f, ART_WASH = 0.05f;
     /** How far the light from the sleeve's mouth reaches across the record, as a share of its radius. */
     private static final float MOUTH = 0.7f;
 
@@ -245,11 +250,11 @@ final class SoundRecord {
             screenPaint.setColor(Scene.alpha(scene.deep, 0.45f * shineStrength * fade));
             drawArt(canvas, shineHalo, sleeve, screenPaint);
             screenPaint.setColor(0xFFFFFFFF);
-            shinePaint.setColor(Scene.alpha(Scene.gain(scene.deep, 1.3f), 0.85f * shineStrength * fade));
+            shinePaint.setColor(Scene.alpha(Scene.gain(scene.deep, 1.3f), ART_TINT * shineStrength * fade));
             drawArt(canvas, shine, sleeve, shinePaint);
         }
         // The stage's warm light falls softly on the cover, and the light inside shows most by the mouth.
-        washPaint.setColor(Scene.alpha(scene.deep, 0.1f * fade));
+        washPaint.setColor(Scene.alpha(scene.deep, ART_WASH * fade));
         canvas.drawRect(sleeve, washPaint);
         canvas.drawRect(sleeve, insidePaint);
         canvas.restore();
@@ -401,12 +406,12 @@ final class SoundRecord {
             lit.setColor(Scene.alpha(light.deep, 0.45f * shineStrength));
             drawArt(c, shineHalo, face, lit);
             lit.setXfermode(null);
-            lit.setColor(Scene.alpha(Scene.gain(light.deep, 1.3f), 0.85f * shineStrength));
+            lit.setColor(Scene.alpha(Scene.gain(light.deep, 1.3f), ART_TINT * shineStrength));
             drawArt(c, shine, face, lit);
         }
         Paint warm = new Paint();
         warm.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
-        warm.setColor(Scene.alpha(light.deep, 0.1f));
+        warm.setColor(Scene.alpha(light.deep, ART_WASH));
         c.drawRect(face, warm);
         c.restore();
         p.setColor(0x40000000);
