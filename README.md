@@ -101,7 +101,9 @@ stays at Friday's close.
   colour: the panels' haze, the Currency icons, arrows and trend lines (the clocks' sun-phase strip keeps its own day,
   golden-hour, blue-hour and night colours), the Calendar's
   today and accents, and the glow around the SBB clock's face (the clock keeps SBB's black, white and
-  red). It follows the music through notification access, with or without a Sound widget.
+  red), and the Music widget's panel and controls. It follows the music through notification access, with or
+  without a Sound widget; between songs it holds the colour for a moment, and when nothing plays any more every
+  widget goes back to amber within about three seconds.
 
 The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,
 well and lit looks live in `Theme.java`; the settings screen, the converter and the widgets all read
