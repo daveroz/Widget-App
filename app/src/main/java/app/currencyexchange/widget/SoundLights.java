@@ -18,10 +18,10 @@ import android.graphics.Shader;
  * While something plays, the wall follows the sound: each lamp column is a part of the music, bass on
  * the left and treble on the right, filling up from the bottom with it, rising quickly and settling
  * back gently, its top lamp fading in and out. (Columns hidden behind something, like the launcher's
- * LP, can echo the treble instead.) When nothing plays, or it's paused, steam drifts across it
- * ({@link Steam}): wisps of light curling from left to right, with a slow swell of energy travelling
- * the same way, the top row lit wherever there's energy, each lit lamp as bright as when the music
- * kicks in. The two blend into each other.
+ * LP, can echo the treble instead.) When nothing plays, or it's paused, an airstream with turbulence
+ * crosses it ({@link Airstream}): streams of air flowing in from the left, bent and rolled by slow,
+ * large eddies, lighting the lamps they pass, each lit lamp as bright as when the music kicks in. The
+ * two blend into each other.
  *
  * The lamps are light sources in a dark, hazy room, not a brighter picture: each lit lamp has a warm core (white-hot
  * only at full strength) with a soft, diffused edge; its light blooms out around it (a tight bloom filling the gaps
@@ -47,7 +47,7 @@ final class SoundLights {
     private static final int BANDS = SoundWave.COLUMNS;
     /** Following the sound: the top lamp of each column, and the one under it, are a little softer. */
     private static final float[] TIP = {0.6f, 0.85f};
-    /** How long the wall takes to go from the steam to the sound, or back. */
+    /** How long the wall takes to go from the airstream to the sound, or back. */
     private static final float REACT_SECONDS = 0.6f;
 
     private final Paint lamp = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -75,12 +75,8 @@ final class SoundLights {
     private Canvas softCanvas, bloomCanvas;
     /** The colour the fog was made for. */
     private int fogKey;
-    private float time;
-    /** The steam: each lamp's light, easing toward its target. */
-    private float[] steam = new float[0];
-    /** When the steam was last worked out (to ease it by the time since), and whether it has been yet. */
-    private float steamAt;
-    private boolean steamStarted;
+    /** The airstream: the wall's own motion when it isn't following the sound. */
+    private Airstream air;
     /** The wall's top-left corner, the distance from one lamp to the next across and down, and a lamp's size. */
     private float left, top, pitchX, pitchY, cell, dp = 1;
     /** How many rows the wall has, half of them in each panel. */
@@ -99,7 +95,7 @@ final class SoundLights {
     }
 
     /** Whether a column is a dark gap between strips: the last of every four (the wall starts and ends on lamps). */
-    private static boolean gap(int column) {
+    static boolean gap(int column) {
         return column % (STRIP + 1) == STRIP;
     }
 
@@ -130,8 +126,8 @@ final class SoundLights {
         left = wall.left;
         top = wall.top;
         values = new float[rows * columns];
-        steam = new float[rows * columns];
-        steamStarted = false;
+        air = new Airstream(columns, rows);
+        for (int i = 0; i < 60; i++) air.step(1 / 12f); // the wall starts already in motion
         panelLight = new float[strips * 2];
         stripLight = new float[strips];
         stripY = new float[strips];
@@ -179,7 +175,7 @@ final class SoundLights {
         }
     }
 
-    /** Follow the sound (something is playing), or show the steam (paused, or nothing playing). */
+    /** Follow the sound (something is playing), or show the airstream (paused, or nothing playing). */
     void setReactive(boolean on) {
         reactive = on;
     }
@@ -202,9 +198,9 @@ final class SoundLights {
 
     /** Moves the show on by {@code dt} seconds, listening to {@code source} while it follows the sound. */
     void step(float dt, SoundWave source) {
-        time += dt;
         float stepReact = dt / REACT_SECONDS;
         react = reactive ? Math.min(1f, react + stepReact) : Math.max(0f, react - stepReact);
+        if (air != null && react < 1f) air.step(Math.min(dt, 0.1f)); // the air moves on while it shows
         soundTime += dt;
         if (source != null && (reactive || react > 0f)) source.levels(soundTime, target);
         else java.util.Arrays.fill(target, 0f);
@@ -388,24 +384,13 @@ final class SoundLights {
     }
 
     /**
-     * Works out every lamp's strength for now from the steam: each lamp eases toward its target (quickly, so the
-     * filaments keep crisp edges) and is dimmer behind the text. Lit lamps are as bright as the music's, with no dimming
-     * of their own, so the wall is as bright between songs as during them.
+     * Every lamp's strength for now from the airstream, dimmer behind the text. Lit lamps are as bright as the music's,
+     * with no dimming of their own, so the wall is as bright between songs as during them.
      */
     private void light() {
-        float ease = steamStarted ? Math.min(1f, (time - steamAt) * Steam.EASE) : 1f;
-        steamAt = time;
-        steamStarted = true;
-        float t = time * Steam.SPEED;
         for (int c = 0; c < columns; c++) {
             if (gap(c)) continue;
-            float energy = Steam.energy(c, t);
-            for (int r = 0; r < rows; r++) {
-                int i = r * columns + c;
-                float target = Steam.target(c, r, t, energy, r == 0);
-                steam[i] += (target - steam[i]) * ease;
-                values[i] = steam[i] * columnStrength[c];
-            }
+            for (int r = 0; r < rows; r++) values[r * columns + c] = air.at(r, c) * columnStrength[c];
         }
     }
 
@@ -456,7 +441,7 @@ final class SoundLights {
 
     /** Moves the show on without listening (for previews). */
     void advance(float seconds) {
-        time += seconds;
+        for (float t = 0f; t < seconds && air != null; t += 1 / 12f) air.step(1 / 12f);
     }
 
     /** Sets the music's levels straight away and goes all the way over to the sound (for previews). */
