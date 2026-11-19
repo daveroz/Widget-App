@@ -21,8 +21,10 @@ import java.util.Map;
  *
  * While connected it follows the media sessions, and when a song or player changes (or one starts or stops) it has
  * {@link Ambience} look again, so every widget takes on the new song's colour, with or without a Sound widget, and
- * redraws the Music widget. While something plays (and the screen is on) it moves the Music widget's progress on
- * once a second.
+ * redraws the Music widget. When the light is only being held over a gap (the player just stopped, or a new song's
+ * cover hasn't come yet), it looks again as the hold ends, as a stopped player sends nothing more: so when nothing
+ * plays any more, every widget goes back to amber. While something plays (and the screen is on) it moves the Music
+ * widget's progress on once a second.
  */
 public class MediaListener extends NotificationListenerService {
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -31,11 +33,21 @@ public class MediaListener extends NotificationListenerService {
     private MediaSessionManager sessions;
     private final MediaSessionManager.OnActiveSessionsChangedListener onSessions = this::watch;
     /** Looks again a moment after the last change, as players send several at once. */
-    private final Runnable check = () -> {
+    private final Runnable check = this::look;
+
+    private void look() {
         Ambience.check(this);
         PlayerWidgetProvider.updateAll(this);
         startTicking();
-    };
+        // The light is held over a gap between songs: look again when the hold ends (a stopped player sends no more
+        // events), so the widgets go back to amber if nothing plays by then.
+        long until = Ambience.holdingUntil();
+        if (until > 0) {
+            handler.removeCallbacks(check);
+            handler.postDelayed(check, Math.max(0, until - NowPlaying.now()) + 150);
+        }
+    }
+
     /** The Music widget's progress, once a second while something plays. */
     private final Runnable tick = new Runnable() {
         @Override

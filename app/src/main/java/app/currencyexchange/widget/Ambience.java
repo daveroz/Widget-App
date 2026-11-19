@@ -8,7 +8,11 @@ import android.os.HandlerThread;
  * The light all the widgets share: the colour of what's playing (the album cover's primary colour, or the playing
  * app's own for videos and apps without a cover), or Worldly's amber when nothing plays. The Sound widget keeps it
  * current while it runs; the media listener does when a song changes, so the Currency, Calendar and SBB clock
- * widgets follow the music even without a Sound widget. When it changes, those widgets are redrawn in its colour.
+ * widgets follow the music even without a Sound widget. When it changes, those widgets and the Music widget are
+ * redrawn in its colour.
+ *
+ * Between songs the light is held for a moment ({@link NowPlaying#BLIP_MS}); {@link #holdingUntil} says until when,
+ * so whoever looked can look again then (a stopped player sends no more events), and the light goes back to amber.
  */
 final class Ambience {
     private Ambience() {}
@@ -20,6 +24,8 @@ final class Ambience {
     /** When a cover's light was last seen (and from which app), and when anything was: to ride over the gap between songs. */
     private static long coverAt, seenAt;
     private static String coverApp;
+    /** While the light is being held over a gap, when that hold ends (0 when it isn't). */
+    private static long holdUntil;
     private static Handler worker;
 
     static synchronized Scene scene() {
@@ -30,12 +36,17 @@ final class Ambience {
     static synchronized Scene lightFor(Context ctx, NowPlaying.Track now) {
         long t = NowPlaying.now();
         // Between songs the player goes quiet for a moment, or sends the title before the cover: keep the light.
-        if (now == null && litFor != null && t - seenAt < NowPlaying.BLIP_MS) return lit;
+        if (now == null && litFor != null && t - seenAt < NowPlaying.BLIP_MS) {
+            holdUntil = seenAt + NowPlaying.BLIP_MS;
+            return lit;
+        }
         if (now != null && !now.hasCover() && litFor instanceof android.graphics.Bitmap
                 && now.packageName.equals(coverApp) && t - coverAt < NowPlaying.BLIP_MS) {
             seenAt = t;
+            holdUntil = coverAt + NowPlaying.BLIP_MS;
             return lit;
         }
+        holdUntil = 0;
         Object key = now == null ? null : now.hasCover() ? now.art : now.packageName;
         if (key == null) {
             litFor = null;
@@ -51,6 +62,14 @@ final class Ambience {
             lit = Scene.of(now.hasCover() ? Colours.primary(now.art) : Colours.app(ctx, now.packageName));
         }
         return lit;
+    }
+
+    /**
+     * When the light last worked out is only being held over a gap between songs, the time ({@link NowPlaying#now})
+     * that hold ends, when it should be worked out again; 0 when it isn't being held.
+     */
+    static synchronized long holdingUntil() {
+        return holdUntil;
     }
 
     /** Shows this light on every widget: the others are redrawn in it (in the background) when it changes. */
@@ -84,6 +103,7 @@ final class Ambience {
             try { WidgetProvider.updateAll(app); } catch (Throwable ignored) { }
             try { CalendarWidgetProvider.updateAll(app); } catch (Throwable ignored) { }
             try { SbbWidgetProvider.updateAll(app); } catch (Throwable ignored) { }
+            try { PlayerWidgetProvider.updateAll(app); } catch (Throwable ignored) { }
         });
     }
 }
