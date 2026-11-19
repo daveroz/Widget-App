@@ -2,7 +2,8 @@ package app.currencyexchange.widget;
 
 /**
  * The light show's own motion when it isn't following the sound: an airstream with turbulence, tuned in the Sound
- * Wall Simulator (the settings below are the ones saved there). Air enters on the left in streams, each a spray of
+ * Wall Simulator (the settings below are the ones saved there, run at {@link #PACE} times the simulator's own speed,
+ * as it was watched there). Air enters on the left in streams, each a spray of
  * particles carried by a wind that gusts slowly; a turbulence field (the curl of 3D noise, so it swirls without
  * bunching up, carried along with the wind and slowly changing shape) bends and rolls them as they cross. Each
  * particle leaves light in the lamps it passes, which fades over the trail time; a lamp lights once enough air has
@@ -14,16 +15,18 @@ package app.currencyexchange.widget;
  */
 final class Airstream {
     // The settings, as saved from the simulator. Speeds are in lamps a second.
+    /** How fast it all runs: seconds of air for each second shown (the simulator's speed control, set to 2×). */
+    static final float PACE = 2f;
     /** The wind's speed, how much it gusts (0 to 1) and how often (gusts a second), and a drift up (below 0: down). */
-    static final float WIND = 5f, GUST = 0.48f, GUST_RATE = 0.02f, RISE = 0f;
+    static final float WIND = 5f, GUST = 0.45f, GUST_RATE = 0.02f, RISE = 0f;
     /** How many streams enter on the left, how wide each is (lamps) and how much its source wanders (0 to 1). */
-    static final int LANES = 2;
+    static final int LANES = 1;
     static final float SPREAD = 0f, WANDER = 0f;
     /** Bits of air a second in each stream, how long the light they leave lasts (s), and how much it fades along the way. */
-    static final float DENSITY = 12f, TRAIL = 2f, FADE_ALONG = 0f;
+    static final float DENSITY = 38f, TRAIL = 2f, FADE_ALONG = 0f;
     /** Turbulence: its strength, eddy size (lamps), how fast the eddies change, how much it builds towards the right
      * (0 to 1), and the share of small eddies riding on the big ones. */
-    static final float TURB = 1.7f, EDDY = 12f, CHURN = 2f, DEVELOP = 0f, DETAIL = 0.05f;
+    static final float TURB = 1.55f, EDDY = 12f, CHURN = 2f, DEVELOP = 0f, DETAIL = 0.04f;
     /** Lamps: how much air brightens them, how much they need before they light, how softly they come on, and how
      * quickly they follow (a second). */
     static final float GAIN = 2.9f, THRESHOLD = 0.73f, SOFTNESS = 0.02f, RESPONSE = 4f;
@@ -33,6 +36,8 @@ final class Airstream {
     private static final int SEED = 7;
     /** At most this many bits of air at once. */
     private static final int MOST = 4000;
+    /** The air moves on in steps of at most this long (s), as the simulator's are. */
+    private static final float STEP = 1 / 12f;
 
     private static final int[] P = new int[512];
 
@@ -77,8 +82,18 @@ final class Airstream {
         return lamp[r * columns + c];
     }
 
-    /** Moves the air on by {@code dt} seconds. */
+    /** Moves the air on by {@code dt} seconds shown: {@link #PACE} times as much air, in steps of {@link #STEP}. */
     void step(float dt) {
+        float left = dt * PACE;
+        while (left > 1e-4f) {
+            float h = Math.min(left, STEP);
+            once(h);
+            left -= h;
+        }
+    }
+
+    /** Moves the air on by one step of {@code dt} seconds. */
+    private void once(float dt) {
         if (dt <= 0f) return;
         gusts = (gusts + dt * GUST_RATE) % 256f;
         wanders = (wanders + dt * 0.2f) % 256f;
