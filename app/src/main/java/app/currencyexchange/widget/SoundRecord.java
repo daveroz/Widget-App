@@ -274,7 +274,7 @@ final class SoundRecord {
         float seam = 0.55f + 0.45f * (disc != null ? slide : 0f);
         Look look = Look.get();
         if (look.fringe > 0f) { // the lens's fringe on the line of light: red to its left, blue to its right
-            float apart = look.fringeDp * dp * 1.2f, f = look.fringe * 0.6f * seam;
+            float apart = look.fringeDp * dp * 1.2f, f = look.fringe * Lens.LINES * seam; // a line: only a trace
             fringePaint.setStyle(Paint.Style.FILL);
             fringePaint.setColor(Scene.alpha(Lens.RED, f));
             canvas.drawRect(sleeve.left - 0.6f * dp - apart, sleeve.top, sleeve.left + 0.6f * dp - apart, sleeve.bottom, fringePaint);

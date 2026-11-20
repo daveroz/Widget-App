@@ -148,6 +148,10 @@ final class SoundControls {
             c.drawLine(x0, y, head, y, line);
             line.setShader(null);
         }
+        // the line and its ticks get only a trace of the lens's fringe (Lens.LINES); the point, drawn on its own, all of it
+        Bitmap out = Lens.fringe(b, px, Lens.LINES);
+        if (out == b) out = b.copy(Bitmap.Config.ARGB_8888, true);
+        b.eraseColor(0);
         // where the song is: a big LED-white point in a glowing ring of the light, which a tap on the line moves
         if (hal > 0f) { // halation round the point
             line.setColor(Scene.alpha(Optics.HALATION, Math.min(0.4f, 0.2f * hal)));
@@ -169,8 +173,9 @@ final class SoundControls {
         line.setMaskFilter(null);
         line.setColor(scene.led);
         c.drawCircle(head, y, 5f * px, line);
-        Bitmap out = Lens.fringe(b, px, 0.9f); // the colour fringe of a bright light through a lens
-        Optics.star(new Canvas(out), head, y, 13f * px, px, scene.hot, 0.6f); // and the strike a star filter makes of it
+        Canvas onto = new Canvas(out);
+        onto.drawBitmap(Lens.fringe(b, px, 0.9f), 0, 0, null); // the colour fringe of a bright light through a lens
+        Optics.star(onto, head, y, 13f * px, px, scene.hot, 0.6f); // and the strike a star filter makes of it
         return out;
     }
 

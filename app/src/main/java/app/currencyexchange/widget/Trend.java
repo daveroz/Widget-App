@@ -182,14 +182,14 @@ final class Trend {
         line.setStrokeWidth(LINE_DP * PXDP);
         line.setStrokeCap(Paint.Cap.ROUND);
         line.setStrokeJoin(Paint.Join.ROUND);
-        // the faint colour fringe of a bright light through a lens: a red copy a touch to the left, a blue one right
+        // a trace of the colour fringe of a bright light through a lens (a line gets little: Lens.LINES)
         float shift = look.fringeDp * PXDP;
         c.save();
         c.translate(-shift, 0);
-        line.setColor(Scene.alpha(Lens.RED, look.fringe * 0.6f));
+        line.setColor(Scene.alpha(Lens.RED, look.fringe * Lens.LINES));
         c.drawPath(curve, line);
         c.translate(2 * shift, 0);
-        line.setColor(Scene.alpha(Lens.BLUE, look.fringe * 0.6f));
+        line.setColor(Scene.alpha(Lens.BLUE, look.fringe * Lens.LINES));
         c.drawPath(curve, line);
         c.restore();
         line.setColor(alpha(scene.hot, Math.round(LINE_ALPHA * 1.4f)));
