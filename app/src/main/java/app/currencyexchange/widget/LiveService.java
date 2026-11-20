@@ -32,8 +32,17 @@ public class LiveService extends Service {
     private static final String CHANNEL = "widgets_live";
     private static final int NOTIF_ID = 42;
 
+    /** The minute work (the Currency and Calendar widgets, the alarms' backup): heavy, but only once a minute. */
     private HandlerThread thread;
     private Handler handler;
+    /**
+     * The two animations each have a thread of their own, so the minute work and each other can't hold their frames
+     * up, at the priority Android gives drawing the screen, so a busy phone doesn't push them aside.
+     */
+    private HandlerThread soundThread, sbbThread;
+    private Handler soundHandler, sbbHandler;
+    /** When the Sound widget's next frame is due (uptime ms), on a steady timeline; 0 before the first. */
+    private long soundNext;
     private BroadcastReceiver screen;
     private Bitmap buf;
     private boolean on;
@@ -78,6 +87,12 @@ public class LiveService extends Service {
         thread = new HandlerThread("widgets-live");
         thread.start();
         handler = new Handler(thread.getLooper());
+        soundThread = new HandlerThread("sound-frames", android.os.Process.THREAD_PRIORITY_DISPLAY);
+        soundThread.start();
+        soundHandler = new Handler(soundThread.getLooper());
+        sbbThread = new HandlerThread("sbb-frames", android.os.Process.THREAD_PRIORITY_DISPLAY);
+        sbbThread.start();
+        sbbHandler = new Handler(sbbThread.getLooper());
         screen = new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent i) {
@@ -116,6 +131,8 @@ public class LiveService extends Service {
         stopLoops();
         try { unregisterReceiver(screen); } catch (Exception ignored) { }
         if (thread != null) thread.quitSafely();
+        if (soundThread != null) soundThread.quitSafely();
+        if (sbbThread != null) sbbThread.quitSafely();
         super.onDestroy();
     }
 
@@ -167,26 +184,26 @@ public class LiveService extends Service {
         if (on) return;
         on = true;
         handler.post(minuteLoop);
-        handler.post(frameLoop);
-        handler.post(soundLoop);
+        sbbHandler.post(frameLoop);
+        soundHandler.post(soundLoop);
     }
 
     /** Restarts the frame loops, which stop by themselves while they have no widget to move. */
     private void kick() {
         if (!on || handler == null) return;
-        handler.removeCallbacks(frameLoop);
-        handler.post(frameLoop);
-        handler.removeCallbacks(soundLoop);
-        handler.post(soundLoop);
+        sbbHandler.removeCallbacks(frameLoop);
+        sbbHandler.post(frameLoop);
+        soundHandler.removeCallbacks(soundLoop);
+        soundHandler.post(soundLoop);
     }
 
     private void stopLoops() {
         on = false;
         if (handler != null) {
             handler.removeCallbacks(minuteLoop);
-            handler.removeCallbacks(frameLoop);
-            handler.removeCallbacks(soundLoop);
-            handler.post(this::stopListening);
+            sbbHandler.removeCallbacks(frameLoop);
+            soundHandler.removeCallbacks(soundLoop);
+            soundHandler.post(this::stopListening);
         }
     }
 
@@ -194,6 +211,7 @@ public class LiveService extends Service {
         if (wave != null) wave.stop();
         soundLast = 0;
         soundPoll = 0;
+        soundNext = 0;
     }
 
     /**
@@ -211,6 +229,7 @@ public class LiveService extends Service {
                 stopListening();
                 return; // nothing to move; kick() restarts this when one is added
             }
+            if (soundNext == 0) soundNext = now;
             float dt = soundLast == 0 ? 0f : Math.min(0.1f, (now - soundLast) / 1000f);
             soundLast = now;
             if (wave == null) wave = new SoundWave(ctx);
@@ -234,7 +253,13 @@ public class LiveService extends Service {
                 busy = SoundWidgetProvider.step(soundIds, dt, wave);
                 SoundWidgetProvider.pushFrames(ctx, soundIds);
             } catch (Throwable ignored) { }
-            handler.postDelayed(this, busy ? 50L : 83L); // 20 frames a second with the sound, 12 for the patterns
+            // 20 frames a second with the sound, 12 for the patterns, on a steady timeline: each frame is due a period
+            // after the last one was due, not after it finished, so the drawing time doesn't slow the frames down; and
+            // a frame that's late is dropped rather than pushing every later one back (the motion follows real time)
+            long period = busy ? 50L : 83L, after = SystemClock.uptimeMillis();
+            soundNext += period;
+            if (soundNext < after) soundNext = after;
+            soundHandler.postAtTime(this, soundNext);
         }
     };
 
@@ -295,7 +320,7 @@ public class LiveService extends Service {
             long msIn = Math.floorMod(now, 60_000L);
             long step = SbbClock.easing(msIn) ? 33L : 100L; // faster while the minute hand swings (0.3 s wobble)
             long next = smooth ? (now / step + 1) * step + 3L : (now / 1000L + 1) * 1000L + 20L;
-            handler.postDelayed(this, Math.max(15L, next - now));
+            sbbHandler.postDelayed(this, Math.max(15L, next - now));
         }
     };
 }
