@@ -29,7 +29,7 @@ final class PlayerPicture {
             String say = (!access ? "Media access needed  ·  tap to turn it on" : "Nothing playing").toUpperCase(Locale.getDefault());
             TextPaint text = Words.paint();
             text.setTypeface(Theme.uiBold(ctx));
-            text.setTextSize(Words.LABEL_DP * dp);
+            text.setTextSize(Theme.FONT_SCALE * Words.LABEL_DP * dp);
             text.setLetterSpacing(0.22f);
             text.setTextAlign(Paint.Align.CENTER);
             int colour = Glow.label(scene);

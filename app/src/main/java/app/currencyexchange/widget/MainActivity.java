@@ -103,7 +103,7 @@ public class MainActivity extends Activity {
         head.addView(badge, new LinearLayout.LayoutParams(dp(48), dp(48)));
         LinearLayout titles = vbox();
         titles.setPadding(dp(12), 0, 0, 0);
-        TextView name = text("Worldly", 19, Theme.uiBold(this), Theme.TEXT);
+        TextView name = text("WORLDLY", 19, Theme.uiBold(this), Theme.TEXT);
         titles.addView(name);
         TextView tagline = text("World clocks · rates · SBB clock · calendar", 12, Theme.uiMedium(this), Theme.MUTED);
         Theme.label(this, tagline);
