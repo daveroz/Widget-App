@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
     private static final String[] MODES = {"smooth", "second", "minute"};
     private static final String[] MODE_LABELS = {"Smooth", "Every second", "Minute only"};
     private TextView banner, calStatus, calButton, locStatus, locButton;
-    private TextView mediaStatus, mediaButton, soundStatus, soundButton;
+    private TextView mediaStatus, mediaButton, soundStatus, soundButton, wallStatus, wallButton;
     private LinearLayout statusBox;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private StageView stage;
@@ -86,10 +86,11 @@ public class MainActivity extends Activity {
         LinearLayout head = new LinearLayout(this);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        TextView badge = text("FX", 13, Theme.monoBold(this), Theme.LED);
+        TextView badge = text("FX", 13, Theme.monoBold(this), Theme.onLit());
         badge.setGravity(Gravity.CENTER);
         badge.setLetterSpacing(0.12f);
         badge.setBackground(Theme.lit(this, 12, false));
+        Theme.lift(this, badge);
         head.addView(badge, new LinearLayout.LayoutParams(dp(48), dp(48)));
         LinearLayout titles = vbox();
         titles.setPadding(dp(12), 0, 0, 0);
@@ -246,6 +247,11 @@ public class MainActivity extends Activity {
             }
         });
         perms.addView(batButton, matchWrap(8));
+        wallStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
+        wallStatus.setPadding(0, dp(12), 0, 0);
+        perms.addView(wallStatus);
+        wallButton = secondaryButton("Allow wallpaper glass", v -> openWallpaperAccess());
+        perms.addView(wallButton, matchWrap(8));
         updatePermissionCards();
 
         // ---- actions ----
@@ -302,6 +308,12 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         updatePermissionCards();
+        // wallpaper glass just turned on (or off): every widget's glass is drawn again
+        boolean wall = Backdrop.allowed(this);
+        if (wall != Store.sp(this).getBoolean("wallGlass", false)) {
+            Store.sp(this).edit().putBoolean("wallGlass", wall).apply();
+            Backdrop.redrawAll(getApplicationContext());
+        }
         Context app = getApplicationContext();
         if (Locator.allowed(this)) {
             boolean moved = Locator.refreshFromLastKnown(app);
@@ -405,6 +417,13 @@ public class MainActivity extends Activity {
                 : "Battery saving may pause the clocks. Allow Worldly to run in the background.");
         batStatus.setTextColor(bat ? Theme.TEXT : Theme.AMBER);
         batButton.setVisibility(bat ? View.GONE : View.VISIBLE);
+        boolean wall = Backdrop.allowed(this);
+        wallStatus.setText(wall ? "Wallpaper glass on - each widget's glass shows your wallpaper behind it, blurred. Tap "
+                + "each widget once so its glass lines up with where it sits."
+                : "Optional: let each widget's glass show your wallpaper behind it, blurred. Android files reading the "
+                + "wallpaper under \"All files access\"; Worldly reads nothing but the wallpaper.");
+        wallStatus.setTextColor(wall ? Theme.TEXT : Theme.MUTED);
+        wallButton.setVisibility(wall ? View.GONE : View.VISIBLE);
 
         boolean media = NowPlaying.hasAccess(this);
         mediaStatus.setText(media ? "Media access on - the Sound widget sees what's playing in any app."
@@ -427,6 +446,20 @@ public class MainActivity extends Activity {
         soundStatus.setText(levelsText);
         soundStatus.setTextColor(levels ? Theme.TEXT : Theme.AMBER);
         soundButton.setVisibility(levels ? View.GONE : View.VISIBLE);
+    }
+
+    /** Lets Worldly read the wallpaper for the widgets' glass: "All files access" on Android 11 and up, storage before. */
+    private void openWallpaperAccess() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                startActivity(new android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        android.net.Uri.parse("package:" + getPackageName())));
+            } catch (Exception e) {
+                startActivity(new android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+            }
+        } else {
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQ_ALL);
+        }
     }
 
     /** Notification access, which is how Android lets an app see other apps' media. */
@@ -519,8 +552,10 @@ public class MainActivity extends Activity {
     private void paintModes() {
         for (int i = 0; i < 3; i++) {
             boolean on = MODES[i].equals(sbbMode);
-            modeBtn[i].setTextColor(on ? 0xFFFFFFFF : Theme.MUTED);
-            modeBtn[i].setBackground(on ? Theme.lit(this, 14, false) : Theme.well(this, 14, false));
+            modeBtn[i].setTextColor(on ? Theme.onLit() : Theme.TEXT_SOFT);
+            modeBtn[i].setBackground(on ? Theme.lit(this, 12, false) : Theme.dark(this, 12, false)); // same size on or off
+            if (on) Theme.lift(this, modeBtn[i]);
+            else modeBtn[i].setElevation(0);
         }
     }
 
@@ -779,21 +814,22 @@ public class MainActivity extends Activity {
         row.addView(v, lp);
     }
 
-    /** The main action is lit: the key on the glass, a glowing edge, white spaced capitals. */
+    /** The main action: a solid button in the song's colour, its light glowing softly on the card under it. */
     private TextView primaryButton(String label, View.OnClickListener l) {
-        TextView b = text(label, 15, Theme.uiBold(this), 0xFFFFFFFF);
+        TextView b = text(label, 15, Theme.uiBold(this), Theme.onLit());
         Theme.label(this, b);
         b.setTextSize(13);
         b.setLetterSpacing(0.18f);
         b.setGravity(Gravity.CENTER);
         b.setPadding(dp(16), dp(17), dp(16), dp(17));
-        b.setBackground(Theme.pressable(Theme.lit(this, 16, false), Theme.lit(this, 16, true)));
+        b.setBackground(Theme.pressable(Theme.lit(this, 12, false), Theme.lit(this, 12, true)));
+        Theme.lift(this, b);
         b.setClickable(true);
         b.setOnClickListener(l);
         return b;
     }
 
-    /** Other actions: a hairline outline on the glass that lights up while pressed. */
+    /** Other actions: a dark solid button, the same corners as every other control. */
     private TextView secondaryButton(String label, View.OnClickListener l) {
         TextView b = text(label, 14, Theme.uiSemi(this), Theme.TEXT_SOFT);
         Theme.label(this, b);
@@ -801,7 +837,7 @@ public class MainActivity extends Activity {
         b.setLetterSpacing(0.14f);
         b.setGravity(Gravity.CENTER);
         b.setPadding(dp(16), dp(14), dp(16), dp(14));
-        b.setBackground(Theme.pressable(Theme.box(this, Theme.WELL, Theme.line(0.4f), 16), Theme.well(this, 16, true)));
+        b.setBackground(Theme.pressable(Theme.dark(this, 12, false), Theme.dark(this, 12, true)));
         b.setClickable(true);
         b.setOnClickListener(l);
         return b;

@@ -30,6 +30,9 @@ the widgets and settings, so add them again afterwards.
 2. Open **Worldly**, check cities / currencies / fee, tap **Save & refresh**.
 3. Tap **Use my location for weather** (or type a home city).
 4. Tap **Add widget to home screen**.
+5. Optional: under Permissions, tap **Allow wallpaper glass** so each widget's glass shows your wallpaper behind it,
+   blurred (Android files reading the wallpaper under "All files access"; Worldly reads nothing else). Then tap each
+   widget once, so its glass lines up with where it sits.
 The status text at the bottom of the settings screen shows what worked and what failed
 (cities, market rate, Visa, weather).
 
@@ -72,17 +75,30 @@ off on average, up to 1.2 % on days the market moved. On weekends the market is 
 stays at Friday's close.
 
 ## Visual language: Glass: frosted smoky glass, lit edges, hazy text, the song's light
-- **Frosted smoky glass** (the Glass look, chosen in 1.67 from three, after the two cypher samples and
-  Glow_Icon_Text; `Look`, `Stage`). Every widget sits on frosted glass with the song's light far behind it, out of
-  focus: soft blurred shapes of it, like windows of light seen through frost (one big glow low on the left, a tall
-  one on the right, a wide pale one along the top, a few small ones), in its colour, a paler and a deeper shade and a
-  warm neutral, under a milky veil of smoke warmed by them, thicker towards the bottom left where the light diffuses.
-  The currency rows each move the lights about so they don't repeat, and the world clocks' flags fade down into the
-  clocks card's glass. No gloss, no grain. The app's room behind its cards is near black, with two faint, slow washes
+- **Frosted smoky glass over the wallpaper** (the Glass look, chosen in 1.67 from three, after the two cypher samples
+  and Glow_Icon_Text; `Look`, `Stage`, `Backdrop`). Each widget's glass shows the phone's own wallpaper behind it,
+  heavily blurred and dimmed (more over a bright wallpaper, so the text reads), with the song's light far behind
+  the glass, out of focus (soft blurred shapes of it, like windows of light seen through frost), under a milky veil
+  of smoke warmed by it, thicker towards the bottom left. Android doesn't let a widget blur what's behind it, so
+  Worldly reads the wallpaper itself (with "All files access" on Android 11 and up; nothing else is read), blurs it
+  once per wallpaper, and gives each panel the part behind it. A widget can't ask where it is on the screen, but each
+  tap on it says where it was tapped, so its glass lines up the first time it's tapped (a tap passes through
+  `TapActivity`, unseen); until then it assumes the middle of the screen. Without the wallpaper (not allowed, or a
+  live wallpaper) the glass takes the wallpaper's own colours, which Android gives every app. The currency rows each
+  move the song's lights about so they don't repeat, and the world clocks' flags fade down into the clocks card's
+  glass. No gloss, no grain.
+- **Light falls on the glass.** As on the cypher samples, bright things light the glass behind them: today's ring in
+  the calendar, the Music widget's play button and the trend lines spill a wide, soft glow of their light onto it; in
+  the app, solid buttons cast a soft glow of their colour on the card under them. The app's room behind its cards is near black, with two faint, slow washes
   of the light and no lighting rig (the old row of chasing lamps along the top is gone).
-- **The app's cards** (settings, the pickers, the converter), after the glowing card reference: near black on the
-  left, warming into the song's colour on the right with a soft glow there, a hairline edge that's light at the top
-  left and fades round, and a faint sheen along the top. Their titles glow softly in the light.
+- **The app's cards** (settings, the pickers, the converter), after the glowing card reference: near black, with just
+  a hint of the song's colour towards the right, a hairline edge that's light at the top left and fades round, and a
+  faint sheen along the top. Their titles glow softly in the light.
+- **Buttons and icons are solid**, after the solid button and icon references: the main action, what's on (the
+  chosen SBB mode, the chosen converter chip) and the Music widget's play / pause are solid in the song's colour, a
+  shade lighter to the right, with no bloom; other buttons are dark and solid; icon buttons (previous, next, the
+  Calendar's "+", the converter's swap) are dark solid circles with a pale symbol; the weather bar's icons are solid,
+  a little darker than the line colour. Every control has the same 12 dp corners, on or off.
 - **Lit edges instead of borders.** No card has a solid outline any more: its edge is a fine line in the song's line
   colour, brightest at the top left corner where the light comes in, sweeping along both edges and fading out by the
   far corner, with a soft glow inside the card where it's brightest (`Stage.rim`), as on the glowing cards
@@ -90,8 +106,8 @@ stays at Friday's close.
 - **Everything follows the song.** The light is the colour of what's playing (`Ambience`): the album cover's primary
   colour, or the playing app's own, or Worldly's amber when nothing plays. Nothing decorative is fixed any more: the
   line colour (edges, rules, the weather bar's icons and dividers, section titles) is the song's colour paled towards
-  a warm white (for amber it's the old gold), labels (day names, "Market", event times, a song's length) are soft text
-  tinted by it, and the settings screen and the converter are drawn in it too (redrawn when the song changed while
+  a warm white (for amber it's the old gold), labels ("Market", event times, a song's length; not the world clocks, which stay
+  white) are soft text tinted by it, and the settings screen and the converter are drawn in it too (redrawn when the song changed while
   they were away). Only the clocks' sun bands keep their own day, golden-hour, blue-hour and night colours, and
   amber still means "needs attention" on the settings screen.
 - **A colour fringe on the brightest things** (`Lens`): today in the calendar, the Music widget's play button and
@@ -102,7 +118,7 @@ stays at Friday's close.
   picture: bloom, a tight halo, soft edges. The Sound and Music widgets' text glows (`Glow`); on every widget the
   text is hazed by its own light in the song's colour (Haze_Bloom_Text: a wide, faint bloom, a softer glow close round
   and a tight halo, short enough that the letters stay sharp), the big numbers (the clock times, the day number) a
-  little more, and the small icons (the weather bar's, the Calendar's "+") glow. Today in the calendar sits in a large lit ring with room round its number.
+  little more. The world clocks' day, time and city stay white, hazed in white, whatever is playing. Today in the calendar sits in a large lit ring with room round its number.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 
 The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,

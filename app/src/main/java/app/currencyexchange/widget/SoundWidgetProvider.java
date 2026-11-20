@@ -169,7 +169,7 @@ public class SoundWidgetProvider extends AppWidgetProvider {
             try {
                 RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.widget_sound);
                 rv.setImageViewBitmap(R.id.img, draw(ctx, id));
-                rv.setOnClickPendingIntent(R.id.root, tapIntent(ctx));
+                rv.setOnClickPendingIntent(R.id.root, TapActivity.wrap(ctx, 32, "sound", tapIntent(ctx)));
                 awm.updateAppWidget(id, rv);
             } catch (Throwable ignored) { }
         }

@@ -80,26 +80,26 @@ final class Trend {
      * widgets share, with the chart over it in that light ({@code pts} null: no chart yet) and the row's lit edge.
      * Rows take turns a breath lighter and darker ({@code light}).
      */
-    static Bitmap bitmap(double[][] pts, int wDp, int hDp, Scene scene, boolean light) {
+    static Bitmap bitmap(double[][] pts, int wDp, int hDp, Scene scene, boolean light, Backdrop.Behind behind) {
         StringBuilder k = new StringBuilder().append(wDp).append('x').append(hDp).append('|').append(scene.tag())
-                .append('|').append(light);
+                .append('|').append(light).append('|').append(behind == null ? "-" : behind.key);
         if (pts != null) for (double[] p : pts) k.append('|').append(p[0]).append(':').append(p[1]);
         String key = k.toString();
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
-        Bitmap made = draw(pts, wDp, hDp, scene, light);
+        Bitmap made = draw(pts, wDp, hDp, scene, light, behind);
         CACHE.put(key, made);
         return made;
     }
 
-    private static Bitmap draw(double[][] pts, int wDp, int hDp, Scene scene, boolean light) {
+    private static Bitmap draw(double[][] pts, int wDp, int hDp, Scene scene, boolean light, Backdrop.Behind behind) {
         int w = Math.round(wDp * PXDP), h = Math.round(hDp * PXDP);
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
         // The row's panel, its round ends following the row's.
         float r = Math.min(RADIUS_DP * PXDP, h / 2f);
         RectF box = new RectF(0, 0, w, h);
-        Stage.night(c, box, Stage.round(r), scene, light ? 0xFF04060A : Stage.NIGHT, 0f, light ? 1 : 2);
+        Stage.night(c, box, Stage.round(r), scene, light ? 0xFF04060A : Stage.NIGHT, 0f, light ? 1 : 2, behind, null);
         if (pts != null) {
             // The chart on a layer of its own, dimmed towards the end of the row where the numbers sit.
             c.saveLayer(box, null);
@@ -152,11 +152,16 @@ final class Trend {
         rule.setColor(Scene.alpha(scene.line, 0.22f));
         c.drawRect(0, bottom, w, bottom + Math.max(1f, PXDP * 0.5f), rule);
 
-        // The line is a thread of light in the haze: a wide, faint bloom, a tight glow, and a warm core.
+        // The line is a thread of light in the haze: its light falling wide and faint on the glass under it, a wide,
+        // faint bloom, a tight glow, and a warm core.
         Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
         glow.setStyle(Paint.Style.STROKE);
         glow.setStrokeCap(Paint.Cap.ROUND);
         glow.setStrokeJoin(Paint.Join.ROUND);
+        glow.setStrokeWidth(LINE_DP * PXDP * 14f);
+        glow.setColor(alpha(scene.deep, Math.round(0x22 * Look.get().bloom)));
+        glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 12f, BlurMaskFilter.Blur.NORMAL));
+        c.drawPath(curve, glow);
         glow.setStrokeWidth(LINE_DP * PXDP * 5f);
         glow.setColor(alpha(scene.deep, Math.round(LINE_ALPHA * 0.5f * Look.get().bloom)));
         glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 5f, BlurMaskFilter.Blur.NORMAL));

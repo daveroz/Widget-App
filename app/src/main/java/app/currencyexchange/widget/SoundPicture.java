@@ -109,7 +109,7 @@ final class SoundPicture {
         float radius = Math.min(28 * dp, h / 2f);
         box.set(0, 0, w, h);
         float[] corners = Stage.round(radius);
-        Stage.night(c, box, corners, scene, Stage.NIGHT, bass);
+        Stage.night(c, box, corners, scene, Stage.NIGHT, bass, Backdrop.behind(ctx, "sound", w / dp, h / dp, 0, 0, w / dp, h / dp));
 
         // Zones: on top, the cover with its LP on the right and the words on the left; below, the wall of lamps from
         // margin to margin, its top a little behind the LP, down to the bottom margin.

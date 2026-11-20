@@ -38,15 +38,23 @@ final class SbbRenderer {
     /** The face's size, as a share of the panel. */
     private static final float FACE = 0.8f;
 
+    /** What's behind the clock's panel (the blurred wallpaper), set before drawing ({@link #behind}). */
+    private static Backdrop.Behind behind;
+
+    /** Sets what's behind the clock's panel: the wallpaper, blurred, where the widget is (see {@link Backdrop}). */
+    static synchronized void behind(Backdrop.Behind b) {
+        behind = b;
+    }
+
     private static synchronized Bitmap lit(int n, Scene scene) {
-        String key = n + "|" + scene.tag();
+        String key = n + "|" + scene.tag() + "|" + (behind == null ? "-" : behind.key);
         if (lit != null && key.equals(litKey)) return lit;
         Bitmap b = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
         float corner = n * 0.19f, px = n / 150f; // the panel stands for a widget about 150 dp across
         RectF box = new RectF(0, 0, n, n);
         float[] corners = Stage.round(corner);
-        Stage.night(c, box, corners, scene, Stage.NIGHT, 0f);
+        Stage.night(c, box, corners, scene, Stage.NIGHT, 0f, behind);
         // the face, lit from within: a wide, soft bloom of the light around it and a tight bright halo at its rim
         int f = Math.round(n * FACE);
         float r = f / 2f * (52.5f / 56f);

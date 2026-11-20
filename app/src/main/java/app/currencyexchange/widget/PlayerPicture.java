@@ -23,7 +23,12 @@ final class PlayerPicture {
         float radius = Math.min(28 * dp, h / 2f);
         RectF box = new RectF(0, 0, w, h);
         float[] corners = Stage.round(radius);
-        Stage.night(c, box, corners, scene, Stage.NIGHT, 0f);
+        Backdrop.Behind behind = Backdrop.behind(ctx, "music", w / dp, h / dp, 0, 0, w / dp, h / dp);
+        // while there are controls, the play button lights the glass behind it (10 dp margin, the 46 dp previous
+        // button, half the 50 dp play button; the controls are centred top to bottom)
+        Stage.Spill[] spills = access && track != null
+                ? new Stage.Spill[]{new Stage.Spill(81 * dp, h / 2f, 46 * dp, scene.deep, 0.28f * Look.get().bloom)} : null;
+        Stage.night(c, box, corners, scene, Stage.NIGHT, 0f, 0, behind, spills);
         if (!access || track == null) {
             String say = (!access ? "Media access needed  ·  tap to turn it on" : "Nothing playing").toUpperCase(Locale.getDefault());
             TextPaint text = Words.paint();

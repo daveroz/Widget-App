@@ -55,6 +55,14 @@ public class ConverterActivity extends Activity {
         row = Math.max(0, Math.min(Store.count(this) - 1,
                 getIntent().getIntExtra(EXTRA_ROW, Store.sp(this).getInt("convRow", 0))));
         reverse = Store.sp(this).getBoolean("convRev", false);
+        // The row tapped says where the widget is, so its glass lines up with the wallpaper: the widget's frame starts
+        // 123 dp above the first row (the 116 dp clocks card and a 7 dp gap) and 61 dp more above each row after it.
+        android.graphics.Rect tapped = getIntent().getSourceBounds();
+        if (tapped != null && getIntent().hasExtra(EXTRA_ROW)) {
+            int top = Math.round(tapped.top - (123 + 61 * getIntent().getIntExtra(EXTRA_ROW, 0))
+                    * getResources().getDisplayMetrics().density);
+            Backdrop.saw(this, "currency", new android.graphics.Rect(tapped.left, top, tapped.right, top + 1));
+        }
         setContentView(build());
         int w = Math.min(Math.round(getResources().getDisplayMetrics().widthPixels * 0.92f), dp(420));
         getWindow().setLayout(w, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -109,7 +117,7 @@ public class ConverterActivity extends Activity {
         amountBox = hbox();
         amountBox.setGravity(Gravity.CENTER_VERTICAL);
         amountBox.setPadding(dp(15), dp(9), dp(15), dp(9));
-        amountBox.setBackground(Theme.lit(this, 12, false));
+        amountBox.setBackground(Theme.well(this, 12, true)); // the field being typed in: lit in the song's colour
         inFlag = new ImageView(this);
         amountBox.addView(inFlag, new LinearLayout.LayoutParams(dp(28), dp(28)));
         inCode = text("", 17, Theme.uiMedium(this), Theme.TEXT);
@@ -146,7 +154,8 @@ public class ConverterActivity extends Activity {
         ImageView swap = new ImageView(this);
         swap.setImageResource(R.drawable.ic_swap);
         swap.setPadding(dp(8), dp(8), dp(8), dp(8));
-        swap.setBackground(Theme.pressable(Theme.well(this, 18, false), Theme.well(this, 18, true)));
+        swap.setBackground(Theme.pressable(Theme.iconButton(false), Theme.iconButton(true))); // a dark round icon button
+        swap.setColorFilter(Theme.iconGlyph(Theme.accent()));
         swap.setContentDescription("Swap direction");
         swap.setClickable(true);
         swap.setOnClickListener(v -> {
@@ -221,13 +230,13 @@ public class ConverterActivity extends Activity {
             LinearLayout c = hbox();
             c.setGravity(Gravity.CENTER_VERTICAL);
             boolean on = i == row;
-            int ring = on ? 3 : 0; // room for the lit glow
-            c.setPadding(dp(8 + ring), dp(6 + ring), dp(12 + ring), dp(6 + ring));
-            c.setBackground(on ? Theme.lit(this, 16, false) : Theme.well(this, 16, false));
+            c.setPadding(dp(8), dp(6), dp(12), dp(6));
+            c.setBackground(on ? Theme.lit(this, 12, false) : Theme.dark(this, 12, false));
+            if (on) Theme.lift(this, c);
             ImageView f = new ImageView(this);
             f.setImageBitmap(CurrencyView.flagOrLabel(this, Util.countryOfCurrency(code), code));
             c.addView(f, new LinearLayout.LayoutParams(dp(18), dp(18)));
-            TextView t = text(code, 13, Theme.uiMedium(this), on ? Theme.TEXT : Theme.TEXT_SOFT);
+            TextView t = text(code, 13, Theme.uiMedium(this), on ? Theme.onLit() : Theme.TEXT_SOFT);
             t.setPadding(dp(6), 0, 0, 0);
             c.addView(t);
             c.setClickable(true);
@@ -236,7 +245,7 @@ public class ConverterActivity extends Activity {
                 refreshPair();
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.rightMargin = dp(on ? 3 : 6);
+            lp.rightMargin = dp(6);
             lp.gravity = Gravity.CENTER_VERTICAL;
             chips.addView(c, lp);
         }
