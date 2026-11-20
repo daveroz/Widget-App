@@ -43,6 +43,13 @@ public class LiveService extends Service {
     private Handler soundHandler, sbbHandler;
     /** When the Sound widget's next frame is due (uptime ms), on a steady timeline; 0 before the first. */
     private long soundNext;
+    /**
+     * How long its frames take, from when each was due to when it went out (waiting for the processor, drawing and
+     * sending), smoothed over the last few seconds (ms); and when the frames' sharpness may next change, and since when
+     * they've been comfortably on time (uptime ms, 0: not now).
+     */
+    private float frameCost;
+    private long adaptAt, onTimeSince;
     private BroadcastReceiver screen;
     private Bitmap buf;
     private boolean on;
@@ -212,6 +219,8 @@ public class LiveService extends Service {
         soundLast = 0;
         soundPoll = 0;
         soundNext = 0;
+        frameCost = 0f;
+        onTimeSince = 0;
     }
 
     /**
@@ -230,6 +239,7 @@ public class LiveService extends Service {
                 return; // nothing to move; kick() restarts this when one is added
             }
             if (soundNext == 0) soundNext = now;
+            long due = soundNext;
             float dt = soundLast == 0 ? 0f : Math.min(0.1f, (now - soundLast) / 1000f);
             soundLast = now;
             if (wave == null) wave = new SoundWave(ctx);
@@ -257,11 +267,43 @@ public class LiveService extends Service {
             // after the last one was due, not after it finished, so the drawing time doesn't slow the frames down; and
             // a frame that's late is dropped rather than pushing every later one back (the motion follows real time)
             long period = busy ? 50L : 83L, after = SystemClock.uptimeMillis();
+            adapt(after - due, period, after);
             soundNext += period;
             if (soundNext < after) soundNext = after;
             soundHandler.postAtTime(this, soundNext);
         }
     };
+
+    /**
+     * Keeps the Sound widget's frames coming on time by trading a little sharpness: when frames take most of their
+     * period, the picture gets 15% fewer pixels per side (down to {@link SoundWidgetProvider#LOWEST}), at most every
+     * 2 s; once they've been well within it for 10 s, it gets sharper again, a step at a time.
+     */
+    private void adapt(long cost, long period, long now) {
+        if (frameCost == 0f) { // the first frames after a start are slow (allocating, laying out): warm up first
+            frameCost = Math.min(cost, period);
+            adaptAt = Math.max(adaptAt, now + 2000L);
+            return;
+        }
+        frameCost = frameCost * 0.9f + cost * 0.1f;
+        if (now < adaptAt) return;
+        float q = SoundWidgetProvider.quality();
+        if (frameCost > 0.75f * period && q > SoundWidgetProvider.LOWEST) {
+            SoundWidgetProvider.setQuality(q * 0.85f);
+            frameCost *= 0.75f; // fewer pixels: expect cheaper frames
+            adaptAt = now + 2000L;
+            onTimeSince = 0;
+        } else if (frameCost < 0.4f * period && q < 1f) {
+            if (onTimeSince == 0) onTimeSince = now;
+            else if (now - onTimeSince > 10_000L) {
+                SoundWidgetProvider.setQuality(q / 0.85f);
+                adaptAt = now + 5000L;
+                onTimeSince = 0;
+            }
+        } else {
+            onTimeSince = 0;
+        }
+    }
 
     /** Immediately, then at every minute boundary: repaint Currency + Calendar (+ a still SBB picture). */
     private final Runnable minuteLoop = new Runnable() {
