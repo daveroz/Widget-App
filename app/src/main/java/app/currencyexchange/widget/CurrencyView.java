@@ -36,24 +36,15 @@ final class CurrencyView {
 
     /**
      * Text as a picture at a fixed size (sizeDp = font size); the ImageView height in the layout is sizeDp * 1.46.
-     * In its own colour, hazed by its own light in the song's (Haze_Bloom_Text).
+     * In its own colour, with the lens's colour fringe (no glow).
      */
     private static void txt(Context ctx, RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp) {
-        rv.setImageViewBitmap(viewId, TextBmp.glowing(tf, sizeDp * 2.5f, 0.8f, s, color, Ambience.scene().deep,
-                Look.get().textHaze));
+        rv.setImageViewBitmap(viewId, TextBmp.fringed(tf, sizeDp * 2.5f, 0.8f, s, color, Look.get().textFringe));
     }
 
-    /** The clocks' white: their day, time and city stay white, hazed in white, whatever is playing. */
-    private static final int CLOCK_HAZE = 0xFFE6ECF4;
-
-    /** Text as {@link #txt}, hazed in {@code light} instead of the song's light. */
-    private static void txt(RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp, int light) {
-        rv.setImageViewBitmap(viewId, TextBmp.glowing(tf, sizeDp * 2.5f, 0.8f, s, color, light, Look.get().textHaze));
-    }
-
-    /** Tight text (see {@link TextBmp#tightHazy}), hazed like {@link #txt}: its view is {@link TextBmp#HAZE_ROOM} times as tall. */
+    /** Tight text (see {@link TextBmp#tightFringed}), fringed like {@link #txt}: its view is {@link TextBmp#ROOM} times as tall. */
     private static Bitmap tight(Typeface tf, float sizeDp, String s, int color) {
-        return TextBmp.tightHazy(tf, sizeDp, s, color, Ambience.scene().deep, Look.get().textHaze);
+        return TextBmp.tightFringed(tf, sizeDp, s, color, Look.get().textFringe);
     }
 
     static final int[] LAYOUTS = {R.layout.widget_k1, R.layout.widget_k2, R.layout.widget_k3,
@@ -66,8 +57,7 @@ final class CurrencyView {
 
     /** Variant with k currency rows (1..6). */
     private static void txtF(RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp, float fill) {
-        rv.setImageViewBitmap(viewId, TextBmp.glowing(tf, sizeDp * 2.5f, fill, s, color, Ambience.scene().deep,
-                Look.get().textHaze));
+        rv.setImageViewBitmap(viewId, TextBmp.fringed(tf, sizeDp * 2.5f, fill, s, color, Look.get().textFringe));
     }
 
     /** The size the clock city names actually show at (11 drawn into a 16 dp box with Carbon+'s 0.95 em line). */
@@ -162,11 +152,11 @@ final class CurrencyView {
             } else {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), pcs[0]);
             }
-            // the day, time and city in front of the flag stay white, hazed in white, whatever is playing
-            txt(rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11, CLOCK_HAZE);
-            rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.glowing(bold, 22 * 2.5f, 0.8f, now.format(timeF),
-                    white, CLOCK_HAZE, Look.get().textGlow));
-            txt(rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11, CLOCK_HAZE);
+            // the day, time and city in front of the flag stay white whatever is playing, with the lens's fringe
+            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11);
+            rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.fringed(bold, 22 * 2.5f, 0.8f, now.format(timeF),
+                    white, 1f)); // the time is the hero: the look's full fringe
+            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11);
         }
 
         // currency rows

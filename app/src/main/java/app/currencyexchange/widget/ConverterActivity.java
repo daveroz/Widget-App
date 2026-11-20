@@ -93,7 +93,7 @@ public class ConverterActivity extends Activity {
 
         TextView title = text("CONVERTER", 11, Theme.uiBold(this), Theme.accent().line);
         Theme.label(this, title);
-        Theme.haze(this, title, 1f);
+        Theme.fringe(title);
         title.setPadding(dp(2), 0, 0, dp(10));
         card.addView(title);
 
@@ -313,7 +313,7 @@ public class ConverterActivity extends Activity {
     }
 
     private TextView text(String s, float sp, Typeface tf, int color) {
-        TextView t = new TextView(this);
+        TextView t = new Theme.FringeText(this); // titles can take the lens's fringe (Theme.fringe)
         t.setText(s);
         t.setTextSize(sp);
         t.setTypeface(tf);

@@ -238,9 +238,53 @@ final class Theme {
         v.setElevation(dp(c, 8));
     }
 
-    /** Text hazed by its own light, as on the widgets: a soft glow of the song's light round the letters. */
-    static void haze(Context c, TextView t, float strength) {
-        t.setShadowLayer(dp(c, 7), 0, 0, Scene.alpha(accent().deep, Math.min(1f, 0.85f * strength)));
+    /** Gives a title the lens's colour fringe, as the widgets' text has (no glow); it must be a {@link FringeText}. */
+    static void fringe(TextView t) {
+        if (t instanceof FringeText) ((FringeText) t).fringe(true);
+    }
+
+    /**
+     * A TextView that can draw the lens's colour fringe under its letters ({@link #fringe}): a red copy pulled left
+     * and a blue one right, as on the widgets (see {@link Lens}), never a glow.
+     */
+    static class FringeText extends TextView {
+        private boolean on;
+
+        FringeText(Context c) {
+            super(c);
+        }
+
+        void fringe(boolean on) {
+            this.on = on;
+            invalidate();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            android.text.Layout layout = getLayout();
+            if (on && layout != null) {
+                Look look = Look.get();
+                float shift = look.fringeDp * getResources().getDisplayMetrics().density;
+                float strength = Math.min(1f, look.fringe * look.textFringe);
+                // where TextView puts its text: inside the padding, moved down for a centred or bottom gravity
+                int box = getHeight() - getExtendedPaddingTop() - getExtendedPaddingBottom(), gap = box - layout.getHeight();
+                int vertical = getGravity() & android.view.Gravity.VERTICAL_GRAVITY_MASK;
+                float down = gap <= 0 ? 0 : vertical == android.view.Gravity.BOTTOM ? gap
+                        : vertical == android.view.Gravity.CENTER_VERTICAL ? gap / 2f : 0;
+                android.text.TextPaint p = getPaint();
+                int was = p.getColor();
+                canvas.save();
+                canvas.translate(getCompoundPaddingLeft() - shift, getExtendedPaddingTop() + down);
+                p.setColor(Scene.alpha(Lens.RED, strength));
+                layout.draw(canvas);
+                canvas.translate(2 * shift, 0);
+                p.setColor(Scene.alpha(Lens.BLUE, strength));
+                layout.draw(canvas);
+                canvas.restore();
+                p.setColor(was);
+            }
+            super.onDraw(canvas);
+        }
     }
 
     /** Small label: bold capitals, spaced out, like markings on a piece of equipment. */

@@ -294,12 +294,12 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
             // change size as the seconds tick, so the progress line between them keeps its width.
             String longest = SoundControls.clock(Math.max(t.duration, at)).replaceAll("\\d", "0");
             // how far in is a live value; the song's length is a label
-            // hazed by their own light, like all the widgets' text (their views are TextBmp.HAZE_ROOM times as tall)
-            float haze = Look.get().textHaze;
-            done = TextBmp.tightFixedHazy(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(at), longest, Theme.TEXT_SOFT,
-                    true, scene.deep, haze);
-            all = TextBmp.tightFixedHazy(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), longest,
-                    scene.quiet, false, scene.deep, haze);
+            // with the lens's fringe, like all the widgets' text (their views are TextBmp.ROOM times as tall)
+            float fringe = Look.get().textFringe;
+            done = TextBmp.tightFixedFringed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(at), longest, Theme.TEXT_SOFT,
+                    true, fringe);
+            all = TextBmp.tightFixedFringed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), longest,
+                    scene.quiet, false, fringe);
             used += 8 + (done.getWidth() + all.getWidth()) / 2.5f; // the time pictures are 2.5 px per dp
         }
         int barDp = Math.max(40, Math.round(wDp - used));

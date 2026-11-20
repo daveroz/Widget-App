@@ -12,7 +12,7 @@ import java.util.Locale;
 /**
  * The Music widget's picture: the card every widget shares ({@link Stage#fill}, {@link Stage#rim}), in the light of
  * what's playing. The controls are real views laid over it ({@link PlayerWidgetProvider}). With nothing
- * playing (or no media access) it says so, quietly, in the middle, the words glowing in the light.
+ * playing (or no media access) it says so, quietly, in the middle, in the light's colour with the lens's fringe.
  */
 final class PlayerPicture {
     private PlayerPicture() {}
@@ -37,7 +37,7 @@ final class PlayerPicture {
             text.setTextAlign(Paint.Align.CENTER);
             int colour = Glow.label(scene);
             float y = h / 2f + Words.LABEL_DP * dp * 0.36f;
-            Glow.text(c, text, say, w / 2f, y, colour, scene.deep, Glow.LABEL * Look.get().bloom, 12 * dp);
+            Lens.text(c, text, say, w / 2f, y, dp, Look.get().textFringe); // the lens's fringe, no glow
             text.setColor(colour);
             c.drawText(say, w / 2f, y, text);
         }

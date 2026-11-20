@@ -95,7 +95,7 @@ public class MainActivity extends Activity {
         LinearLayout titles = vbox();
         titles.setPadding(dp(12), 0, 0, 0);
         TextView name = text("Worldly", 19, Theme.uiBold(this), Theme.TEXT);
-        Theme.haze(this, name, 0.7f);
+        Theme.fringe(name);
         titles.addView(name);
         TextView tagline = text("World clocks · rates · SBB clock · calendar", 12, Theme.uiMedium(this), Theme.MUTED);
         Theme.label(this, tagline);
@@ -590,7 +590,7 @@ public class MainActivity extends Activity {
         root.setBackground(Theme.card(this, 18, 0xFA010203));
         TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().line);
         Theme.label(this, t);
-        Theme.haze(this, t, 1f);
+        Theme.fringe(t);
         t.setPadding(dp(2), 0, 0, dp(8));
         root.addView(t);
         final EditText q = input("", InputType.TYPE_CLASS_TEXT, false, remote ? "Search or type any city" : "Search");
@@ -736,7 +736,7 @@ public class MainActivity extends Activity {
     }
 
     private TextView text(String s, float sp, Typeface tf, int color) {
-        TextView t = new TextView(this);
+        TextView t = new Theme.FringeText(this); // titles can take the lens's fringe (Theme.fringe)
         t.setText(s);
         t.setTextSize(sp);
         t.setTypeface(tf);
@@ -751,7 +751,7 @@ public class MainActivity extends Activity {
         c.setPadding(dp(16), dp(16), dp(16), dp(16));
         TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().line);
         Theme.label(this, t);
-        Theme.haze(this, t, 1f);
+        Theme.fringe(t);
         t.setPadding(dp(2), 0, 0, dp(10));
         c.addView(t);
         parent.addView(c, matchWrap(14));

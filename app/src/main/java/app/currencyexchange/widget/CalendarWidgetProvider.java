@@ -131,13 +131,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     }
 
     /**
-     * Text as a picture in the original Carbon+ font; sizeDp is the intended font size. In its own colour, hazed by its
-     * own light in the song's (Haze_Bloom_Text).
+     * Text as a picture in the original Carbon+ font; sizeDp is the intended font size. In its own colour, with the
+     * lens's colour fringe (no glow).
      */
     private static void t(RemoteViews rv, android.graphics.Typeface tf, int viewId, String s, int color,
                           float sizeDp, float fill, boolean italic) {
-        rv.setImageViewBitmap(viewId, TextBmp.glowing(tf, sizeDp * 2.5f, fill, italic, s, color, Ambience.scene().deep,
-                Look.get().textHaze));
+        rv.setImageViewBitmap(viewId, TextBmp.fringed(tf, sizeDp * 2.5f, fill, italic, s, color, Look.get().textFringe));
     }
 
     private static int rid(Context ctx, String name) {
@@ -155,12 +154,11 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         long now = System.currentTimeMillis();
         java.util.Locale loc = java.util.Locale.getDefault();
 
-        // The text is plain, in its own colours; only today and "in 5 minutes" are in the light, and the big day number
-        // blooms a little on the looks that ask for it. Labels (what something is, when it is) are in the quiet colour,
+        // The text is in its own colours, with the lens's colour fringe; only today and "in 5 minutes" are in the light. Labels (what something is, when it is) are in the quiet colour,
         // tinted by the song; the divider and the "+" are in its line colour.
         int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = scene.quiet, label = scene.label;
-        rv.setImageViewBitmap(R.id.cal_day, TextBmp.glowing(tf, 32 * 2.5f, 0.82f, String.valueOf(today.getDayOfMonth()),
-                white, scene.deep, Look.get().textGlow));
+        rv.setImageViewBitmap(R.id.cal_day, TextBmp.fringed(tf, 32 * 2.5f, 0.82f, String.valueOf(today.getDayOfMonth()),
+                white, 1f)); // the big day number: the look's full fringe
         rv.setInt(R.id.cal_div, "setColorFilter", scene.line);
         rv.setImageViewBitmap(R.id.btn_add, addButton(scene));
         t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false);
