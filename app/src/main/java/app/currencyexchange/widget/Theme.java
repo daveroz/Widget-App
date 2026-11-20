@@ -383,7 +383,7 @@ final class Theme {
     /** A card's title (WORLD CLOCKS, CONVERTER...): a label ({@link #label}), a little bigger than the others. */
     static void cardTitle(Context c, TextView t) {
         label(c, t);
-        t.setTextSize(12.5f);
+        t.setTextSize(14f);
     }
 
     static StateListDrawable pressable(Drawable normal, Drawable pressed) {
