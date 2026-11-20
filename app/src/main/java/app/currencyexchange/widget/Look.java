@@ -8,8 +8,8 @@ package app.currencyexchange.widget;
  * Carbon+ font, rounded square cards) this sets how strong each effect is.
  */
 final class Look {
-    /** The look as chosen. */
-    static final Look GLASS = new Look(0.72f, 0.95f, 0.58f, 0.6f, 0.28f, 1.15f, 1f, 1f);
+    /** The look as chosen (1.78: a little less see-through, 84%, and a stronger fringe on lit things, not on text). */
+    static final Look GLASS = new Look(0.84f, 1.1f, 0.65f, 0.6f, 0.28f, 1.15f, 1f, 1f);
 
     private static Look current = GLASS;
 
