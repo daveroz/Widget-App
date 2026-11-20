@@ -48,7 +48,7 @@ final class SoundControls {
         float cx = s / 2f, r = cx - 2 * PX;
         Theme.glassCircle(c, cx, cx, r, 1.2f * PX, Theme.litFill(scene), Theme.litEdge(scene), Theme.LIT_RIM);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setColor(Theme.onLit());
+        p.setColor(Theme.onLit(scene.key));
         c.drawPath(symbol(cx, r * 0.36f, playing), p);
         CACHE.put(key, b);
         return b;

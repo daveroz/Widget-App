@@ -17,8 +17,8 @@ final class Glow {
         return Scene.mix(Theme.MUTED, s.hot, 0.15f);
     }
 
-    /** Text drawn in the light (labels, today, "in 5 minutes"): its own bright shade, kept easy to read. */
+    /** Text drawn in the light (labels, "Now playing", "in 5 minutes"): the light's main colour itself. */
     static int label(Scene s) {
-        return Scene.readable(Scene.gain(s.deep, 1.25f), 0.4f);
+        return s.key;
     }
 }

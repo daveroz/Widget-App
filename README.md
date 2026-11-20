@@ -83,7 +83,7 @@ stays at Friday's close.
   the calendar, the Music widget's play button and the trend lines spill a wide, soft glow of their light onto it.
 - **Buttons are solid, with a glass rim**, after the Justice store's buttons (without their glow), in the app and on
   the widgets alike: the main action and what's on (the Music widget's play / pause, the chosen SBB mode, the
-  converter's chosen chip, the FX badge) are a deep shade of the song's colour (Worldly's own orange gives a dark burnt orange) with white
+  converter's chosen chip, the FX badge) are a deep shade of the song's colour (since 1.90 the light's main colour itself, with near-black text on a bright colour) with white
   text or symbol; other buttons (the Music widget's previous and next, the Calendar's "+", the converter's swap and
   the app's other buttons) are near black, their symbols pale. No glow under any of them. The weather bar's icons are
   solid, a little darker than the line colour. Their edge is a
