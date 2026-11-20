@@ -175,8 +175,9 @@ final class Theme {
 
     /**
      * Something that's on, or the main action: a solid button in the song's colour, a shade lighter towards the right,
-     * as on the solid button reference (no bloom). The same size and corners as everything else, on or off; give it
-     * {@link #lift} for the soft glow of its light on the card under it.
+     * as on the solid button reference (no bloom), with a small light strike where its gloss catches the light. The same
+     * size and corners as everything else, on or off; give it {@link #lift} for the soft glow of its light on the card
+     * under it.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
         Scene s = accent();
@@ -184,7 +185,34 @@ final class Theme {
                 ? new int[]{Scene.mix(s.key, 0xFF000000, 0.28f), Scene.mix(s.key, 0xFF000000, 0.14f)}
                 : new int[]{Scene.mix(s.key, 0xFF000000, 0.1f), Scene.mix(s.key, 0xFFFFFFFF, 0.12f)});
         g.setCornerRadius(dp(c, radiusDp));
-        return g;
+        if (pressed) return g;
+        // where its gloss catches the light, at the top left bend: a small light strike (the outline stays the button's)
+        return new android.graphics.drawable.LayerDrawable(new Drawable[]{g, new Glint(dp(c, radiusDp), dp(c, 1), s.hot)});
+    }
+
+    /** A small light strike ({@link Optics#star}) where a rounded button's top left bend catches the light. */
+    private static final class Glint extends Drawable {
+        private final float radius, px;
+        private final int colour;
+
+        Glint(float radius, float px, int colour) {
+            this.radius = radius;
+            this.px = px;
+            this.colour = colour;
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect b = getBounds();
+            if (b.width() <= 0 || b.height() <= 0) return;
+            float r = Math.min(radius, b.height() / 2f), g = r * (1 - 0.7071f) + 2.5f * px; // just inside the bend
+            float x = b.left + g, y = b.top + g;
+            Optics.star(canvas, x, y, Math.min(5 * px, (x - b.left) / 1.6f), px, colour, 0.45f); // inside the button
+        }
+
+        @Override public void setAlpha(int alpha) { }
+        @Override public void setColorFilter(ColorFilter cf) { }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
     /** Text on a solid button ({@link #lit}): white, or near black on a light colour, so it reads. */

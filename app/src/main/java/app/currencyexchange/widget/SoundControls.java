@@ -36,7 +36,8 @@ final class SoundControls {
 
     /**
      * The play / pause button: a solid circle in the light's colour, a shade lighter to the right, as on the solid button
-     * reference (no bloom), the symbol for what a tap does in white (near black on a light colour).
+     * reference (no bloom), the symbol for what a tap does in white (near black on a light colour), and a small light
+     * strike where its gloss catches the light ({@link Optics#star}).
      */
     static Bitmap playButton(Scene scene, boolean playing, int sizeDp) {
         String key = "p|" + scene.tag() + "|" + playing + "|" + sizeDp;
@@ -53,6 +54,9 @@ final class SoundControls {
         p.setShader(null);
         p.setColor(Theme.onLit(scene.key));
         c.drawPath(symbol(cx, r * 0.36f, playing), p);
+        // where its gloss catches the light, up at the top left: a small light strike
+        float g = r * 0.72f * 0.7071f;
+        Optics.star(c, cx - g, cx - g, Math.min(5 * PX, (cx - g) / 1.6f), PX, scene.hot, 0.5f);
         CACHE.put(key, b);
         return b;
     }
@@ -104,7 +108,7 @@ final class SoundControls {
 
     /**
      * The progress line, {@code widthDp} wide: a hairline lit from the left up to {@code fraction}, blooming into the
-     * haze, and where the song is, an LED-white point in a glowing ring of the light.
+     * haze, and where the song is, an LED-white point in a glowing ring of the light, with a light strike on it.
      */
     static Bitmap bar(Scene scene, float fraction, int widthDp) {
         float px = 2f;
@@ -152,7 +156,9 @@ final class SoundControls {
         line.setMaskFilter(null);
         line.setColor(scene.led);
         c.drawCircle(head, y, 5f * px, line);
-        return Lens.fringe(b, px, 0.9f); // the colour fringe of a bright light through a lens
+        Bitmap out = Lens.fringe(b, px, 0.9f); // the colour fringe of a bright light through a lens
+        Optics.star(new Canvas(out), head, y, 13f * px, px, scene.hot, 0.6f); // and the strike a star filter makes of it
+        return out;
     }
 
     static String clock(long ms) {
