@@ -90,7 +90,8 @@ stays at Friday's close.
   glows most, the main text is a warm white glowing softly, quiet text barely; the Currency and Calendar
   widgets keep their text plain, in its own colours. Today in the calendar, the
   Music widget's play button and progress line, and the 30-day trend lines glow like lamps (a warm core,
-  a tight halo, a wide bloom); the sun-phase strips under the clocks glow up into the haze; the SBB
+  a tight halo, a wide bloom); the sun-phase strips under the clocks are plain bands of colour, with no
+  bloom; the SBB
   clock's face is lit from within. On the settings screen and the converter the text is plain; lit
   controls bloom, and film grain lies over everything.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.

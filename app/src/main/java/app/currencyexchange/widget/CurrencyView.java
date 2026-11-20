@@ -314,27 +314,10 @@ final class CurrencyView {
         Paint gp = new Paint();
         gp.setShader(new LinearGradient(0, 0, 0, split, 0x66000000, Theme.DEEP, Shader.TileMode.CLAMP));
         c.drawRect(fr, gp);
-        // The sun-phase band is a strip of light: it glows up into the haze above it, its top edge brightest, like a
-        // lamp seen edge-on (the night strip is no light, so it only tints the haze).
-        int band = phaseColor(phase);
-        boolean light = phase != SunCalc.NIGHT;
-        float rise = h * (light ? 0.42f : 0.3f);
-        Paint haze = new Paint(Paint.DITHER_FLAG);
-        haze.setShader(new LinearGradient(0, split - rise, 0, split, new int[]{band & 0x00FFFFFF,
-                (band & 0x00FFFFFF) | (light ? 0x2E000000 : 0x1A000000), (band & 0x00FFFFFF) | (light ? 0x80000000 : 0x4D000000)},
-                new float[]{0f, 0.6f, 1f}, Shader.TileMode.CLAMP));
-        c.drawRect(0, split - rise, w, split, haze);
+        // The sun-phase band: a plain strip in its colour, with no bloom (no glow into the flag, no bright edge).
         Paint sp = new Paint();
-        sp.setColor(band);
+        sp.setColor(phaseColor(phase));
         c.drawRect(0, split, w, h, sp);
-        if (light) {
-            Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
-            edge.setColor(Scene.mix(band, 0xFFFFFFFF, 0.45f));
-            edge.setMaskFilter(new android.graphics.BlurMaskFilter(PXDP * 2.5f, android.graphics.BlurMaskFilter.Blur.NORMAL));
-            c.drawRect(0, split - PXDP * 0.8f, w, split + PXDP * 0.8f, edge);
-            edge.setMaskFilter(null);
-            c.drawRect(0, split, w, split + PXDP * 0.75f, edge);
-        }
         return out;
     }
 
