@@ -39,12 +39,12 @@ final class CurrencyView {
      * In its own colour, with the lens's colour fringe (no glow).
      */
     private static void txt(Context ctx, RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp) {
-        rv.setImageViewBitmap(viewId, TextBmp.fringed(tf, sizeDp * 2.5f, 0.8f, s, color, Look.get().textFringe));
+        rv.setImageViewBitmap(viewId, TextBmp.fringed(tf, sizeDp * 2.5f, 0.8f, s, color));
     }
 
     /** Tight text (see {@link TextBmp#tightFringed}), fringed like {@link #txt}: its view is {@link TextBmp#ROOM} times as tall. */
     private static Bitmap tight(Typeface tf, float sizeDp, String s, int color) {
-        return TextBmp.tightFringed(tf, sizeDp, s, color, Look.get().textFringe);
+        return TextBmp.tightFringed(tf, sizeDp, s, color);
     }
 
     static final int[] LAYOUTS = {R.layout.widget_k1, R.layout.widget_k2, R.layout.widget_k3,
@@ -57,7 +57,7 @@ final class CurrencyView {
 
     /** Variant with k currency rows (1..6). */
     private static void txtF(RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp, float fill) {
-        rv.setImageViewBitmap(viewId, TextBmp.fringed(tf, sizeDp * 2.5f, fill, s, color, Look.get().textFringe));
+        rv.setImageViewBitmap(viewId, TextBmp.fringed(tf, sizeDp * 2.5f, fill, s, color));
     }
 
     /** The size the clock city names actually show at (11 drawn into a 16 dp box with Carbon+'s 0.95 em line). */
@@ -155,7 +155,7 @@ final class CurrencyView {
             // the day, time and city in front of the flag stay white whatever is playing, with the lens's fringe
             txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11);
             rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.fringed(bold, 22 * 2.5f, 0.8f, now.format(timeF),
-                    white, 1f)); // the time is the hero: the look's full fringe
+                    white));
             txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11);
         }
 

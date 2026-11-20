@@ -74,7 +74,7 @@ stays at Friday's close.
 ## Visual language: see-through cards, hazy text, the song's light
 - **Cards, the widgets and the app's alike** (`Stage`), after the glowing card reference: near black, with just a
   hint of the song's colour towards the right and a faint glow of it there, a faint sheen along the top, and a
-  hairline edge that's light at the top left and fades round. On the widgets the black is mildly see-through (72%),
+  hairline edge that's light at the top left and fades round (with the glass reflections below). On the widgets the black is mildly see-through (72%),
   so the home screen shows faintly through it; the app's cards (settings, the pickers, the converter) are nearly
   opaque, and their titles have the lens's colour fringe. The world clocks' flags fade down into their card. No grain. The
   app's room behind its cards is near black, with two faint, slow washes of the light and no lighting rig (the old
@@ -102,11 +102,24 @@ stays at Friday's close.
   edge a real lens gives a bright light (chromatic aberration), restrained. Never on the album art or solid buttons.
 - **Light sources in a hazy room.** What gives light (the lamps, the record, the trend lines, the SBB clock's face)
   is drawn as light in a dark, hazy room, not as a brighter picture: bloom, a tight halo, soft edges.
-- **No text glows; text has the lens's fringe instead.** All the widgets' text (the Sound and Music widgets' words
-  included) and the app's titles have the colour fringe a lens gives (`Lens`): a faint red edge on one side of the
-  letters and a blue one on the other, the big numbers (the clock times, the day number) at full strength. The world
-  clocks' day, time and city stay white whatever is playing. Today in the calendar sits on a solid tile in the song's
-  colour, covering its day name and number, its text plain like a button's.
+- **No text glows; all text has a subtle lens fringe instead** (`Lens`): every widget's text (the Sound and Music
+  widgets' words and today's calendar tile included) and all the app's text (titles, body, buttons, lists, inputs) has
+  a faint red edge on one side of the letters and a blue one on the other, gentler than on the bright things (0.6 dp
+  apart, 28% strong). The world clocks' day, time and city stay white whatever is playing. Today in the calendar sits
+  on a solid tile in the song's colour, covering its day name and number.
+- **What a camera does to light, kept subtle** (`Optics`), after the glass-on-black references and the filters that
+  make those looks on a real camera:
+  - *Light strikes*: a cross-screen ("star") filter turns a point of light into thin spikes; here four, the
+    horizontal pair a little longer and fading to blue, like a 2-point star or anamorphic streak. Only on true points
+    of light: the Music widget's play button gloss and progress point, each trend line's high, the record's rim, the
+    SBB clock's face, the corner of every card, and the app's solid buttons.
+  - *Glass reflections*: glass on black reads by what it reflects (white-line lighting; glass reflects most at grazing
+    angles). Every card has a faint band of the room's light slanting across its top right, a second, fainter edge
+    a little inside near the top left (the glass's other face, seen through its thickness), and its top left corner
+    catching the light, with a small strike where it's brightest.
+  - *Haze, bloom and halation*: each strike has a soft, pearly core, the glow a Black Pro-Mist filter scatters round
+    a highlight, and a faint red-orange ring just outside it, the halation film gets round bright points.
+  - *Fringe*: the lens's colour fringe above, unchanged.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 
 The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,
@@ -131,8 +144,8 @@ wall of lamps (`Airstream` its motion when nothing plays), `SoundRecord` the LP,
 light, and `SoundWidgetProvider` + `LiveService` send the frames. Music widget: `PlayerPicture` and
 `PlayerWidgetProvider` (controls drawn by `SoundControls`), updated by `MediaListener`. `Words` writes what's playing
 for both; `Stage` the card every widget and the app sits on, `Look` how strong each
-effect is, `Ambience` the light they share, `Glow` the colours its text is drawn in, and `Lens` the colour fringe on the
-brightest things.
+effect is, `Ambience` the light they share, `Glow` the colours its text is drawn in, `Lens` the colour fringe on the
+brightest things, and `Optics` the light strikes, glass reflections and halation.
 Layout units are the 750-wide grid of the original preset.
 
 Layout note: the Calendar and Currency widgets are native views with weighted rows/columns (fonts bundled in res/font), so they follow the widget's real width and height; only flags, the Visa logo and clock backgrounds are small bitmaps.

@@ -17,7 +17,9 @@ import android.util.LruCache;
  * that's light at the top left and fades round ({@link #rim}). On the widgets the black is mildly see-through
  * ({@link #WIDGET}), so the home screen shows faintly through it; the app's cards are nearly opaque. The light is the
  * colour of what's playing ({@link Ambience}), so everything shares it. Bright things in front can light the card
- * round them ({@link Spill}). No grain.
+ * round them ({@link Spill}). Glass on black reads by what it reflects ({@link Optics}): a faint band of the room's
+ * light slanting across it, the edge doubled near the light by the glass's thickness, and the corner catching the
+ * light. No grain.
  */
 final class Stage {
     private Stage() {}
@@ -26,6 +28,10 @@ final class Stage {
     static final float WIDGET = 0.72f;
     /** The cards' black (before its opacity), with a breath of violet so it isn't flat. */
     private static final int BLACK = 0xFF0B0A0F;
+    /** How bright the glass's reflection of the room is, at its brightest: barely there. */
+    private static final float REFLECTION = 0.035f;
+    /** How strongly the edge catches the light at its top left corner. */
+    private static final float CATCH = 0.75f;
 
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(14);
 
@@ -56,6 +62,7 @@ final class Stage {
                 Shader.TileMode.CLAMP));
         c.drawRect(box, p); // the sheen
         p.setShader(null);
+        Optics.reflection(c, box, REFLECTION); // the room's light, reflected in the glass
         spill(c, box.left, box.top, spills, 1f);
     }
 
@@ -101,8 +108,10 @@ final class Stage {
     }
 
     /**
-     * A card's edge, just inside {@code box}: a hairline ({@code px} pixels per dp), a pale shade of the song's line
-     * colour, light at the top left and fading round the card.
+     * A card's edge, just inside {@code box}, as glass on black shows it: a hairline ({@code px} pixels per dp), a pale
+     * shade of the song's line colour, light at the top left and fading round the card; a fainter line a little inside
+     * it near the top left, the glass's other face seen through its thickness; and the corner there catching the light,
+     * with a small strike where it's brightest ({@link Optics#catchlight}).
      */
     static void rim(Canvas c, RectF box, float[] radii, Scene scene, float px) {
         float line = Math.max(1f, px), in = line / 2;
@@ -110,14 +119,29 @@ final class Stage {
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(line);
         int edge = Scene.mix(0xFFFFFFFF, scene.line, 0.45f);
-        p.setShader(new RadialGradient(box.left, box.top, Math.max(box.width(), box.height()) * 0.95f,
+        float reach = Math.max(box.width(), box.height());
+        p.setShader(new RadialGradient(box.left, box.top, reach * 0.95f,
                 new int[]{Scene.alpha(edge, 0.42f), Scene.alpha(edge, 0.16f), Scene.alpha(edge, 0.06f)},
                 new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
+        Path path = inset(box, radii, in);
+        c.drawPath(path, p);
+        // the glass's other face, seen through its thickness: a fainter line inside, only near the light
+        float deep = 2.5f * px;
+        p.setStrokeWidth(Math.max(1f, 0.7f * px));
+        p.setShader(new RadialGradient(box.left, box.top, reach * 0.5f,
+                new int[]{Scene.alpha(edge, 0.14f), Scene.alpha(edge, 0.04f), edge & 0x00FFFFFF},
+                new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(inset(box, radii, in + deep), p);
+        Optics.catchlight(c, box, path, Math.max(0, radii[0] - in), in, px, scene.line, CATCH);
+    }
+
+    /** {@code box}'s rounded shape, {@code in} pixels inside it. */
+    private static Path inset(RectF box, float[] radii, float in) {
         float[] r = new float[8];
         for (int i = 0; i < 8; i++) r[i] = Math.max(0, radii[i] - in);
         Path path = new Path();
         path.addRoundRect(new RectF(box.left + in, box.top + in, box.right - in, box.bottom - in), r, Path.Direction.CW);
-        c.drawPath(path, p);
+        return path;
     }
 
     /** Eight equal corner radii. */

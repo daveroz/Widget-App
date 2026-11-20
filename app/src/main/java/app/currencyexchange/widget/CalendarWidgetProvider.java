@@ -136,7 +136,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
      */
     private static void t(RemoteViews rv, android.graphics.Typeface tf, int viewId, String s, int color,
                           float sizeDp, float fill, boolean italic) {
-        rv.setImageViewBitmap(viewId, TextBmp.fringed(tf, sizeDp * 2.5f, fill, italic, s, color, Look.get().textFringe));
+        rv.setImageViewBitmap(viewId, TextBmp.fringed(tf, sizeDp * 2.5f, fill, italic, s, color));
     }
 
     private static int rid(Context ctx, String name) {
@@ -158,7 +158,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         // tinted by the song; the divider and the "+" are in its line colour.
         int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = scene.quiet, label = scene.label;
         rv.setImageViewBitmap(R.id.cal_day, TextBmp.fringed(tf, 32 * 2.5f, 0.82f, String.valueOf(today.getDayOfMonth()),
-                white, 1f)); // the big day number: the look's full fringe
+                white));
         rv.setInt(R.id.cal_div, "setColorFilter", scene.line);
         rv.setImageViewBitmap(R.id.btn_add, addButton(scene));
         t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false);
@@ -175,13 +175,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             int col = rid(ctx, "wk_col_" + i), lab = rid(ctx, "wk_label_" + i), num = rid(ctx, "wk_num_" + i);
             String name = d.format(java.time.format.DateTimeFormatter.ofPattern("EEE", loc)).toUpperCase(loc);
             String day = String.valueOf(d.getDayOfMonth());
-            if (isToday) { // solid, like a button: plain text on it, no glow
+            if (isToday) { // solid, like a button; its text has the fringe all text has
                 rv.setInt(col, "setBackgroundResource", R.drawable.cal_today);
                 if (android.os.Build.VERSION.SDK_INT >= 31) {
                     rv.setColorStateList(col, "setBackgroundTintList", android.content.res.ColorStateList.valueOf(scene.key));
                 }
-                rv.setImageViewBitmap(lab, TextBmp.make(Theme.uiBold(ctx), 9.5f * 2.5f, 0.8f, false, false, name, onTile));
-                rv.setImageViewBitmap(num, TextBmp.make(tf, 13 * 2.5f, NUMBER_FILL, false, false, day, onTile));
+                rv.setImageViewBitmap(lab, TextBmp.fringed(Theme.uiBold(ctx), 9.5f * 2.5f, 0.8f, name, onTile));
+                rv.setImageViewBitmap(num, TextBmp.fringed(tf, 13 * 2.5f, NUMBER_FILL, day, onTile));
             } else {
                 rv.setInt(col, "setBackgroundResource", 0);
                 t(rv, tf, lab, name, muted, 9.5f, 0.8f, false);

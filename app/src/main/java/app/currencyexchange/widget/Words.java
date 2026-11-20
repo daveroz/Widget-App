@@ -86,7 +86,7 @@ final class Words {
     /** One line of text: its fringe ({@code fringe}; see {@link Lens#text}), or its letters in {@code colour}. */
     private static void line(Canvas c, TextPaint text, String s, float x, float y, int colour, boolean fringe, float dp) {
         if (fringe) {
-            Lens.text(c, text, s, x, y, dp, Look.get().textFringe);
+            Lens.text(c, text, s, x, y, dp);
             return;
         }
         text.setColor(colour);

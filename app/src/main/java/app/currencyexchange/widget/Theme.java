@@ -175,8 +175,9 @@ final class Theme {
 
     /**
      * Something that's on, or the main action: a solid button in the song's colour, a shade lighter towards the right,
-     * as on the solid button reference (no bloom). The same size and corners as everything else, on or off; give it
-     * {@link #lift} for the soft glow of its light on the card under it.
+     * as on the solid button reference (no bloom), with a small light strike where its gloss catches the light. The same
+     * size and corners as everything else, on or off; give it {@link #lift} for the soft glow of its light on the card
+     * under it.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
         Scene s = accent();
@@ -184,7 +185,34 @@ final class Theme {
                 ? new int[]{Scene.mix(s.key, 0xFF000000, 0.28f), Scene.mix(s.key, 0xFF000000, 0.14f)}
                 : new int[]{Scene.mix(s.key, 0xFF000000, 0.1f), Scene.mix(s.key, 0xFFFFFFFF, 0.12f)});
         g.setCornerRadius(dp(c, radiusDp));
-        return g;
+        if (pressed) return g;
+        // where its gloss catches the light, at the top left bend: a small light strike (the outline stays the button's)
+        return new android.graphics.drawable.LayerDrawable(new Drawable[]{g, new Glint(dp(c, radiusDp), dp(c, 1), s.hot)});
+    }
+
+    /** A small light strike ({@link Optics#star}) where a rounded button's top left bend catches the light. */
+    private static final class Glint extends Drawable {
+        private final float radius, px;
+        private final int colour;
+
+        Glint(float radius, float px, int colour) {
+            this.radius = radius;
+            this.px = px;
+            this.colour = colour;
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect b = getBounds();
+            if (b.width() <= 0 || b.height() <= 0) return;
+            float r = Math.min(radius, b.height() / 2f), g = r * (1 - 0.7071f) + 2.5f * px; // just inside the bend
+            float x = b.left + g, y = b.top + g;
+            Optics.star(canvas, x, y, Math.min(5 * px, (x - b.left) / 1.6f), px, colour, 0.45f); // inside the button
+        }
+
+        @Override public void setAlpha(int alpha) { }
+        @Override public void setColorFilter(ColorFilter cf) { }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
     /** Text on a solid button ({@link #lit}): white, or near black on a light colour, so it reads. */
@@ -238,51 +266,28 @@ final class Theme {
         v.setElevation(dp(c, 8));
     }
 
-    /** Gives a title the lens's colour fringe, as the widgets' text has (no glow); it must be a {@link FringeText}. */
-    static void fringe(TextView t) {
-        if (t instanceof FringeText) ((FringeText) t).fringe(true);
-    }
-
-    /**
-     * A TextView that can draw the lens's colour fringe under its letters ({@link #fringe}): a red copy pulled left
-     * and a blue one right, as on the widgets (see {@link Lens}), never a glow.
-     */
+    /** A TextView with the subtle colour fringe all text has (see {@link Lens#text}), never a glow. */
     static class FringeText extends TextView {
-        private boolean on;
-
         FringeText(Context c) {
             super(c);
         }
 
-        void fringe(boolean on) {
-            this.on = on;
-            invalidate();
+        @Override
+        protected void onDraw(Canvas canvas) {
+            Lens.text(this, canvas);
+            super.onDraw(canvas);
+        }
+    }
+
+    /** An input with the subtle colour fringe all text has, as {@link FringeText}. */
+    static class FringeEdit extends android.widget.EditText {
+        FringeEdit(Context c) {
+            super(c);
         }
 
         @Override
         protected void onDraw(Canvas canvas) {
-            android.text.Layout layout = getLayout();
-            if (on && layout != null) {
-                Look look = Look.get();
-                float shift = look.fringeDp * getResources().getDisplayMetrics().density;
-                float strength = Math.min(1f, look.fringe * look.textFringe);
-                // where TextView puts its text: inside the padding, moved down for a centred or bottom gravity
-                int box = getHeight() - getExtendedPaddingTop() - getExtendedPaddingBottom(), gap = box - layout.getHeight();
-                int vertical = getGravity() & android.view.Gravity.VERTICAL_GRAVITY_MASK;
-                float down = gap <= 0 ? 0 : vertical == android.view.Gravity.BOTTOM ? gap
-                        : vertical == android.view.Gravity.CENTER_VERTICAL ? gap / 2f : 0;
-                android.text.TextPaint p = getPaint();
-                int was = p.getColor();
-                canvas.save();
-                canvas.translate(getCompoundPaddingLeft() - shift, getExtendedPaddingTop() + down);
-                p.setColor(Scene.alpha(Lens.RED, strength));
-                layout.draw(canvas);
-                canvas.translate(2 * shift, 0);
-                p.setColor(Scene.alpha(Lens.BLUE, strength));
-                layout.draw(canvas);
-                canvas.restore();
-                p.setColor(was);
-            }
+            Lens.text(this, canvas);
             super.onDraw(canvas);
         }
     }

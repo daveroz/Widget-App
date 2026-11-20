@@ -86,16 +86,13 @@ final class TextBmp {
     static final float ROOM = 1.3f;
 
     /**
-     * As {@link #make} for one string, with the lens's colour fringe on the letters (a red edge on one side, a blue
-     * one on the other; see {@link Lens}), {@code weight} times the look's strength (0 for plain). No glow. The
-     * picture is the same height as {@link #make}'s, so the text shows at the same size; it's a little wider, for the
-     * fringe. Pictures are 2.5 pixels per dp.
+     * As {@link #make} for one string, with the subtle colour fringe text has (a faint red edge on one side of the
+     * letters, a blue one on the other; see {@link Lens#textFringe}). No glow. The picture is the same height as
+     * {@link #make}'s, so the text shows at the same size; it's a little wider, for the fringe. 2.5 pixels per dp.
      */
-    static Bitmap fringed(Typeface tf, float px, float fill, boolean italic, String s, int color, float weight) {
-        if (weight <= 0f) return make(tf, px, fill, italic, false, s, color);
+    static Bitmap fringed(Typeface tf, float px, float fill, boolean italic, String s, int color) {
         if (s == null) s = "";
-        String key = "G|" + System.identityHashCode(tf) + "|" + px + "|" + fill + "|" + italic + "|" + color + "|" + weight
-                + "|" + s;
+        String key = "G|" + System.identityHashCode(tf) + "|" + px + "|" + fill + "|" + italic + "|" + color + "|" + s;
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
@@ -110,30 +107,27 @@ final class TextBmp {
         Bitmap b = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
         p.setColor(color);
         new Canvas(b).drawText(s, pad, (h - line) / 2f - fm.ascent, p);
-        b = Lens.fringe(b, 2.5f, weight);
+        b = Lens.textFringe(b, 2.5f);
         CACHE.put(key, b);
         return b;
     }
 
-    static Bitmap fringed(Typeface tf, float px, float fill, String s, int color, float weight) {
-        return fringed(tf, px, fill, false, s, color, weight);
+    static Bitmap fringed(Typeface tf, float px, float fill, String s, int color) {
+        return fringed(tf, px, fill, false, s, color);
     }
 
     /**
-     * As {@link #tight}, with the lens's colour fringe ({@code weight} times the look's strength) and room round the
-     * letters: the picture is {@link #ROOM} times as tall as {@link #tight}'s, the text in the same place in its
-     * middle, so a view that much taller shows it at the same size.
+     * As {@link #tight}, with text's fringe and room round the letters: the picture is {@link #ROOM} times as tall as
+     * {@link #tight}'s, the text in the same place in its middle, so a view that much taller shows it at the same size.
      */
-    static Bitmap tightFringed(Typeface tf, float sizeDp, String s, int color, float weight) {
-        return tightFixedFringed(tf, sizeDp, s, null, color, false, weight);
+    static Bitmap tightFringed(Typeface tf, float sizeDp, String s, int color) {
+        return tightFixedFringed(tf, sizeDp, s, null, color, false);
     }
 
     /** As {@link #tightFixed} (a number that ticks, its digits all one width), fringed like {@link #tightFringed}. */
-    static Bitmap tightFixedFringed(Typeface tf, float sizeDp, String s, String template, int color, boolean right,
-                                    float weight) {
+    static Bitmap tightFixedFringed(Typeface tf, float sizeDp, String s, String template, int color, boolean right) {
         if (s == null) s = "";
-        String key = "H|" + System.identityHashCode(tf) + "|" + sizeDp + "|" + color + "|" + right + "|" + template + "|"
-                + weight + "|" + s;
+        String key = "H|" + System.identityHashCode(tf) + "|" + sizeDp + "|" + color + "|" + right + "|" + template + "|" + s;
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
         float px = sizeDp * 2.5f;
@@ -172,7 +166,7 @@ final class TextBmp {
                 }
             }
         }
-        b = Lens.fringe(b, 2.5f, weight);
+        b = Lens.textFringe(b, 2.5f);
         CACHE.put(key, b);
         return b;
     }

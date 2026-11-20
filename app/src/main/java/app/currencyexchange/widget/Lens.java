@@ -19,13 +19,22 @@ final class Lens {
 
     /**
      * A copy of {@code src} with the look's fringe behind it: a red copy pulled left and a blue one right, by the
-     * look's distance at {@code pxPerDp} pixels per dp, {@code weight} times the look's strength.
+     * look's distance at {@code pxPerDp} pixels per dp, {@code weight} times the look's strength. For bright things.
      */
     static Bitmap fringe(Bitmap src, float pxPerDp, float weight) {
         Look look = Look.get();
-        float strength = Math.min(1f, look.fringe * weight);
+        return fringeBy(src, look.fringeDp * pxPerDp, Math.min(1f, look.fringe * weight));
+    }
+
+    /** A copy of a picture of text ({@code pxPerDp} pixels per dp) with the subtler fringe text has. */
+    static Bitmap textFringe(Bitmap src, float pxPerDp) {
+        Look look = Look.get();
+        return fringeBy(src, look.textFringeDp * pxPerDp, look.textFringe);
+    }
+
+    /** {@code src} with red and blue copies {@code shift} pixels left and right behind it, {@code strength} strong. */
+    private static Bitmap fringeBy(Bitmap src, float shift, float strength) {
         if (strength <= 0f) return src;
-        float shift = look.fringeDp * pxPerDp;
         Bitmap out = Bitmap.createBitmap(src.getWidth(), src.getHeight(), Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
         Paint p = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -40,19 +49,49 @@ final class Lens {
 
     /**
      * The fringe of text drawn straight onto a canvas (not the letters themselves; draw them after, over it): a red
-     * copy of {@code s} pulled left and a blue one right, at {@code pxPerDp} pixels per dp, {@code weight} times the
-     * look's strength, with {@code paint}'s typeface, size and alignment.
+     * copy of {@code s} pulled left and a blue one right, at {@code pxPerDp} pixels per dp, with {@code paint}'s
+     * typeface, size and alignment, as subtle as text's fringe is.
      */
-    static void text(Canvas c, Paint paint, String s, float x, float y, float pxPerDp, float weight) {
+    static void text(Canvas c, Paint paint, String s, float x, float y, float pxPerDp) {
         Look look = Look.get();
-        float strength = Math.min(1f, look.fringe * weight);
-        if (strength <= 0f || s == null || s.isEmpty()) return;
-        float shift = look.fringeDp * pxPerDp;
+        if (look.textFringe <= 0f || s == null || s.isEmpty()) return;
+        float shift = look.textFringeDp * pxPerDp;
         int was = paint.getColor();
-        paint.setColor(Scene.alpha(RED, strength));
+        paint.setColor(Scene.alpha(RED, look.textFringe));
         c.drawText(s, x - shift, y, paint);
-        paint.setColor(Scene.alpha(BLUE, strength));
+        paint.setColor(Scene.alpha(BLUE, look.textFringe));
         c.drawText(s, x + shift, y, paint);
         paint.setColor(was);
+    }
+
+    /**
+     * The fringe under a TextView's (or an EditText's) letters, in its own onDraw before the letters: its layout drawn
+     * twice, in red pulled left and in blue pulled right, where the view puts its text.
+     */
+    static void text(android.widget.TextView v, Canvas canvas) {
+        android.text.Layout layout = v.getLayout();
+        Look look = Look.get();
+        if (layout == null || look.textFringe <= 0f) return;
+        float shift = look.textFringeDp * v.getResources().getDisplayMetrics().density;
+        // where TextView puts its text: inside its padding, moved down for a centred or bottom gravity
+        int top = v.getExtendedPaddingTop(), bottom = v.getExtendedPaddingBottom();
+        int box = v.getHeight() - top - bottom, gap = box - layout.getHeight();
+        int vertical = v.getGravity() & android.view.Gravity.VERTICAL_GRAVITY_MASK;
+        float down = gap <= 0 ? 0 : vertical == android.view.Gravity.BOTTOM ? gap
+                : vertical == android.view.Gravity.CENTER_VERTICAL ? gap / 2f : 0;
+        android.text.TextPaint p = v.getPaint();
+        int was = p.getColor();
+        canvas.save();
+        int left = v.getCompoundPaddingLeft(), right = v.getCompoundPaddingRight();
+        canvas.clipRect(left + v.getScrollX(), top + v.getScrollY(), v.getWidth() - right + v.getScrollX(),
+                v.getHeight() - bottom + v.getScrollY());
+        canvas.translate(left - shift, top + down);
+        p.setColor(Scene.alpha(RED, look.textFringe));
+        layout.draw(canvas);
+        canvas.translate(2 * shift, 0);
+        p.setColor(Scene.alpha(BLUE, look.textFringe));
+        layout.draw(canvas);
+        canvas.restore();
+        p.setColor(was);
     }
 }

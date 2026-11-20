@@ -37,7 +37,7 @@ final class PlayerPicture {
             text.setTextAlign(Paint.Align.CENTER);
             int colour = Glow.label(scene);
             float y = h / 2f + Words.LABEL_DP * dp * 0.36f;
-            Lens.text(c, text, say, w / 2f, y, dp, Look.get().textFringe); // the lens's fringe, no glow
+            Lens.text(c, text, say, w / 2f, y, dp); // the fringe all text has, no glow
             text.setColor(colour);
             c.drawText(say, w / 2f, y, text);
         }
