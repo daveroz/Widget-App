@@ -24,6 +24,13 @@ final class Scene {
     final int deep;
     /** The key, a little lighter, for text: labels stay easy to read on the night background. */
     final int label;
+    /**
+     * The line colour, for structure (hairline frames, dividers, header icons): the key softened towards cream, so
+     * it's Worldly's gold while the light is amber and follows the music's colour when a song plays.
+     */
+    final int line;
+    /** Small labels (what a value is, not the value): the line colour, quieter and paler. */
+    final int quiet;
 
     Scene(int key) {
         this.key = key | 0xFF000000;
@@ -35,7 +42,12 @@ final class Scene {
         hsv[2] *= 0.92f;
         this.deep = Color.HSVToColor(hsv);
         this.label = mix(key, Color.WHITE, 0.25f);
+        this.line = gain(mix(this.key, CREAM, 0.38f), 0.89f);
+        this.quiet = gain(mix(this.key, CREAM, 0.7f), 0.92f);
     }
+
+    /** The cream the line colours are softened towards. */
+    private static final int CREAM = 0xFFF2E6D0;
 
     /** Worldly's own amber: the light while nothing plays. */
     static Scene amber() {

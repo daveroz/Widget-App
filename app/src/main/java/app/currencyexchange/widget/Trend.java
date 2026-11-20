@@ -150,7 +150,7 @@ final class Trend {
 
         // A hairline at the month's low, so the line reads against a level.
         Paint rule = new Paint();
-        rule.setColor(Theme.BORDER);
+        rule.setColor(Scene.alpha(scene.line, 0.24f));
         c.drawRect(0, bottom, w, bottom + Math.max(1f, PXDP * 0.5f), rule);
 
         // The line is a thread of light in the haze: a wide, faint bloom, a tight glow, and a warm core.

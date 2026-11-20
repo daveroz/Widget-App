@@ -59,7 +59,7 @@ final class SbbRenderer {
         c.drawCircle(n / 2f, n / 2f, r, glow);
         c.drawBitmap(face(f), (n - f) / 2f, (n - f) / 2f, null);
         c.restore();
-        Stage.edge(c, box, corners, Math.max(1f, px), Theme.BORDER);
+        Stage.edge(c, box, corners, Math.max(1f, px), Scene.alpha(scene.line, 0.24f));
         lit = b;
         litKey = key;
         return b;

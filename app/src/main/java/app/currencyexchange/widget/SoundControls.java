@@ -14,9 +14,9 @@ import java.util.Locale;
 /**
  * The pictures of the Music widget's controls, in the light's colours and lit like light sources in haze (see
  * {@link Glow}): play / pause lit like the launcher's chosen tab (a touch of the light on the glass, a glowing
- * edge, an LED-white symbol), its edge a ring of segments that light up as the song plays, like a gauge on
- * Foundation's screens; previous and next as quiet symbols; and the progress line, a hairline with a tick at each
- * end, lit from the left in the light up to where the song is. The buttons are drawn once per light and state.
+ * edge, an LED-white symbol); previous and next as quiet symbols; and the progress line, a hairline with a tick at
+ * each end, lit from the left in the light up to where the song is. The bright things have the faint colour fringe
+ * of a light through a lens ({@link Lens}). The buttons are drawn once per light and state.
  */
 final class SoundControls {
     private SoundControls() {}
@@ -35,18 +35,13 @@ final class SoundControls {
 
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(12);
 
-    /** Segments in the play button's ring. */
-    private static final int RING = 24;
-
     /**
      * The play / pause button, lit like a lamp: a touch of the light on the glass inside a ring of it, the ring
      * blooming out into the haze (a wide, soft bloom and a tight bright halo), and the symbol for what a tap does
-     * LED-white, glowing. The ring is in segments: lit up to {@code fraction} of the song (0 to 1), fainter after it;
-     * below 0, all lit.
+     * LED-white, glowing.
      */
-    static Bitmap playButton(Scene scene, boolean playing, int sizeDp, float fraction) {
-        int lit = fraction < 0 ? RING : Math.round(Math.max(0f, Math.min(1f, fraction)) * RING);
-        String key = "p|" + scene.key + "|" + playing + "|" + sizeDp + "|" + lit;
+    static Bitmap playButton(Scene scene, boolean playing, int sizeDp) {
+        String key = "p|" + scene.key + "|" + playing + "|" + sizeDp;
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
         int s = Math.round(sizeDp * PX);
@@ -71,15 +66,10 @@ final class SoundControls {
         c.drawCircle(cx, cx, r, p);
         p.setColor(Scene.alpha(scene.deep, 0.22f));
         c.drawCircle(cx, cx, r, p);
-        // its edge: a ring of segments, lit up to where the song is
         p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(1.6f * PX);
-        float ringR = r - 0.8f * PX, step = 360f / RING, gap = 4f;
-        android.graphics.RectF oval = new android.graphics.RectF(cx - ringR, cx - ringR, cx + ringR, cx + ringR);
-        for (int i = 0; i < RING; i++) {
-            p.setColor(i < lit ? Scene.alpha(Scene.mix(scene.key, scene.hot, 0.4f), 0.95f) : Scene.alpha(scene.key, 0.3f));
-            c.drawArc(oval, -90 + i * step + gap / 2, step - gap, false, p);
-        }
+        p.setStrokeWidth(PX);
+        p.setColor(Scene.alpha(Scene.mix(scene.key, scene.hot, 0.4f), 0.85f));
+        c.drawCircle(cx, cx, r - PX / 2, p);
         // the symbol, LED-white, with its glow
         float u = r * 0.36f;
         Path symbol = new Path();
@@ -146,7 +136,7 @@ final class SoundControls {
         float head = x0 + (x1 - x0) * Math.max(0f, Math.min(1f, fraction));
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         line.setStrokeCap(Paint.Cap.ROUND);
-        line.setColor(Theme.BORDER_STRONG);
+        line.setColor(Scene.alpha(scene.line, 0.4f));
         line.setStrokeWidth(Math.max(1f, 1.4f * px));
         c.drawLine(x0, y, x1, y, line);
         // a tick at each end, so the line reads as a scale from the start of the song to its end

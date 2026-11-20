@@ -90,8 +90,15 @@ final class CurrencyView {
         // the weather strip's panel (just inside the clocks card's 1 dp border), and its icons in the light
         rv.setImageViewBitmap(R.id.hdr_bg, Stage.panel(scene, rowW - 2, 30, 1.5f, Stage.roundTop(27),
                 0xF00A101B, Stage.NIGHT));
-        // the header's icons say what each value is, so they're in the line colour, like labels
-        for (int icon : new int[]{R.id.hdr_wx, R.id.ic0, R.id.ic1, R.id.ic2}) rv.setInt(icon, "setColorFilter", Theme.LINE);
+        // the header's icons say what each value is, so they're in the line colour, like labels; it follows the music
+        for (int icon : new int[]{R.id.hdr_wx, R.id.ic0, R.id.ic1, R.id.ic2}) rv.setInt(icon, "setColorFilter", scene.line);
+        for (int sep : new int[]{R.id.sep0, R.id.sep1, R.id.sep2}) rv.setInt(sep, "setColorFilter", Scene.alpha(scene.line, 0.36f));
+        // the hairline frames too (Android 12 and up can recolour them; before that they stay gold)
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            android.content.res.ColorStateList edge = android.content.res.ColorStateList.valueOf(scene.line);
+            rv.setColorStateList(R.id.clocks_card, "setForegroundTintList", edge);
+            for (int i = 0; i < k; i++) rv.setColorStateList(id(ctx, "row_" + i), "setBackgroundTintList", edge);
+        }
 
         // header where you are, four equal slots: weather now (icon + temperature), chance of rain in the coming
         // hours, sunrise, sunset
@@ -129,8 +136,8 @@ final class CurrencyView {
                 cc = g.optString("cc", "");
             }
             ZonedDateTime now = ZonedDateTime.now(z);
-            Bitmap[] pcs = clockPieces(Flags.flag(ctx, cc), dayPhases(lat, lon, z, now), now.getHour(),
-                    i == 0 ? 1 : (i == 3 ? 2 : 0));
+            int phase = SunCalc.phase(lat, lon, z, now);
+            Bitmap[] pcs = clockPieces(Flags.flag(ctx, cc), phase, i == 0 ? 1 : (i == 3 ? 2 : 0));
             if (i == 0) {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_0a"), pcs[0]);
                 rv.setImageViewBitmap(id(ctx, "clk_bg_0"), pcs[1]);
@@ -140,7 +147,7 @@ final class CurrencyView {
             } else {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), pcs[0]);
             }
-            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, Theme.LABEL, 11);
+            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, scene.quiet, 11);
             txt(ctx, rv, id(ctx, "clk_time_" + i), now.format(timeF), bold, white, 22);
             txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11);
         }
@@ -163,7 +170,7 @@ final class CurrencyView {
             double[][] trend = Trend.series(hist, from, market);
             rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW - 2, ROW_DP - 2, scene, i % 2 == 0));
             rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
-            rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), TextBmp.tight(reg, CITY_SP, "Market", Theme.LABEL));
+            rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), TextBmp.tight(reg, CITY_SP, "Market", scene.quiet));
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), TextBmp.tight(reg, HEADER_SP, Util.fmt0(market), white));
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
             double visa = Util.alignToMarket(Store.visa(ctx, from, to), market);
@@ -242,13 +249,17 @@ final class CurrencyView {
         return out;
     }
 
-    /** The sun-phase strip's own colours, whatever is playing: day, golden hour, blue hour, night. */
+    /**
+     * The sun-phase strip's own colours, whatever is playing: day, golden hour, blue hour, night. They're one family,
+     * evenly matched (about the same strength of colour, stepping down evenly in brightness from day to night), so
+     * four cities side by side read as one strip of the day rather than four unrelated colours.
+     */
     private static int phaseColor(int phase) {
         switch (phase) {
-            case SunCalc.DAY: return Theme.AMBER;
-            case SunCalc.SUNSET: return 0xFFE2553A;  // golden hour / sunset / sunrise
-            case SunCalc.BLUE: return 0xFF3F6FD8;    // blue hour
-            default: return Theme.NIGHT;
+            case SunCalc.DAY: return 0xFFE0A14E;     // day: a warm amber
+            case SunCalc.SUNSET: return 0xFFD96D4C;  // golden hour / sunset / sunrise: coral
+            case SunCalc.BLUE: return 0xFF5C7ECC;    // blue hour
+            default: return 0xFF495885;              // night: a deep slate blue
         }
     }
 
@@ -258,22 +269,12 @@ final class CurrencyView {
     private static final int CW = Math.round(90 * PXDP), CH = Math.round(84 * PXDP), SLICE = Math.round(28 * PXDP);
     private static final float INNER_R = 27 * PXDP; // card radius just inside its 1 dp border
 
-    /** Each hour of the city's day (0 to 23, taken at half past) as its sun phase: day, golden hour, blue hour or night. */
-    static int[] dayPhases(double lat, double lon, ZoneId z, ZonedDateTime now) {
-        int[] out = new int[24];
-        ZonedDateTime start = now.toLocalDate().atStartOfDay(z);
-        for (int hour = 0; hour < 24; hour++) out[hour] = SunCalc.phase(lat, lon, z, start.plusMinutes(hour * 60L + 30));
-        return out;
-    }
-
     /** side 0: middle cell {full}; 1: left cell {corner, rest}; 2: right cell {rest, corner}. */
-    private static Bitmap[] clockPieces(Bitmap flag, int[] hours, int nowHour, int side) {
-        StringBuilder sig = new StringBuilder();
-        for (int p : hours) sig.append(p);
-        String key = "c|" + System.identityHashCode(flag) + "|" + sig + "|" + nowHour + "|" + side;
+    private static Bitmap[] clockPieces(Bitmap flag, int phase, int side) {
+        String key = "c|" + System.identityHashCode(flag) + "|" + phase + "|" + side;
         Bitmap a = PICS.get(key + "|0"), b = PICS.get(key + "|1");
         if (a != null && (side == 0 || b != null)) return side == 0 ? new Bitmap[]{a} : new Bitmap[]{a, b};
-        Bitmap full = clockFull(flag, hours, nowHour);
+        Bitmap full = clockFull(flag, phase);
         Bitmap[] out;
         if (side == 0) {
             out = new Bitmap[]{full};
@@ -305,8 +306,8 @@ final class CurrencyView {
         return b;
     }
 
-    /** Flag faded into the night, with the city's 24-hour sun scale along the bottom. */
-    private static Bitmap clockFull(Bitmap flag, int[] hours, int nowHour) {
+    /** Flag faded into the night with the sun-phase band below (one exact boundary). */
+    private static Bitmap clockFull(Bitmap flag, int phase) {
         final int w = CW, h = CH;
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
@@ -325,17 +326,10 @@ final class CurrencyView {
         Paint gp = new Paint();
         gp.setShader(new LinearGradient(0, 0, 0, split, 0x66000000, Theme.DEEP, Shader.TileMode.CLAMP));
         c.drawRect(fr, gp);
-        // The 24-hour sun scale, where the sun-phase band was: each hour of the city's day in its phase (day, golden
-        // hour, blue hour, night), quieter, and the hour it is now at full strength, standing taller. So it shows where
-        // each city is in its day, and how long until its sun sets or rises. No bloom.
-        float seg = w / 24f, gap = Math.max(1f, PXDP * 0.6f), lift = 4 * PXDP;
+        // The sun-phase band: a plain strip in its colour, with no bloom (no glow into the flag, no bright edge).
         Paint sp = new Paint();
-        for (int hour = 0; hour < 24; hour++) {
-            boolean current = hour == nowHour;
-            int colour = phaseColor(hours[hour]);
-            sp.setColor(current ? colour : Scene.alpha(colour, 0.45f));
-            c.drawRect(hour * seg + gap / 2, current ? split - lift : split, (hour + 1) * seg - gap / 2, h, sp);
-        }
+        sp.setColor(phaseColor(phase));
+        c.drawRect(0, split, w, h, sp);
         return out;
     }
 

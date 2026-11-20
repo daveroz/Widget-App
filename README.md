@@ -83,15 +83,17 @@ stays at Friday's close.
   and progress point, the 30-day trend lines) have the faint red and blue edge a real lens gives a bright light
   (chromatic aberration). Never on text. App cards are the night at 72% (`#0a0f16`); inputs and
   pickers are darker wells inside the glass.
-- **Gold line work, after Territory Studio's screens for Foundation.** Structure is drawn in a warm gold line
-  colour (`#d2a867`): hairline frames and dividers, the header's icons, section titles, and small labels (what a
-  value is, not the value: day names, "Market", event times, a song's length) in a quieter cream gold. Values stay
-  white, and the key light is kept for what matters right now. The data reads like an instrument: each world
-  clock has a 24-hour sun scale along its foot (every hour of that city's day in its day, golden-hour, blue-hour
-  or night colour, the hour it is now at full strength and standing taller, so you see where each city is in its
-  day and how long until its sun sets or rises); the Music widget's play button has a ring of segments that
-  light up as the song plays, and its progress line has a tick at each end; the 30-day trend lines sit on a
-  faint baseline at the month's low.
+- **Line work, after Territory Studio's screens for Foundation.** Structure is drawn in a line colour: hairline
+  frames and dividers, the header's icons, section titles, and small labels (what a value is, not the value: day
+  names, "Market", event times, a song's length) in a quieter, paler tone. On the widgets it comes from the light
+  (`Scene.line`, `Scene.quiet`: the key softened towards cream), so it's a warm gold (`#d49f65`) while the light
+  is amber and follows the music's colour when a song plays (the frames on Android 12 and up; before that they
+  stay gold). The app's screens keep the gold (`#d2a867`). Values stay white, and the key light is kept for what
+  matters right now. The Music widget's progress line has a tick at each end; the 30-day trend lines sit on a faint
+  baseline at the month's low.
+- **The clocks' sun-phase strip** shows each city's light right now in one family of evenly matched colours (about
+  the same strength of colour, stepping down evenly from day to night): day `#e0a14e`, golden hour `#d96d4c`, blue
+  hour `#5c7ecc`, night `#495885`.
 - **One key light: amber `#eb9438`.** Something that's on (the save button, the chosen SBB mode, the
   converter's amount and chip) is *lit*: a touch of amber on the glass, the light bleeding into the glass
   along a bright amber edge, and outside it a soft bloom with a tight halo, not a solid block. Lines drawn
@@ -104,7 +106,8 @@ stays at Friday's close.
   glows most, the main text is a warm white glowing softly, quiet text barely; the Currency and Calendar
   widgets keep their text plain, in its own colours. Today in the calendar, the
   Music widget's play button and progress line, and the 30-day trend lines glow like lamps (a warm core,
-  a tight halo, a wide bloom); the clocks' sun scales are plain, with no bloom; the SBB
+  a tight halo, a wide bloom); today in the calendar is a rounded square of light; the clocks' sun-phase strips
+  are plain, with no bloom; the SBB
   clock's face is lit from within. On the settings screen and the converter the text is plain; lit
   controls bloom.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
@@ -112,8 +115,8 @@ stays at Friday's close.
   two washes of the light (top right and low left) and a hairline edge. The light
   is the colour of what's playing (`Ambience`): the album cover's primary colour, or the playing app's
   own for videos, or Worldly's amber when nothing plays. When the song changes, every widget takes on its
-  colour: the panels' haze and the lights behind their glass, the Currency arrows and trend lines (the clocks'
-  sun scales keep their own day, golden-hour, blue-hour and night colours), the Calendar's
+  colour: the panels' haze and the lights behind their glass, the line work and labels, the Currency arrows and
+  trend lines (the clocks' sun-phase strips keep their own day, golden-hour, blue-hour and night colours), the Calendar's
   today and accents, and the glow around the SBB clock's face (the clock keeps SBB's black, white and
   red), and the Music widget's panel and controls. It follows the music through notification access, with or
   without a Sound widget; between songs it holds the colour for a moment, and when nothing plays any more every

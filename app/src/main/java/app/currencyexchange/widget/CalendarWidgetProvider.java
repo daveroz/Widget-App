@@ -146,8 +146,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         java.util.Locale loc = java.util.Locale.getDefault();
 
         // The text is plain, in its own colours (no glow, no tint); only today and "in 5 minutes" are in the light.
-        // Labels (what something is, when it is) are in the line colour.
-        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.LABEL, label = scene.label;
+        // Labels (what something is, when it is) are in the line colour, which follows the music.
+        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = scene.quiet, label = scene.label;
+        rv.setInt(R.id.cal_divider, "setColorFilter", Scene.alpha(scene.line, 0.3f));
+        if (android.os.Build.VERSION.SDK_INT >= 31) { // the hairline frame (before Android 12 it stays gold)
+            rv.setColorStateList(R.id.panel, "setBackgroundTintList", android.content.res.ColorStateList.valueOf(scene.line));
+        }
         t(rv, tf, R.id.cal_day, String.valueOf(today.getDayOfMonth()), white, 32, 0.82f, false);
         t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false);
         int week = today.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.SUNDAY, 1).weekOfYear());
@@ -223,33 +227,34 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     }
 
     /**
-     * Today's number, lit like a lamp: a touch of the light inside a ring of it, the ring glowing out into the haze
-     * (a wide bloom and a tight halo), the number white on top (plain, like the rest of the text).
+     * Today's number, lit like a lamp: a rounded square of the light (a touch of it inside a bright edge), glowing out
+     * into the haze (a soft bloom and a tight halo), the number white on top (plain, like the rest of the text), with
+     * the faint colour fringe of a bright light through a lens. It fills nearly all of its place in the week.
      */
     private static android.graphics.Bitmap lit(Scene scene, android.graphics.Bitmap number) {
         int s = Math.max(number.getWidth(), number.getHeight());
         android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas c = new android.graphics.Canvas(b);
         android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        float ring = s * 0.05f, bloom = s * 0.085f, r = s / 2f - ring - bloom; // room for the bloom round the ring
-        float m = s / 2f;
+        float m = s / 2f, ring = s * 0.04f, bloom = s * 0.04f, half = s * 0.45f - ring, corner = half * 0.52f;
+        android.graphics.RectF square = new android.graphics.RectF(m - half, m - half, m + half, m + half);
         p.setStyle(android.graphics.Paint.Style.STROKE);
         p.setStrokeWidth(ring * 2.4f);
         p.setColor(Scene.alpha(scene.deep, 0.8f));
         p.setMaskFilter(new android.graphics.BlurMaskFilter(bloom, android.graphics.BlurMaskFilter.Blur.NORMAL));
-        c.drawCircle(m, m, r, p);
+        c.drawRoundRect(square, corner, corner, p);
         p.setStrokeWidth(ring);
         p.setColor(Scene.alpha(scene.hot, 0.7f));
         p.setMaskFilter(new android.graphics.BlurMaskFilter(ring, android.graphics.BlurMaskFilter.Blur.NORMAL));
-        c.drawCircle(m, m, r, p);
+        c.drawRoundRect(square, corner, corner, p);
         p.setMaskFilter(null);
         p.setStyle(android.graphics.Paint.Style.FILL);
-        p.setColor(Scene.alpha(scene.deep, 0.28f));
-        c.drawCircle(m, m, r, p);
+        p.setColor(Scene.alpha(scene.deep, 0.3f));
+        c.drawRoundRect(square, corner, corner, p);
         p.setStyle(android.graphics.Paint.Style.STROKE);
         p.setStrokeWidth(ring);
         p.setColor(Scene.mix(scene.key, scene.hot, 0.5f));
-        c.drawCircle(m, m, r, p);
+        c.drawRoundRect(square, corner, corner, p);
         c.drawBitmap(number, (s - number.getWidth()) / 2f, (s - number.getHeight()) / 2f, null);
         return Lens.fringe(b, s * 0.012f, 0.45f); // the faint colour fringe of a bright light through a lens
     }

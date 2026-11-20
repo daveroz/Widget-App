@@ -38,7 +38,7 @@ final class PlayerPicture {
             c.drawText(say, w / 2f, y, text);
         }
         c.restore();
-        Stage.edge(c, box, corners, Math.max(1f, dp), Theme.BORDER);
+        Stage.edge(c, box, corners, Math.max(1f, dp), Scene.alpha(scene.line, 0.24f));
         return out;
     }
 }
