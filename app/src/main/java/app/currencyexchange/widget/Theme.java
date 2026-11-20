@@ -380,6 +380,12 @@ final class Theme {
         t.setLetterSpacing(0.22f);
     }
 
+    /** A card's title (WORLD CLOCKS, CONVERTER...): a label ({@link #label}), a little bigger than the others. */
+    static void cardTitle(Context c, TextView t) {
+        label(c, t);
+        t.setTextSize(12.5f);
+    }
+
     static StateListDrawable pressable(Drawable normal, Drawable pressed) {
         StateListDrawable s = new StateListDrawable();
         s.addState(new int[]{android.R.attr.state_pressed}, pressed);

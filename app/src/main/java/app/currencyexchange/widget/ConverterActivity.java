@@ -92,7 +92,7 @@ public class ConverterActivity extends Activity {
         card.setPadding(dp(16), dp(14), dp(16), dp(14));
 
         TextView title = text("CONVERTER", 11, Theme.uiBold(this), Theme.accent().line);
-        Theme.label(this, title);
+        Theme.cardTitle(this, title);
         title.setPadding(dp(2), 0, 0, dp(10));
         card.addView(title);
 
