@@ -231,11 +231,11 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas c = new android.graphics.Canvas(b);
         android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        float ring = s * 0.05f, bloom = s * 0.07f, r = s / 2f - ring - bloom; // room for the bloom round the ring
+        float ring = s * 0.05f, bloom = s * 0.085f, r = s / 2f - ring - bloom; // room for the bloom round the ring
         float m = s / 2f;
         p.setStyle(android.graphics.Paint.Style.STROKE);
-        p.setStrokeWidth(ring * 2);
-        p.setColor(Scene.alpha(scene.deep, 0.6f));
+        p.setStrokeWidth(ring * 2.4f);
+        p.setColor(Scene.alpha(scene.deep, 0.8f));
         p.setMaskFilter(new android.graphics.BlurMaskFilter(bloom, android.graphics.BlurMaskFilter.Blur.NORMAL));
         c.drawCircle(m, m, r, p);
         p.setStrokeWidth(ring);
@@ -251,7 +251,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         p.setColor(Scene.mix(scene.key, scene.hot, 0.5f));
         c.drawCircle(m, m, r, p);
         c.drawBitmap(number, (s - number.getWidth()) / 2f, (s - number.getHeight()) / 2f, null);
-        return b;
+        return Lens.fringe(b, s * 0.012f, 0.45f); // the faint colour fringe of a bright light through a lens
     }
 
     /** The panel picture for a widget: night glass lit by the shared light, at the widget's size on the home screen. */

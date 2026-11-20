@@ -57,11 +57,7 @@ public class ConverterActivity extends Activity {
         row = Math.max(0, Math.min(Store.count(this) - 1,
                 getIntent().getIntExtra(EXTRA_ROW, Store.sp(this).getInt("convRow", 0))));
         reverse = Store.sp(this).getBoolean("convRev", false);
-        // The card, with film grain over it, the numbers included.
-        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
-        frame.addView(build(), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        frame.addView(new StageView.Film(this, 16), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        setContentView(frame);
+        setContentView(build());
         int w = Math.min(Math.round(getResources().getDisplayMetrics().widthPixels * 0.92f), dp(420));
         getWindow().setLayout(w, ViewGroup.LayoutParams.WRAP_CONTENT);
         refreshPair();
@@ -207,7 +203,14 @@ public class ConverterActivity extends Activity {
         wash.setGradientCenter(0.92f, 0.02f);
         wash.setGradientRadius(dp(320));
         wash.setCornerRadius(Theme.dp(this, 16));
-        return new LayerDrawable(new Drawable[]{base, wash});
+        // a warm light far behind the glass, out of focus, low on the left
+        GradientDrawable far = new GradientDrawable();
+        far.setGradientType(GradientDrawable.RADIAL_GRADIENT);
+        far.setColors(new int[]{0x08EB9438, 0x03EB9438, 0x00EB9438});
+        far.setGradientCenter(0.08f, 0.92f);
+        far.setGradientRadius(dp(220));
+        far.setCornerRadius(Theme.dp(this, 16));
+        return new LayerDrawable(new Drawable[]{base, wash, far, Theme.frost(this, 16)});
     }
 
     private LinearLayout resultRow(View label, TextView value, TextView code) {

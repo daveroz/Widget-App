@@ -30,8 +30,7 @@ import android.graphics.SweepGradient;
  * within (taking on a little of the light's colour, with a thin halo hugging them; a bright cover has nothing to shine against, so
  * it's left as it is), the sleeve is brightest along its mouth, where a line
  * of light comes out, and that light falls on the record as it comes out, brightest nearest the sleeve. Around the
- * sleeve there's only a soft glow and a faint rim; the stage's warm light falls softly on the cover, and the film
- * grain lies over it.
+ * sleeve there's only a soft glow and a faint rim; the stage's warm light falls softly on the cover.
  */
 final class SoundRecord {
     static final float RPM = 100f / 3; // 33⅓

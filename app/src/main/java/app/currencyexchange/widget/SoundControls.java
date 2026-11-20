@@ -56,8 +56,8 @@ final class SoundControls {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         // the bloom just outside its edge, and a tight bright halo hugging it
         p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(glowR);
-        p.setColor(Scene.alpha(scene.deep, 0.6f));
+        p.setStrokeWidth(glowR * 1.2f);
+        p.setColor(Scene.alpha(scene.deep, 0.8f));
         p.setMaskFilter(new BlurMaskFilter(glowR, BlurMaskFilter.Blur.NORMAL));
         c.drawCircle(cx, cx, r, p);
         p.setStrokeWidth(1.5f * PX);
@@ -100,6 +100,7 @@ final class SoundControls {
         p.setMaskFilter(null);
         p.setColor(scene.led);
         c.drawPath(symbol, p);
+        b = Lens.fringe(b, 0.9f * PX, 0.45f); // the faint colour fringe of a bright light through a lens
         CACHE.put(key, b);
         return b;
     }
@@ -181,7 +182,7 @@ final class SoundControls {
         line.setMaskFilter(null);
         line.setColor(scene.led);
         c.drawCircle(head, y, 5f * px, line);
-        return b;
+        return Lens.fringe(b, 0.8f * px, 0.4f); // the faint colour fringe of a bright light through a lens
     }
 
     static String clock(long ms) {

@@ -105,7 +105,7 @@ final class SoundPicture {
         Canvas c = new Canvas(out);
         float bass = lights.bass();
 
-        // The panel every widget sits on: night glass lit by washes of the light (swelling with the bass), with grain.
+        // Its stage: night glass lit by washes of the light (swelling with the bass), with no grain.
         float radius = Math.min(28 * dp, h / 2f);
         box.set(0, 0, w, h);
         float[] corners = Stage.round(radius);
@@ -129,8 +129,6 @@ final class SoundPicture {
 
         record.draw(c, sleeve, dp, scene);
         c.drawBitmap(words(ctx, w, h, pad, wall.top - pad, textRight - pad, dp), 0, 0, null);
-        // Film grain over everything, the light and the cover included, for a cinematic, physical texture.
-        Stage.film(c, box);
         c.restore();
         Stage.edge(c, box, corners, Math.max(1f, dp));
         return out;

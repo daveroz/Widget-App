@@ -2,7 +2,6 @@ package app.currencyexchange.widget;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
@@ -14,7 +13,6 @@ import android.graphics.Shader;
 import android.view.View;
 import android.view.animation.AnimationUtils;
 
-import java.util.Random;
 
 /**
  * The room behind the settings screen, as on the Deco launcher: a dark stage in haze, lit in amber. Two washes
@@ -22,8 +20,8 @@ import java.util.Random;
  * drift through, and a row of small lamps along the top runs a slow chase, like a lighting rig seen through haze.
  *
  * Every light has two parts: a soft glow, drawn at 1/8 of the screen's size and stretched so it spreads like
- * light in fog (the rig's lamps add a tighter bloom), and a sharp core drawn at full detail. A fine film grain,
- * lighter and darker specks, lies over the haze; {@link Film} lays the same grain over the screen's content.
+ * light in fog (the rig's lamps add a tighter bloom), and a sharp core drawn at full detail. No grain: the room is
+ * seen through clean, frosted glass.
  */
 final class StageView extends View {
     private static final int SOFT = 8;
@@ -33,7 +31,6 @@ final class StageView extends View {
     private final Paint softPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
     private final Paint glowPaint = new Paint(Paint.DITHER_FLAG);
     private final Paint corePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint grainPaint = new Paint();
     private final Matrix matrix = new Matrix();
     private final Rect screen = new Rect();
     private final Shader key = unit(Theme.AMBER);
@@ -48,7 +45,6 @@ final class StageView extends View {
     StageView(Context context) {
         super(context);
         glowPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD)); // light adds up
-        grainPaint.setShader(new BitmapShader(grain(), Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
     }
 
     /** Animates while the screen is in front; otherwise it holds still. */
@@ -101,7 +97,6 @@ final class StageView extends View {
             float x = w * (i + 0.5f) / rig;
             canvas.drawRect(x - 3 * dp, 4 * dp, x + 3 * dp, 5.5f * dp, corePaint);
         }
-        canvas.drawRect(screen, grainPaint);
 
         if (running) postInvalidateDelayed(FRAME_MS);
     }
@@ -137,66 +132,5 @@ final class StageView extends View {
         int g = Math.round(((a >> 8) & 0xFF) + (((b >> 8) & 0xFF) - ((a >> 8) & 0xFF)) * t);
         int bl = Math.round((a & 0xFF) + ((b & 0xFF) - (a & 0xFF)) * t);
         return 0xFF000000 | (r << 16) | (g << 8) | bl;
-    }
-
-    /** A tile of film grain: faint specks, lighter and darker, so it shows on light as well as in the dark. */
-    static Bitmap grain() {
-        int size = 128;
-        int[] pixels = new int[size * size];
-        Random random = new Random(7);
-        for (int i = 0; i < pixels.length; i++) {
-            float v = random.nextFloat();
-            if (v > 0.55f) pixels[i] = (Math.round((v - 0.55f) / 0.45f * 14) << 24) | 0x00FFFFFF;
-            else if (v < 0.3f) pixels[i] = Math.round((0.3f - v) / 0.3f * 12) << 24;
-        }
-        return Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888);
-    }
-
-    /**
-     * Film grain laid over a screen's content (the cards, text and buttons as well as the stage), so the whole
-     * screen has the same cinematic, physical texture. It takes no touches. {@code radiusDp} rounds its corners to
-     * match a rounded card under it (0 for a full screen).
-     */
-    static final class Film extends View {
-        private final Paint paint = new Paint();
-        private final android.graphics.Path clip = new android.graphics.Path();
-        private final float radius;
-
-        Film(Context context, float radiusDp) {
-            super(context);
-            radius = radiusDp * getResources().getDisplayMetrics().density;
-            paint.setShader(new BitmapShader(grain(), Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
-            setClickable(false);
-            setFocusable(false);
-            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-        }
-
-        /** It takes the size it's given and asks for none, so a card that wraps its content isn't stretched by it. */
-        @Override
-        protected void onMeasure(int widthSpec, int heightSpec) {
-            setMeasuredDimension(exact(widthSpec), exact(heightSpec));
-        }
-
-        private static int exact(int spec) {
-            return MeasureSpec.getMode(spec) == MeasureSpec.EXACTLY ? MeasureSpec.getSize(spec) : 0;
-        }
-
-        @Override
-        protected void onSizeChanged(int w, int h, int oldW, int oldH) {
-            clip.rewind();
-            clip.addRoundRect(0, 0, w, h, radius, radius, android.graphics.Path.Direction.CW);
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            if (radius > 0) {
-                canvas.save();
-                canvas.clipPath(clip);
-                canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
-                canvas.restore();
-            } else {
-                canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
-            }
-        }
     }
 }

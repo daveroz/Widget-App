@@ -72,8 +72,6 @@ public class MainActivity extends Activity {
         sv.setBackgroundColor(0);
         sv.setFillViewport(true);
         room.addView(sv, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        // Film grain over everything, the cards and text included.
-        room.addView(new StageView.Film(this, 0), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         LinearLayout col = vbox();
         col.setPadding(dp(16), dp(30), dp(16), dp(28));
         sv.addView(col, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));

@@ -20,10 +20,10 @@ import java.time.ZonedDateTime;
  * + 12 tail. Second hand red rgb(235,0,0): 1.4 stick from 16.5 behind the centre to 26 ahead, disc of
  * 10.5 diameter centred 31.2 from the centre. Motion comes from {@link SbbClock}.
  *
- * The clock sits on the panel every widget shares ({@link Stage}): night glass lit by the light of what's playing
- * ({@link Ambience}), in its haze. The face is lit from within, like a station clock at night: its light blooms out
- * into the haze, a tight bright halo at its rim and a wide, soft bloom in the light's colour; a fine film grain lies
- * over it all. The clock itself keeps SBB's own black, white and red.
+ * The clock sits on frosted glass like the other widgets ({@link Stage#glassPanel}), lit by the light of what's
+ * playing ({@link Ambience}), in its haze. The face is lit from within, like a station clock at night: its light
+ * blooms out into the haze, a tight bright halo at its rim and a wide, soft bloom in the light's colour. The clock
+ * itself keeps SBB's own black, white and red.
  */
 final class SbbRenderer {
     private SbbRenderer() {}
@@ -46,9 +46,7 @@ final class SbbRenderer {
         float corner = n * 0.19f, px = n / 150f; // the panel stands for a widget about 150 dp across
         RectF box = new RectF(0, 0, n, n);
         float[] corners = Stage.round(corner);
-        Stage.paint(c, box, corners, scene, 0f, Stage.NIGHT, Stage.NIGHT, 0f, true);
-        Stage.haze(c, box, scene);
-        Stage.glass(c, box, scene);
+        Stage.glassPanel(c, box, corners, scene, Stage.NIGHT, Stage.NIGHT);
         // the face, lit from within: a wide, soft bloom of the light around it and a tight bright halo at its rim
         int f = Math.round(n * FACE);
         float r = f / 2f * (52.5f / 56f);
@@ -60,7 +58,6 @@ final class SbbRenderer {
         glow.setMaskFilter(new BlurMaskFilter(n * 0.018f, BlurMaskFilter.Blur.OUTER));
         c.drawCircle(n / 2f, n / 2f, r, glow);
         c.drawBitmap(face(f), (n - f) / 2f, (n - f) / 2f, null);
-        Stage.film(c, box);
         c.restore();
         Stage.edge(c, box, corners, Math.max(1f, px), Theme.BORDER);
         lit = b;

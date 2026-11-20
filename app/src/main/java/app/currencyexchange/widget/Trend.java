@@ -100,10 +100,8 @@ final class Trend {
         // The row's panel, its round ends just inside the row's 1 dp border.
         float r = Math.min(INNER_RADIUS_DP * PXDP, h / 2f);
         RectF box = new RectF(0, 0, w, h);
-        Stage.paint(c, box, Stage.round(r), scene, 0f,
-                light ? 0xF0101A2B : 0xF00B1220, light ? 0xF00B1220 : Stage.NIGHT, 0f, true);
-        Stage.haze(c, box, scene);
-        Stage.glass(c, box, scene);
+        Stage.glassPanel(c, box, Stage.round(r), scene,
+                light ? 0xF0101A2B : 0xF00B1220, light ? 0xF00B1220 : Stage.NIGHT);
         if (pts != null) {
             // The chart on a layer of its own, dimmed towards the end of the row where the numbers sit.
             c.saveLayer(box, null);
@@ -116,7 +114,6 @@ final class Trend {
             c.drawRect(box, fade);
             c.restore();
         }
-        Stage.film(c, box);
         c.restore();
         return out;
     }
@@ -175,6 +172,16 @@ final class Trend {
         line.setStrokeWidth(LINE_DP * PXDP);
         line.setStrokeCap(Paint.Cap.ROUND);
         line.setStrokeJoin(Paint.Join.ROUND);
+        // the faint colour fringe of a bright light through a lens: a red copy a touch to the left, a blue one right
+        float shift = 0.8f * PXDP;
+        c.save();
+        c.translate(-shift, 0);
+        line.setColor(0x4DFF4A3A);
+        c.drawPath(curve, line);
+        c.translate(2 * shift, 0);
+        line.setColor(0x4D3AA8FF);
+        c.drawPath(curve, line);
+        c.restore();
         line.setColor(alpha(scene.hot, Math.round(LINE_ALPHA * 1.4f)));
         c.drawPath(curve, line);
     }

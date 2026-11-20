@@ -1,7 +1,6 @@
 package app.currencyexchange.widget;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
@@ -11,18 +10,16 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.LruCache;
 
-import java.util.Random;
 
 /**
- * The panel every widget sits on, as on the Deco launcher's stage: night glass, lit by two washes of the light (a
- * strong one from the top right, a faint one low on the left), with a fine film grain over it and a hairline edge.
- * The light is the colour of what's playing ({@link Ambience}), so all the widgets share it. The Sound widget's
- * washes also swell with the bass.
+ * The panels the widgets sit on, with no grain. The Sound widget's is a stage ({@link #paint}): night glass lit by
+ * two washes of the light (a strong one from the top right, a faint one low on the left, swelling with the bass) and
+ * a hairline edge; its wall of lamps lights its own fog.
  *
- * The other widgets' panels also hold a haze ({@link #haze}): the light scattered in the air, warming the night and
- * lying in two soft banks of fog, so whatever glows on them glows in a room rather than on a flat colour. They're
- * frosted glass ({@link #glass}): a faint smoky frost, with warm lights far behind it, out of focus. (The Sound
- * widget's wall of lamps lights its own fog.)
+ * The other widgets' panels are frosted glass ({@link #glassPanel}), after the glass references: the same washes of
+ * the light, a haze in the air ({@link #haze}), a milky, smoky frost with a soft gloss towards the top, and warm
+ * lights far behind the glass, out of focus ({@link #glass}), no brighter overall than the night they frost. The
+ * light is the colour of what's playing ({@link Ambience}), so all the widgets share it.
  */
 final class Stage {
     private Stage() {}
@@ -30,33 +27,10 @@ final class Stage {
     /** The night glass, as on the Sound widget. */
     static final int NIGHT = 0xF0070A10;
     static final int EDGE = 0x2EAADCFF;
+    /** The glass: how strong the lights behind it are, and its frost and gloss. */
+    private static final float LIGHTS = 0.15f, FROST = 0.1f, GLOSS = 0.09f;
 
-    private static final Paint GRAIN = new Paint();
-    private static final Paint FILM = new Paint();
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(10);
-
-    static {
-        int size = 96;
-        int[] pixels = new int[size * size];
-        Random random = new Random(7);
-        for (int i = 0; i < pixels.length; i++) {
-            float v = random.nextFloat();
-            int a = v > 0.5f ? Math.round((v - 0.5f) * 2 * 12) : 0;
-            pixels[i] = (a << 24) | 0x00FFFFFF;
-        }
-        GRAIN.setShader(new BitmapShader(Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888),
-                Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
-        // Film grain: specks both lighter and darker, so it shows on the light as well as in the dark.
-        size = 128;
-        pixels = new int[size * size];
-        for (int i = 0; i < pixels.length; i++) {
-            float v = random.nextFloat();
-            if (v > 0.6f) pixels[i] = (Math.round((v - 0.6f) / 0.4f * 10) << 24) | 0x00FFFFFF;
-            else if (v < 0.3f) pixels[i] = Math.round((0.3f - v) / 0.3f * 11) << 24;
-        }
-        FILM.setShader(new BitmapShader(Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888),
-                Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
-    }
 
     /**
      * The light scattered in the air of a panel: a faint warmth of the light over the night, and two soft, wide banks
@@ -85,18 +59,18 @@ final class Stage {
     }
 
     /**
-     * Frosted glass, as in the glass references: a faint smoky frost over the night, and lights far behind it, out of
-     * focus: a few soft, wide blobs of the light, one paler and one deeper, faint enough that what's on the panel
-     * reads over them. Draw it inside the panel's clip, after its haze.
+     * Frosted glass, as in the glass references: lights far behind the glass, out of focus (a few soft, wide blobs of
+     * the light, one paler, one deeper), seen through a milky, smoky frost, with a soft gloss towards the top where
+     * the glass catches the room's light. Faint enough that what's on the panel reads over it. Draw it inside the
+     * panel's clip, after its haze.
      */
     static void glass(Canvas c, RectF box, Scene scene) {
         float w = box.width(), h = box.height(), s = Math.min(w, h);
         Paint p = new Paint(Paint.DITHER_FLAG);
-        p.setColor(0x1A9A8672); // the frost
-        c.drawRect(box, p);
         // x, y (share of the panel), radius (share of its short side), stretch across, strength, tone
-        float[][] lights = {{0.08f, 0.9f, 0.85f, 1.5f, 0.3f, 0}, {0.55f, 0.08f, 0.6f, 1.7f, 0.17f, 1},
-                {0.95f, 0.72f, 0.7f, 1.3f, 0.26f, 2}, {0.34f, 0.5f, 0.4f, 1.1f, 0.12f, 1}};
+        float[][] lights = {{0.08f, 0.9f, 0.85f, 1.5f, LIGHTS * 0.34f, 0}, {0.55f, 0.06f, 0.6f, 1.7f, LIGHTS * 0.2f, 1},
+                {0.95f, 0.72f, 0.7f, 1.3f, LIGHTS * 0.3f, 2}, {0.34f, 0.5f, 0.42f, 1.1f, LIGHTS * 0.14f, 1},
+                {0.72f, 0.3f, 0.3f, 1f, LIGHTS * 0.12f, 0}};
         for (float[] l : lights) {
             int colour = l[5] == 1 ? Scene.mix(scene.key, 0xFFFFFFFF, 0.5f) : l[5] == 2 ? scene.deep : scene.key;
             float x = box.left + w * l[0], y = box.top + h * l[1], r = s * l[2];
@@ -110,21 +84,39 @@ final class Stage {
             c.drawRect(x - r * l[3], y - r, x + r * l[3], y + r, p);
         }
         p.setShader(null);
+        p.setColor(Scene.alpha(0xFF9C8A76, FROST)); // the frost: milky and smoky
+        c.drawRect(box, p);
+        p.setShader(new LinearGradient(0, box.top, 0, box.top + h * 0.5f, Scene.alpha(0xFFFFF2DE, GLOSS), 0x00FFF2DE,
+                Shader.TileMode.CLAMP));
+        c.drawRect(box, p); // the gloss
+        p.setShader(null);
     }
 
-    /** Film grain over everything drawn on a panel, the light included, for a cinematic, physical texture. */
-    static void film(Canvas c, RectF box) {
-        c.drawRect(box, FILM);
+    /**
+     * A frosted glass panel ({@code radii}, 8 values in pixels): the washes of the light, its haze, and
+     * the glass. The canvas is left clipped to the shape for drawing more inside it (call {@code c.restore()} after).
+     */
+    static void glassPanel(Canvas c, RectF box, float[] radii, Scene scene, int fillLeft, int fillRight) {
+        lit(c, box, radii, scene, 0f, fillLeft, fillRight);
+        haze(c, box, scene);
+        glass(c, box, scene);
     }
 
     /**
      * Paints the panel into {@code box} on {@code c}: its rounded shape ({@code radii}, 8 values in pixels as for
      * {@link Path#addRoundRect(RectF, float[], Path.Direction)}), filled with the night glass ({@code fillLeft} to
-     * {@code fillRight}), the washes of the light, the grain, and the edge if {@code edgePx} > 0. The canvas is left
+     * {@code fillRight}), the washes of the light, and the edge if {@code edgePx} > 0. The canvas is left
      * clipped to the shape when {@code keepClip}, for drawing more inside it (call {@code c.restore()} after).
      */
     static void paint(Canvas c, RectF box, float[] radii, Scene scene, float bass, int fillLeft, int fillRight,
                       float edgePx, boolean keepClip) {
+        lit(c, box, radii, scene, bass, fillLeft, fillRight);
+        if (!keepClip) c.restore();
+        if (edgePx > 0) edge(c, box, radii, edgePx);
+    }
+
+    /** The night lit by the washes of the light, clipped to its shape (left clipped). */
+    private static void lit(Canvas c, RectF box, float[] radii, Scene scene, float bass, int fillLeft, int fillRight) {
         Path shape = new Path();
         shape.addRoundRect(box, radii, Path.Direction.CW);
         c.save();
@@ -141,9 +133,6 @@ final class Stage {
         p.setShader(new RadialGradient(box.left + w * 0.12f, box.bottom, big * 0.5f,
                 new int[]{Scene.alpha(scene.key, 0.07f + 0.05f * bass), scene.key & 0x00FFFFFF}, null, Shader.TileMode.CLAMP));
         c.drawRect(box, p);
-        c.drawRect(box, GRAIN);
-        if (!keepClip) c.restore();
-        if (edgePx > 0) edge(c, box, radii, edgePx);
     }
 
     /** The hairline edge of a panel, just inside {@code box}, in the Sound widget's cool white. */
@@ -176,7 +165,7 @@ final class Stage {
     }
 
     /**
-     * A panel picture, {@code wDp} × {@code hDp} at {@code px} pixels per dp, frosted, with its haze and film grain and no edge
+     * A frosted glass panel picture, {@code wDp} × {@code hDp} at {@code px} pixels per dp, with no edge
      * (the widget's own crisp edge goes over it): for the backgrounds of the Calendar and the Currency header, drawn
      * once per light and size.
      */
@@ -193,10 +182,7 @@ final class Stage {
         for (int i = 0; i < 8; i++) radii[i] = radiiDp[i] * px;
         Canvas c = new Canvas(b);
         RectF box = new RectF(0, 0, w, h);
-        paint(c, box, radii, scene, 0f, fillLeft, fillRight, 0f, true);
-        haze(c, box, scene);
-        glass(c, box, scene);
-        film(c, box);
+        glassPanel(c, box, radii, scene, fillLeft, fillRight);
         c.restore();
         CACHE.put(key, b);
         return b;

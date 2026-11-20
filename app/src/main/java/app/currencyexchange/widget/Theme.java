@@ -118,9 +118,20 @@ final class Theme {
         return g;
     }
 
-    /** A glass panel: the night at 72% with a hairline edge. */
-    static GradientDrawable glass(Context c, float radiusDp) {
-        return box(c, GLASS, BORDER, radiusDp);
+    /** A glass panel: the night at 72% with a hairline edge, frosted (see {@link #frost}). */
+    static Drawable glass(Context c, float radiusDp) {
+        return new android.graphics.drawable.LayerDrawable(new Drawable[]{box(c, GLASS, BORDER, radiusDp), frost(c, radiusDp)});
+    }
+
+    /**
+     * The gloss on a glass card, as in the glass references: a soft sheen towards the top where the glass catches the
+     * room's light. Lay it over the card's fill.
+     */
+    static Drawable frost(Context c, float radiusDp) {
+        GradientDrawable gloss = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0x0EFFF2DE, 0x03FFF2DE, 0x00FFF2DE});
+        gloss.setCornerRadius(dp(c, radiusDp));
+        return gloss;
     }
 
     /** A well inside glass: inputs and pickers. The edge turns to the key when it's focused or pressed. */

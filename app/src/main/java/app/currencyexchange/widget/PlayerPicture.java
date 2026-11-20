@@ -10,8 +10,8 @@ import android.text.TextPaint;
 import java.util.Locale;
 
 /**
- * The Music widget's picture: the panel every widget sits on, lit by the light of what's playing, in its haze and
- * with a fine film grain. The controls are real views laid over it ({@link PlayerWidgetProvider}). With nothing
+ * The Music widget's picture: frosted glass like the other widgets ({@link Stage#glassPanel}), lit by the light of
+ * what's playing, in its haze. The controls are real views laid over it ({@link PlayerWidgetProvider}). With nothing
  * playing (or no media access) it says so, quietly, in the middle, the words glowing in the light.
  */
 final class PlayerPicture {
@@ -23,9 +23,7 @@ final class PlayerPicture {
         float radius = Math.min(28 * dp, h / 2f);
         RectF box = new RectF(0, 0, w, h);
         float[] corners = Stage.round(radius);
-        Stage.paint(c, box, corners, scene, 0f, Stage.NIGHT, Stage.NIGHT, 0f, true);
-        Stage.haze(c, box, scene);
-        Stage.glass(c, box, scene);
+        Stage.glassPanel(c, box, corners, scene, Stage.NIGHT, Stage.NIGHT);
         if (!access || track == null) {
             String say = (!access ? "Media access needed  ·  tap to turn it on" : "Nothing playing").toUpperCase(Locale.getDefault());
             TextPaint text = Words.paint();
@@ -39,7 +37,6 @@ final class PlayerPicture {
             text.setColor(colour);
             c.drawText(say, w / 2f, y, text);
         }
-        Stage.film(c, box);
         c.restore();
         Stage.edge(c, box, corners, Math.max(1f, dp), Theme.BORDER);
         return out;
