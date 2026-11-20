@@ -17,8 +17,8 @@ final class Glow {
         return Scene.mix(Theme.MUTED, s.hot, 0.15f);
     }
 
-    /** Text drawn in the light (labels, "Now playing", "in 5 minutes"): the light's hot core. */
+    /** Text drawn in the light (labels, "Now playing", "in 5 minutes"): the light's main colour. */
     static int label(Scene s) {
-        return s.hot;
+        return s.key;
     }
 }

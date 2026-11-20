@@ -22,7 +22,7 @@ final class Scene {
     final int hot;
     /** The key, richer and a little deeper: light seen through the haze around a lamp (its bloom, halo and glow). */
     final int deep;
-    /** Text in the light (labels, titles, "in 25 minutes"): the light's hot core ({@link #hot}, since 1.91). */
+    /** Text in the light (labels, titles, "in 25 minutes"): the light's main colour, its middle one of three. */
     final int label;
     /**
      * The line colour, for structure (card edges, rules, ticks, the header's icons, section titles): the key paled
@@ -54,7 +54,7 @@ final class Scene {
         this.led = mix(key, Color.WHITE, 0.88f);
         this.hot = hot | 0xFF000000;
         this.deep = deep | 0xFF000000;
-        this.label = this.hot;
+        this.label = this.key;
         this.line = readable(mix(this.key, 0xFFF4EFE6, 0.3f), 0.42f);
         this.quiet = readable(mix(this.key, Theme.TEXT_SOFT, 0.62f), 0.5f);
     }

@@ -175,8 +175,8 @@ final class Theme {
 
     /**
      * Something that's on, or the main action, after the Justice store's buttons (without their glow): solid, in the
-     * light's hot core ({@link #litFill}), with a glass rim paler still ({@link #glassEdge}); its text near black on a
-     * bright colour, white on a deep one. The same size and corners as everything else, on or off.
+     * light's main colour ({@link #litFill}), with a glass rim paler than it ({@link #glassEdge}); its text near black
+     * on a bright colour, white on a deep one. The same size and corners as everything else, on or off.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
         Scene s = accent();
@@ -287,9 +287,9 @@ final class Theme {
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
-    /** A lit button's fill: the light's hot core ({@link Scene#hot}, since 1.91). */
+    /** A lit button's fill: the light's main colour, the middle one of its three ({@link Scene#key}). */
     static int litFill(Scene s) {
-        return s.hot;
+        return s.key;
     }
 
     /** Text on a lit button ({@link #lit}): near black on a bright colour, white on a deep one ({@link #onLit(int)}). */
