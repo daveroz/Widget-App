@@ -2,14 +2,17 @@ package app.currencyexchange.widget;
 
 /**
  * Worldly's look (chosen as "Glass" in 1.67): cards in a mildly see-through black with a hint of the song's colour
- * ({@link Stage}); text with the colour fringe a lens gives (no glow), lit things blooming softly, buttons and icons
- * solid, and the brightest things with the same fringe; and what a camera does to light ({@link Optics}): strikes,
+ * ({@link Stage}); plain text (no glow, no fringe), lit things blooming softly, buttons and icons solid with a glass
+ * rim, and the brightest things with the colour fringe a lens gives; and what a camera does to light ({@link Optics}): strikes,
  * reflections, haze and halation. With the rest of the visual language (everything in the playing song's colour, the
  * Carbon+ font, rounded square cards) this sets how strong each effect is.
  */
 final class Look {
-    /** The look as chosen (1.78: a little less see-through, 84%, and a stronger fringe on lit things, not on text). */
-    static final Look GLASS = new Look(0.84f, 1.1f, 0.65f, 0.6f, 0.28f, 1.15f, 1f, 1f);
+    /**
+     * The look as chosen (1.78: a little less see-through, 84%, and a stronger fringe on lit things; 1.82: no effects
+     * at all on text, so its fringe is 0).
+     */
+    static final Look GLASS = new Look(0.84f, 1.1f, 0.65f, 0.6f, 0f, 1.15f, 1f, 1f);
 
     private static Look current = GLASS;
 
@@ -18,8 +21,8 @@ final class Look {
     /** The colour fringe on the brightest things: how far red and blue are pulled apart (dp), and how strongly. */
     final float fringeDp, fringe;
     /**
-     * The fringe on text (all of it, the widgets' and the app's; none glows): subtler than on the bright things, its
-     * colours pulled less far apart (dp) and fainter.
+     * The fringe on text, the widgets' and the app's (0: none, as text has no effects at all), its colours pulled less
+     * far apart (dp) than on the bright things.
      */
     final float textFringeDp, textFringe;
     /** How strong the glow around lit things is (1 = as it was before the looks; the Glass look is 1.15). */

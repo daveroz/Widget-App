@@ -35,9 +35,8 @@ final class SoundControls {
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(12);
 
     /**
-     * The play / pause button: a solid circle in the light's colour, a shade lighter to the right, as on the solid button
-     * reference (no bloom), the symbol for what a tap does in white (near black on a light colour), and a small light
-     * strike where its gloss catches the light ({@link Optics#star}).
+     * The play / pause button, as the app's lit buttons: a solid circle in a deep shade of the light's colour with a
+     * glass rim in a light shade of it ({@link Theme#glassEdge}), the symbol for what a tap does in white. No glow.
      */
     static Bitmap playButton(Scene scene, boolean playing, int sizeDp) {
         String key = "p|" + scene.tag() + "|" + playing + "|" + sizeDp;
@@ -47,16 +46,10 @@ final class SoundControls {
         Bitmap b = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
         float cx = s / 2f, r = cx - 2 * PX;
+        Theme.glassCircle(c, cx, cx, r, 1.2f * PX, Theme.litFill(scene), Theme.litEdge(scene), Theme.LIT_RIM);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setShader(new LinearGradient(cx - r, 0, cx + r, 0, Scene.mix(scene.key, 0xFF000000, 0.1f),
-                Scene.mix(scene.key, 0xFFFFFFFF, 0.12f), Shader.TileMode.CLAMP));
-        c.drawCircle(cx, cx, r, p);
-        p.setShader(null);
-        p.setColor(Theme.onLit(scene.key));
+        p.setColor(Theme.onLit());
         c.drawPath(symbol(cx, r * 0.36f, playing), p);
-        // where its gloss catches the light, up at the top left: a small light strike
-        float g = r * 0.72f * 0.7071f;
-        Optics.star(c, cx - g, cx - g, Math.min(5 * PX, (cx - g) / 1.6f), PX, scene.hot, 0.5f);
         CACHE.put(key, b);
         return b;
     }
@@ -78,8 +71,8 @@ final class SoundControls {
     }
 
     /**
-     * Previous or next: a round icon button, as on the icon reference: a dark solid circle (a deep, dark shade of the
-     * light) with the symbol (a triangle and a bar) in a pale shade of it.
+     * Previous or next, as the app's dark buttons: a near black circle with a glass rim ({@link Theme#glassEdge}), the
+     * symbol (a triangle and a bar) in a pale shade of the light.
      */
     static Bitmap skip(Scene scene, boolean next, int sizeDp) {
         String key = "s|" + scene.tag() + "|" + next + "|" + sizeDp;
@@ -90,8 +83,7 @@ final class SoundControls {
         Canvas c = new Canvas(b);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         float cx = s / 2f, u = s * 0.15f;
-        p.setColor(Theme.iconFill(scene));
-        c.drawCircle(cx, cx, cx - 3 * PX, p);
+        Theme.glassCircle(c, cx, cx, cx - 3 * PX, 1.2f * PX, Theme.darkFill(scene), Theme.darkEdge(scene), Theme.DARK_RIM);
         float dir = next ? 1 : -1;
         Path symbol = new Path();
         symbol.moveTo(cx - dir * u * 0.9f, cx - u);

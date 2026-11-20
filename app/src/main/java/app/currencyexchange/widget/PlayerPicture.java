@@ -23,11 +23,8 @@ final class PlayerPicture {
         float radius = Math.min(28 * dp, h / 2f);
         RectF box = new RectF(0, 0, w, h);
         float[] corners = Stage.round(radius);
-        // while there are controls, the play button lights the card round it (10 dp margin, the 46 dp previous
-        // button, half the 50 dp play button; the controls are centred top to bottom)
-        Stage.Spill[] spills = access && track != null
-                ? new Stage.Spill[]{new Stage.Spill(81 * dp, h / 2f, 46 * dp, scene.deep, 0.28f * Look.get().bloom)} : null;
-        Stage.fill(c, box, corners, scene, dp, 0f, spills);
+        // no light round the play button: it's a deep, solid button, as in the app (no glow)
+        Stage.fill(c, box, corners, scene, dp, 0f, null);
         if (!access || track == null) {
             String say = (!access ? "Media access needed  ·  tap to turn it on" : "Nothing playing").toUpperCase(Locale.getDefault());
             TextPaint text = Words.paint();

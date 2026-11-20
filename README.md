@@ -81,12 +81,12 @@ stays at Friday's close.
   row of chasing lamps along the top is gone).
 - **Light falls on the cards.** As on the cypher samples, bright things light the card behind them: today's tile in
   the calendar, the Music widget's play button and the trend lines spill a wide, soft glow of their light onto it.
-- **Buttons and icons are solid.** On the widgets, after the solid button and icon references: the Music widget's
-  play / pause is solid in the song's colour, a shade lighter to the right, with no bloom; icon buttons (previous,
-  next, the Calendar's "+") are dark solid circles with a pale symbol; the weather bar's icons are solid, a little
-  darker than the line colour. In the app, after the Justice store's buttons (without their glow): the main action and
-  what's on (the chosen SBB mode, the converter's chosen chip, the FX badge) are a deep shade of the song's colour
-  (amber gives a dark gold) with white text; other buttons, and the converter's swap, are near black. Their edge is a
+- **Buttons are solid, with a glass rim**, after the Justice store's buttons (without their glow), in the app and on
+  the widgets alike: the main action and what's on (the Music widget's play / pause, the chosen SBB mode, the
+  converter's chosen chip, the FX badge) are a deep shade of the song's colour (amber gives a dark gold) with white
+  text or symbol; other buttons (the Music widget's previous and next, the Calendar's "+", the converter's swap and
+  the app's other buttons) are near black, their symbols pale. No glow under any of them. The weather bar's icons are
+  solid, a little darker than the line colour. Their edge is a
   glass rim (`Theme.glassEdge`), not a flat border: light caught by the glass's edge, brightest at the top left,
   fading almost to nothing across the top middle and the bottom left, and coming back, softer, at the bottom right
   (measured off the store's "Shop all" button; fuller on the lit buttons). Every control has the same 12 dp corners,
@@ -106,17 +106,17 @@ stays at Friday's close.
   white) are soft text tinted by it, and the settings screen and the converter are drawn in it too (redrawn when the song changed while
   they were away). Only the clocks' sun bands keep their own day, golden-hour, blue-hour and night colours, and
   amber still means "needs attention" on the settings screen.
-- **A colour fringe on the brightest things** (`Lens`): the Music widget's progress point, the trend lines, all text,
-  the Sound widget's lit lamps, its record's rim and the line of light at the sleeve's mouth have the red and blue
+- **A colour fringe on the brightest things** (`Lens`): the Music widget's progress point, the trend lines, the
+  Sound widget's lit lamps, its record's rim and the line of light at the sleeve's mouth have the red and blue
   edge a real lens gives a bright light (chromatic aberration), restrained (1.1 dp apart, 65% strong). Straight lines
   (the progress line and its ticks, the trend lines, the line at the sleeve's mouth) get only a trace of it, as a line
   pulled sideways gets a whole red and blue copy beside it. Never on the album art or solid buttons.
-- **Light sources in a hazy room.** What gives light (the lamps, the record, the trend lines, the SBB clock's face)
-  is drawn as light in a dark, hazy room, not as a brighter picture: bloom, a tight halo, soft edges.
-- **No text glows; all text has a subtle lens fringe instead** (`Lens`): every widget's text (the Sound and Music
-  widgets' words and today's calendar tile included) and all the app's text (titles, body, buttons, lists, inputs) has
-  a faint red edge on one side of the letters and a blue one on the other, gentler than on the bright things (0.6 dp
-  apart, 28% strong). The world clocks' day, time and city stay white whatever is playing. Today in the calendar sits
+- **Light sources in a hazy room.** What gives light (the lamps, the record, the trend lines, the SBB clock's face,
+  the world clocks' sun bands) is drawn as light in a dark, hazy room, not as a brighter picture: bloom, a tight
+  halo, soft edges. The sun bands (day, golden hour, blue hour, night) have a brighter core, their light rising off
+  them into the glass, a trace of the fringe along their top, and halation when the look has it.
+- **Text has no effects**: no glow and no fringe, on the widgets or in the app; it's just the Carbon+ letters in
+  their colour. The world clocks' day, time and city stay white whatever is playing. Today in the calendar sits
   on a solid tile in the song's colour, covering its day name and number.
 - **What a camera does to light, kept subtle** (`Optics`), after the glass-on-black references and the filters that
   make those looks on a real camera:
