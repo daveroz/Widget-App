@@ -3,7 +3,6 @@ package app.currencyexchange.widget;
 import android.graphics.Bitmap;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
@@ -13,11 +12,10 @@ import android.util.LruCache;
 
 
 /**
- * The panels the widgets sit on, after the minimal references: OLED black, lit by one restrained pool of the light
- * ({@link #night}), with an edge lit in the light rather than a solid border ({@link #rim}), as on the glowing cards.
- * Where the light sits and how the edge is lit depend on the chosen {@link Look}; on Glass the black is smoked glass
- * with the light far behind it, out of focus. The light is the colour of what's playing ({@link Ambience}), so every
- * widget shares it. No gloss, no grain.
+ * The panels the widgets sit on, in the Glass look ({@link Look}): near OLED black smoked glass with the light far
+ * behind it, out of focus ({@link #night}), and an edge lit in the light rather than a solid border ({@link #rim}),
+ * swept in from the top left corner. The light is the colour of what's playing ({@link Ambience}), so every widget
+ * shares it. No gloss, no grain.
  */
 final class Stage {
     private Stage() {}
@@ -29,8 +27,8 @@ final class Stage {
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(14);
 
     /**
-     * A panel: its rounded shape ({@code radii}, 8 values in pixels) filled with {@code fill} and lit by the look's pool
-     * of the light, which swells with {@code bass} (0 to 1, the Sound widget's). The canvas is left clipped to the shape
+     * A panel: its rounded shape ({@code radii}, 8 values in pixels) filled with {@code fill}, smoked, with the light
+     * behind it, which swells with {@code bass} (0 to 1, the Sound widget's). The canvas is left clipped to the shape
      * for drawing more inside it (call {@code c.restore()} after).
      */
     static void night(Canvas c, RectF box, float[] radii, Scene scene, int fill, float bass) {
@@ -44,35 +42,22 @@ final class Stage {
         pool(c, box, scene, bass);
     }
 
-    /** The look's pool of the light on a panel (inside its clip). */
+    /** Smoked glass, with the light far behind it, out of focus: a few soft blurs of it (inside the panel's clip). */
     private static void pool(Canvas c, RectF box, Scene scene, float bass) {
-        Look look = Look.get();
-        float w = box.width(), h = box.height(), big = Math.max(w, h);
-        float s = 0.12f * look.pool * (1f + 0.6f * bass);
+        float w = box.width(), h = box.height(), sh = Math.min(w, h);
+        float s = 0.12f * Look.get().pool * (1f + 0.6f * bass);
         Paint p = new Paint(Paint.DITHER_FLAG);
-        switch (look.id) {
-            case Look.OPTIC: // a breath of the light in the top right corner, the rest flat black
-                glow(c, p, box.left + w * 0.92f, box.top, big * 0.5f, big * 0.5f, scene.deep, s);
-                break;
-            case Look.GLASS: { // smoked glass, with the light far behind it, out of focus: a few soft blurs of it
-                p.setColor(Scene.alpha(0xFF8A8078, 0.03f)); // the smoke
-                c.drawRect(box, p);
-                float sh = Math.min(w, h);
-                int pale = Scene.mix(scene.key, 0xFFFFFFFF, 0.45f);
-                // x, y (share of the panel), radius (share of its short side), stretch across, strength, tone
-                float[][] lights = {{0.1f, 0.86f, 0.8f, 1.4f, 0.9f, 0}, {0.58f, 0.06f, 0.55f, 1.6f, 0.55f, 1},
-                        {0.95f, 0.7f, 0.62f, 1.25f, 0.8f, 2}, {0.36f, 0.48f, 0.34f, 1.1f, 0.4f, 1},
-                        {0.76f, 0.28f, 0.26f, 1f, 0.35f, 0}};
-                for (float[] l : lights) {
-                    int colour = l[5] == 1 ? pale : l[5] == 2 ? scene.deep : scene.key;
-                    float r = sh * l[2];
-                    bokeh(c, p, box.left + w * l[0], box.top + h * l[1], r * l[3], r, colour, s * l[4]);
-                }
-                break;
-            }
-            default: // Haze: light falling from above, pooling under the top edge
-                glow(c, p, box.centerX(), box.top - h * 0.15f, w * 0.7f, h, scene.deep, s);
-                break;
+        p.setColor(Scene.alpha(0xFF8A8078, 0.03f)); // the smoke
+        c.drawRect(box, p);
+        int pale = Scene.mix(scene.key, 0xFFFFFFFF, 0.45f);
+        // x, y (share of the panel), radius (share of its short side), stretch across, strength, tone
+        float[][] lights = {{0.1f, 0.86f, 0.8f, 1.4f, 0.9f, 0}, {0.58f, 0.06f, 0.55f, 1.6f, 0.55f, 1},
+                {0.95f, 0.7f, 0.62f, 1.25f, 0.8f, 2}, {0.36f, 0.48f, 0.34f, 1.1f, 0.4f, 1},
+                {0.76f, 0.28f, 0.26f, 1f, 0.35f, 0}};
+        for (float[] l : lights) {
+            int colour = l[5] == 1 ? pale : l[5] == 2 ? scene.deep : scene.key;
+            float r = sh * l[2];
+            bokeh(c, p, box.left + w * l[0], box.top + h * l[1], r * l[3], r, colour, s * l[4]);
         }
     }
 
@@ -90,25 +75,11 @@ final class Stage {
         p.setShader(null);
     }
 
-    /** A soft oval of {@code colour}, {@code strength} strong at its middle, fading to nothing at its edge. */
-    private static void glow(Canvas c, Paint p, float x, float y, float rx, float ry, int colour, float strength) {
-        android.graphics.Matrix m = new android.graphics.Matrix();
-        RadialGradient g = new RadialGradient(0, 0, 1, new int[]{Scene.alpha(colour, strength),
-                Scene.alpha(colour, strength * 0.35f), colour & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP);
-        m.setScale(rx, ry);
-        m.postTranslate(x, y);
-        g.setLocalMatrix(m);
-        p.setShader(g);
-        c.drawRect(x - rx, y - ry, x + rx, y + ry, p);
-        p.setShader(null);
-    }
-
     /**
      * The edge of a panel, just inside {@code box}, lit in the light instead of a solid border: a hairline in the
-     * line colour, strong where the light falls on it and fading away from there (Haze: along the top; Optic: at the
-     * four corners, over a faint hairline all round; Glass: swept in from the top left corner, from a small glowing
-     * node), a soft glow inside the card where it's brightest, and the faint red and blue fringe of a lens (red just
-     * outside, blue just inside). {@code px} is pixels per dp.
+     * line colour, brightest at the top left corner where the light comes in and sweeping along both edges from there,
+     * fading out by the far corner, a soft glow inside the card where it's brightest, and the faint red and blue
+     * fringe of a lens (red just outside, blue just inside). {@code px} is pixels per dp.
      */
     static void rim(Canvas c, RectF box, float[] radii, Scene scene, float px) {
         Look look = Look.get();
@@ -126,8 +97,7 @@ final class Stage {
         p.setStrokeWidth(8 * px);
         p.setMaskFilter(new BlurMaskFilter(7 * px, BlurMaskFilter.Blur.NORMAL));
         Path middle = inset(box, radii, at);
-        float inner = look.id == Look.HAZE ? 0.45f : 0.32f; // Haze: light rising off its top edge into the card
-        for (Shader s : light(look, box, radii, scene.deep, inner * look.bloom)) {
+        for (Shader s : light(box, scene.deep, 0.32f * look.bloom)) {
             p.setShader(s);
             c.drawPath(middle, p);
         }
@@ -137,79 +107,35 @@ final class Stage {
         p.setStrokeWidth(line);
         if (look.edgeFringe > 0f) {
             Path outside = inset(box, radii, at - apart), inside = inset(box, radii, at + apart);
-            for (Shader s : light(look, box, radii, RED, look.edgeFringe)) {
+            for (Shader s : light(box, RED, look.edgeFringe)) {
                 p.setShader(s);
                 c.drawPath(outside, p);
             }
-            for (Shader s : light(look, box, radii, BLUE, look.edgeFringe)) {
+            for (Shader s : light(box, BLUE, look.edgeFringe)) {
                 p.setShader(s);
                 c.drawPath(inside, p);
             }
         }
-        if (look.id == Look.OPTIC) { // the faint hairline all round, under the lit corners
-            p.setShader(null);
-            p.setColor(Scene.alpha(scene.line, 0.14f));
-            c.drawPath(middle, p);
-        }
-        for (Shader s : light(look, box, radii, scene.line, 1f)) {
+        for (Shader s : light(box, scene.line, 1f)) {
             p.setShader(s);
             c.drawPath(middle, p);
         }
-        if (look.id == Look.GLASS) node(c, box.left + Math.max(radii[0], 10 * px), box.top + at, scene, px, look.bloom);
     }
 
-    /** A small glowing node on a line, as on the cypher's line work: an LED-white core, a tight halo, a soft bloom. */
-    static void node(Canvas c, float x, float y, Scene scene, float px, float bloom) {
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setColor(Scene.alpha(scene.deep, Math.min(1f, 0.55f * bloom)));
-        p.setMaskFilter(new BlurMaskFilter(4 * px, BlurMaskFilter.Blur.NORMAL));
-        c.drawCircle(x, y, 4 * px, p);
-        p.setColor(Scene.alpha(scene.hot, Math.min(1f, 0.7f * bloom)));
-        p.setMaskFilter(new BlurMaskFilter(1.4f * px, BlurMaskFilter.Blur.NORMAL));
-        c.drawCircle(x, y, 2.2f * px, p);
-        p.setMaskFilter(null);
-        p.setColor(scene.led);
-        c.drawCircle(x, y, 1.3f * px, p);
-    }
-
-    /** How the light falls on the edge, in {@code colour}, {@code strength} strong at its brightest: one shader or more. */
-    private static Shader[] light(Look look, RectF box, float[] radii, int colour, float strength) {
-        float w = box.width(), h = box.height();
-        switch (look.id) {
-            case Look.OPTIC: { // each corner's bend catches the light, fading out along the straight edges
-                float[][] corners = {{box.left, box.top, radii[0]}, {box.right, box.top, -radii[2]},
-                        {box.right, box.bottom, -radii[4]}, {box.left, box.bottom, radii[6]}};
-                Shader[] out = new Shader[4];
-                for (int i = 0; i < 4; i++) {
-                    float r = Math.max(4f, Math.abs(corners[i][2]));
-                    float cx = corners[i][0] + (i == 0 || i == 3 ? r : -r);
-                    float cy = corners[i][1] + (i < 2 ? r : -r);
-                    float reach = r * 1.8f;
-                    out[i] = new RadialGradient(cx, cy, reach, new int[]{Scene.alpha(colour, 0.85f * strength),
-                            Scene.alpha(colour, 0.85f * strength), colour & 0x00FFFFFF},
-                            new float[]{0f, r / reach, 1f}, Shader.TileMode.CLAMP);
-                }
-                return out;
-            }
-            case Look.GLASS: { // in at the top left corner, sweeping along both edges; a faint answer at the far corner
-                float reach = (float) Math.hypot(w, h);
-                return new Shader[]{
-                        new RadialGradient(box.left, box.top, reach * 0.8f,
-                                new int[]{Scene.alpha(colour, 0.8f * strength), Scene.alpha(colour, 0.42f * strength),
-                                        Scene.alpha(colour, 0.1f * strength), Scene.alpha(colour, 0.04f * strength)},
-                                new float[]{0f, 0.2f, 0.5f, 1f}, Shader.TileMode.CLAMP),
-                        new RadialGradient(box.right, box.bottom, reach * 0.3f,
-                                new int[]{Scene.alpha(colour, 0.16f * strength), colour & 0x00FFFFFF},
-                                null, Shader.TileMode.CLAMP)};
-            }
-            default: // Haze: lit from above, brightest along the top, fading down the sides, barely there at the foot
-                return new Shader[]{new LinearGradient(0, box.top, 0, box.bottom,
-                        new int[]{Scene.alpha(colour, 0.85f * strength), Scene.alpha(colour, 0.42f * strength),
-                                Scene.alpha(colour, 0.12f * strength), Scene.alpha(colour, 0.05f * strength),
-                                Scene.alpha(colour, 0.07f * strength)},
-                        new float[]{0f, Math.min(0.4f, Math.max(0.06f, radii[0] / Math.max(1f, h))), 0.46f, 0.82f, 1f},
-                        Shader.TileMode.CLAMP)};
-        }
+    /**
+     * How the light falls on the edge, in {@code colour}, {@code strength} strong at its brightest: in at the top left
+     * corner, sweeping along both edges from there, with a faint answer at the far corner.
+     */
+    private static Shader[] light(RectF box, int colour, float strength) {
+        float reach = (float) Math.hypot(box.width(), box.height());
+        return new Shader[]{
+                new RadialGradient(box.left, box.top, reach * 0.8f,
+                        new int[]{Scene.alpha(colour, 0.8f * strength), Scene.alpha(colour, 0.42f * strength),
+                                Scene.alpha(colour, 0.1f * strength), Scene.alpha(colour, 0.04f * strength)},
+                        new float[]{0f, 0.2f, 0.5f, 1f}, Shader.TileMode.CLAMP),
+                new RadialGradient(box.right, box.bottom, reach * 0.3f,
+                        new int[]{Scene.alpha(colour, 0.16f * strength), colour & 0x00FFFFFF},
+                        null, Shader.TileMode.CLAMP)};
     }
 
     /** The rounded outline {@code by} pixels in from {@code box}, its corners following. */

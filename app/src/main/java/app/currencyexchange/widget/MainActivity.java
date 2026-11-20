@@ -42,8 +42,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Settings screen: black cards with lit edges over a dark stage, in the playing song's light and the chosen look (it's
- * drawn again when either changes). Cities and currencies are picked from lists.
+ * Settings screen: smoked-glass cards with lit edges over a dark stage, in the playing song's light (drawn again when
+ * the song changes). Cities and currencies are picked from lists.
  */
 public class MainActivity extends Activity {
     private TextView batStatus, batButton;
@@ -60,16 +60,14 @@ public class MainActivity extends Activity {
     private LinearLayout statusBox;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private StageView stage;
-    /** The light and look the screen was drawn in: when either has changed by the time it's back in front, it's redrawn. */
+    /** The light the screen was drawn in: when the song has changed by the time it's back in front, it's redrawn. */
     private String drawnIn;
-    private final TextView[] lookBtn = new TextView[3];
 
     private static final int REQ_ALL = 1;
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        Look.load(this);
         drawnIn = Theme.accent().tag();
 
         // The stage stays put behind the cards while they scroll over it.
@@ -104,37 +102,6 @@ public class MainActivity extends Activity {
         titles.addView(tagline);
         head.addView(titles);
         col.addView(head);
-
-        // ---- the look: three variations to try on the widgets (and this screen) before one is chosen ----
-        LinearLayout looks = card(col, "LOOK");
-        LinearLayout lookRow = hbox();
-        for (int i = 0; i < 3; i++) {
-            final int id = i;
-            lookBtn[i] = text(Look.NAMES[i], 13, Theme.uiSemi(this), Theme.TEXT_SOFT);
-            Theme.label(this, lookBtn[i]);
-            lookBtn[i].setLetterSpacing(0.12f);
-            lookBtn[i].setGravity(Gravity.CENTER);
-            lookBtn[i].setPadding(dp(6), dp(14), dp(6), dp(14));
-            lookBtn[i].setMinHeight(dp(48));
-            lookBtn[i].setClickable(true);
-            lookBtn[i].setContentDescription("Look: " + Look.NAMES[i]);
-            lookBtn[i].setOnClickListener(v -> {
-                if (Look.id() == id) return;
-                Look.set(this, id); // every widget is drawn again in it
-                recreate(); // and so is this screen
-            });
-            addWeighted(lookRow, lookBtn[i], i == 0 ? 0 : 8);
-        }
-        looks.addView(lookRow, matchWrap(0));
-        for (int i = 0; i < 3; i++) {
-            boolean on = Look.id() == i;
-            lookBtn[i].setTextColor(on ? 0xFFFFFFFF : Theme.MUTED);
-            lookBtn[i].setBackground(on ? Theme.lit(this, 14, false) : Theme.well(this, 14, false));
-        }
-        TextView lookHint = text(Look.NOTES[Look.id()] + " Every widget follows the song's colour in all three.",
-                12, Theme.uiMedium(this), Theme.DIM);
-        lookHint.setPadding(dp(2), dp(10), 0, 0);
-        looks.addView(lookHint);
 
         // ---- world clocks: pick from a list ----
         LinearLayout clocks = card(col, "WORLD CLOCKS");
@@ -347,7 +314,7 @@ public class MainActivity extends Activity {
         WidgetProvider.kick(app); // (re)start the per-minute clock alarms
         statusTicker.run();
         stage.setRunning(true);
-        // The song (or the look) changed while the screen was away: draw it again in the new light.
+        // The song changed while the screen was away: draw it again in the new light.
         ui.post(() -> {
             if (!isFinishing() && !Theme.accent().tag().equals(drawnIn)) recreate();
         });

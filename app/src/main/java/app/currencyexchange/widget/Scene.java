@@ -71,9 +71,9 @@ final class Scene {
         return other != null && key == other.key;
     }
 
-    /** What a cached picture drawn in this light depends on: its colour and the chosen look. */
+    /** What a cached picture drawn in this light depends on: its colour. */
     String tag() {
-        return Integer.toHexString(key) + "/" + Look.id();
+        return Integer.toHexString(key);
     }
 
     static int alpha(int colour, float a) {

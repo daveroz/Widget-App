@@ -71,23 +71,17 @@ trading session within 0.08 % of Colombia's official TRM. The daily snapshots us
 off on average, up to 1.2 % on days the market moved. On weekends the market is closed and the rate
 stays at Friday's close.
 
-## Visual language: OLED black, lit edges, the song's light, in three looks
-- **OLED black.** Every widget panel, the settings screen's cards and the converter sit on near-total black
-  (`#010203`), lit by one restrained pool of the light, after the minimal references (`Stage`). No frost, no gloss,
-  no grain; the app's room behind its cards is near black too, with two faint, slow washes of the light and no
-  lighting rig (the old row of chasing lamps along the top is gone).
-- **Lit edges instead of borders.** No card has a solid outline any more: its edge is a hairline in the song's line
-  colour, strong where the light falls on it and fading away from there, with a soft glow inside the card where it's
-  brightest (`Stage.rim`), as on the glowing cards reference. The cards keep their rounded-square shape (28 dp).
-- **Three looks to choose between** (Settings → Look, `Look`), each a reading of the references:
-  - *Haze* (Glow_Cards, Haze_Bloom_Text): light falling from above through haze. A pool of the light under each
-    card's top edge, the edge a luminous line brightest along the top, the big numbers and the header's icons
-    blooming softly, a faint colour fringe.
-  - *Optic* (Chromatic, Chromatic_2, Background_Minimalism): a lens on an instrument. Flat black, a faint hairline
-    whose four corners catch the light, a clear red and blue fringe there and on everything lit, crisp text.
-  - *Glass* (the cypher samples, Glow_Icon_Text): dark smoked glass with the light far behind it, out of focus, the
-    edge a fine line swept in from the top left corner from a small glowing node, lit things blooming like the
-    cypher's nodes.
+## Visual language: Glass: smoked glass on OLED black, lit edges, the song's light
+- **Smoked glass on OLED black** (the Glass look, chosen in 1.67 from three, after the two cypher samples and
+  Glow_Icon_Text; `Look`, `Stage`). Every widget panel, the settings screen's cards and the converter are
+  near-total black (`#010203`) under a faint smoke, with the song's light far behind the glass, out of focus: a few
+  soft blurs of it, one paler, one deeper. No frost, no gloss, no grain; the app's room behind its cards is near
+  black too, with two faint, slow washes of the light and no lighting rig (the old row of chasing lamps along the top
+  is gone).
+- **Lit edges instead of borders.** No card has a solid outline any more: its edge is a fine line in the song's line
+  colour, brightest at the top left corner where the light comes in, sweeping along both edges and fading out by the
+  far corner, with a soft glow inside the card where it's brightest (`Stage.rim`), as on the glowing cards
+  reference. The cards keep their rounded-square shape (28 dp).
 - **Everything follows the song.** The light is the colour of what's playing (`Ambience`): the album cover's primary
   colour, or the playing app's own, or Worldly's amber when nothing plays. Nothing decorative is fixed any more: the
   line colour (edges, rules, the weather bar's icons and dividers, section titles) is the song's colour paled towards
@@ -97,12 +91,12 @@ stays at Friday's close.
   amber still means "needs attention" on the settings screen.
 - **A colour fringe on the brightest things** (`Lens`): today in the calendar, the Music widget's play button and
   progress point, the trend lines, the lit edges, the Sound widget's lit lamps, its record's rim and the line of light
-  at the sleeve's mouth have the red and blue edge a real lens gives a bright light (chromatic aberration), as strong
-  as the look asks. Never on text, never on the album art.
+  at the sleeve's mouth have the red and blue edge a real lens gives a bright light (chromatic aberration), restrained.
+  Never on text, never on the album art.
 - **Light sources in a hazy room.** What gives light is drawn as light in a dark, hazy room, not as a brighter
   picture: bloom, a tight halo, soft edges. The Sound and Music widgets' text glows (`Glow`); on the Currency and
-  Calendar widgets only the big numbers (the clock times, the day number) bloom, and only on the looks that ask for
-  it; the rest of their text is plain. Today in the calendar sits in a large lit ring with room round its number.
+  Calendar widgets only the big numbers (the clock times, the day number) bloom, softly, and the small icons (the
+  weather bar's, the Calendar's "+") glow; the rest of their text is plain. Today in the calendar sits in a large lit ring with room round its number.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 
 The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,
@@ -126,8 +120,8 @@ Sound widget: `NowPlaying` reads the playing media session (through `MediaListen
 wall of lamps (`Airstream` its motion when nothing plays), `SoundRecord` the LP, `SoundPicture` lays out one widget's picture, `Scene` and `Colours` give its
 light, and `SoundWidgetProvider` + `LiveService` send the frames. Music widget: `PlayerPicture` and
 `PlayerWidgetProvider` (controls drawn by `SoundControls`), updated by `MediaListener`. `Words` writes what's playing
-for both; `Stage` is the panel every widget sits on (its black, its pool of light and its lit edge), `Look` the three
-looks, `Ambience` the light they share, `Glow` how text and lit things glow in it, and `Lens` the colour fringe on the
+for both; `Stage` is the panel every widget sits on (its black, its pool of light and its lit edge), `Look` how strong
+each effect of the Glass look is, `Ambience` the light they share, `Glow` how text and lit things glow in it, and `Lens` the colour fringe on the
 brightest things.
 Layout units are the 750-wide grid of the original preset.
 
