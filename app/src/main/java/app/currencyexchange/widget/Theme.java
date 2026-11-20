@@ -175,19 +175,89 @@ final class Theme {
 
     /**
      * Something that's on, or the main action, after the Justice store's gold button (without its glow): solid, in a
-     * deep shade of the song's colour, with a lighter edge of it, a hairline all round; white text. A small light strike
-     * where its edge catches the light. The same size and corners as everything else, on or off.
+     * deep shade of the song's colour, with a glass rim in a light shade of it ({@link #glassEdge}); white text. A small
+     * light strike where its rim catches the light. The same size and corners as everything else, on or off.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
         Scene s = accent();
         int fill = litFill(s);
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.1f) : fill);
-        g.setStroke(Math.max(1, Math.round(dp(c, 1))), Scene.alpha(Scene.mix(s.key, 0xFFD8D0C4, 0.5f), 0.6f));
-        g.setCornerRadius(dp(c, radiusDp));
+        Drawable g = new GlassButton(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.1f) : fill, dp(c, radiusDp), dp(c, 1.2f),
+                Scene.mix(s.key, 0xFFFFF4E6, 0.55f), LIT_RIM, false);
         if (pressed) return g;
-        // where its edge catches the light, at the top left bend: a small light strike (the outline stays the button's)
+        // where its rim catches the light, at the top left bend: a small light strike (the outline stays the button's)
         return new android.graphics.drawable.LayerDrawable(new Drawable[]{g, new Glint(dp(c, radiusDp), dp(c, 1), s.hot)});
+    }
+
+    /**
+     * How strong a glass rim is along its length ({@link #glassEdge}): a dark button's, measured off the Justice store's
+     * "Shop all" button (white over its near black), and a lit button's, fuller.
+     */
+    private static final float[] DARK_RIM = {0.27f, 0.2f, 0.06f, 0.03f, 0.06f, 0.13f, 0.15f};
+    private static final float[] LIT_RIM = {0.8f, 0.66f, 0.36f, 0.28f, 0.34f, 0.5f, 0.56f};
+    /** Where along the rim each strength is, from its top left (0) round to its bottom right (1). */
+    private static final float[] RIM_AT = {0f, 0.2f, 0.35f, 0.5f, 0.65f, 0.8f, 1f};
+
+    /**
+     * A glass rim's colour along its length, after the Justice store's buttons: not a flat border but light caught by the
+     * glass's edge, brightest at the top left, fading almost to nothing across the top middle and the bottom left, and
+     * coming back, softer, at the bottom right where the light reflects inside the glass. A gradient at 45° across
+     * {@code box} (the way CSS draws "135deg"), in {@code colour}, {@code alphas} strong at {@link #RIM_AT}.
+     */
+    static android.graphics.Shader glassEdge(RectF box, int colour, float[] alphas) {
+        float cx = box.centerX(), cy = box.centerY(), q = (box.width() + box.height()) / 4f;
+        int[] colours = new int[alphas.length];
+        for (int i = 0; i < alphas.length; i++) colours[i] = Scene.alpha(colour, alphas[i]);
+        return new android.graphics.LinearGradient(cx - q, cy - q, cx + q, cy + q, colours, RIM_AT,
+                android.graphics.Shader.TileMode.CLAMP);
+    }
+
+    /** A button: a solid fill in its rounded shape (or round), with a glass rim ({@link #glassEdge}). */
+    private static final class GlassButton extends Drawable {
+        private final int fill, edge;
+        private final float radius, stroke;
+        private final float[] rim;
+        private final boolean round;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+        private final RectF box = new RectF();
+
+        GlassButton(int fill, float radius, float stroke, int edge, float[] rim, boolean round) {
+            this.fill = fill;
+            this.radius = radius;
+            this.stroke = Math.max(1f, stroke);
+            this.edge = edge;
+            this.rim = rim;
+            this.round = round;
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect b = getBounds();
+            if (b.width() <= 0 || b.height() <= 0) return;
+            box.set(b);
+            float r = round ? Math.min(b.width(), b.height()) / 2f : Math.min(radius, b.height() / 2f);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setShader(null);
+            paint.setColor(fill);
+            canvas.drawRoundRect(box, r, r, paint);
+            float in = stroke / 2;
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(stroke);
+            paint.setShader(glassEdge(box, edge, rim));
+            box.inset(in, in);
+            canvas.drawRoundRect(box, r - in, r - in, paint);
+            paint.setShader(null);
+        }
+
+        @Override
+        public void getOutline(android.graphics.Outline outline) {
+            Rect b = getBounds();
+            float r = round ? Math.min(b.width(), b.height()) / 2f : Math.min(radius, b.height() / 2f);
+            outline.setRoundRect(b, r);
+        }
+
+        @Override public void setAlpha(int alpha) { }
+        @Override public void setColorFilter(ColorFilter cf) { }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
     /** A lit button's fill: the song's colour, deep (amber becomes the Justice button's dark gold). */
@@ -234,29 +304,23 @@ final class Theme {
     }
 
     /**
-     * A button that's off, or a quieter action, after the Justice store's dark button: near black (a breath of the song's
-     * colour) with a grey hairline edge.
+     * A button that's off, or a quieter action, after the Justice store's dark buttons: near black (a breath of the
+     * song's colour) with a glass rim ({@link #glassEdge}) in a warm white.
      */
     static Drawable dark(Context c, float radiusDp, boolean pressed) {
-        GradientDrawable g = darkFill(c, pressed);
-        g.setCornerRadius(dp(c, radiusDp));
-        return g;
+        return darkButton(c, radiusDp, pressed, false);
     }
 
     /** A round icon button in the app (the converter's swap): a dark button ({@link #dark}), round. */
     static Drawable iconButton(Context c, boolean pressed) {
-        GradientDrawable g = darkFill(c, pressed);
-        g.setShape(GradientDrawable.OVAL);
-        return g;
+        return darkButton(c, 0, pressed, true);
     }
 
-    private static GradientDrawable darkFill(Context c, boolean pressed) {
+    private static Drawable darkButton(Context c, float radiusDp, boolean pressed, boolean round) {
         Scene s = accent();
         int fill = Scene.mix(0xFF17191A, s.key, 0.04f);
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.06f) : fill);
-        g.setStroke(Math.max(1, Math.round(dp(c, 1))), Scene.mix(0xFF3B3E40, s.line, 0.12f));
-        return g;
+        return new GlassButton(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.06f) : fill, dp(c, radiusDp), dp(c, 1.2f),
+                Scene.mix(0xFFF3ECE8, s.line, 0.15f), DARK_RIM, round);
     }
 
     /** An icon button's dark fill: the song's colour, deep and dark. */

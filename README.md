@@ -86,11 +86,14 @@ stays at Friday's close.
   next, the Calendar's "+") are dark solid circles with a pale symbol; the weather bar's icons are solid, a little
   darker than the line colour. In the app, after the Justice store's buttons (without their glow): the main action and
   what's on (the chosen SBB mode, the converter's chosen chip, the FX badge) are a deep shade of the song's colour
-  (amber gives a dark gold) with a lighter edge of it and white text; other buttons, and the converter's swap, are
-  near black with a grey hairline edge. Every control has the same 12 dp corners, on or off.
+  (amber gives a dark gold) with white text; other buttons, and the converter's swap, are near black. Their edge is a
+  glass rim (`Theme.glassEdge`), not a flat border: light caught by the glass's edge, brightest at the top left,
+  fading almost to nothing across the top middle and the bottom left, and coming back, softer, at the bottom right
+  (measured off the store's "Shop all" button; fuller on the lit buttons). Every control has the same 12 dp corners,
+  on or off.
 - **The settings screen's header is a bar of frosted glass** (`GlassBar`), after the Justice store's header: it floats
   at the top while the cards scroll under it, and they show through it heavily blurred, under a translucent dark grey
-  with a faint sheen and a light hairline border all round. What's behind is drawn small, blurred and stretched back
+  with a faint sheen and the same glass rim as the buttons, brighter all round. What's behind is drawn small, blurred and stretched back
   up, again after every scroll and now and then for the room's drifting light. Only in the app; the widgets can't see
   what's behind them.
 - **Hairline edges instead of borders.** No card has a solid outline: its edge is a hairline in a pale shade of the

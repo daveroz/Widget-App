@@ -13,8 +13,8 @@ import android.widget.LinearLayout;
 
 /**
  * A bar of frosted glass floating at the top of the settings screen, after the Justice store's header: the cards
- * scroll under it and show through, heavily blurred, under a translucent dark grey, with a light hairline border all
- * round and a faint sheen along its top. Its corner catches the light like every card's ({@link Optics#catchlight}).
+ * scroll under it and show through, heavily blurred, under a translucent dark grey, with a glass rim (light caught by
+ * its edge, brightest at the top left) and a faint sheen along its top. Its corner catches the light like every card's ({@link Optics#catchlight}).
  * <p>
  * What's behind it is drawn small ({@link #DOWN} times smaller), blurred, and stretched back up: drawn again after
  * every scroll, and now and then for the room's slowly drifting light.
@@ -26,6 +26,8 @@ final class GlassBar extends LinearLayout {
     private static final int BLUR = 3;
     /** The room's light drifts slowly: what shows through catches up this often even when nothing scrolls. */
     private static final long DRIFT_MS = 700;
+    /** How strong its rim is along its length (see {@link Theme#glassEdge}). */
+    private static final float[] RIM = {0.55f, 0.46f, 0.3f, 0.24f, 0.28f, 0.36f, 0.4f};
 
     private final View room;
     private final float radius, px;
@@ -122,11 +124,12 @@ final class GlassBar extends LinearLayout {
         paint.setShader(new LinearGradient(0, 0, 0, h * 0.6f, 0x14FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
         canvas.drawRect(box, paint);
         canvas.restore();
-        // its border: a light hairline all round, a little brighter along the top
+        // its rim: light caught by the glass's edge, brightest at the top left and back, softer, at the bottom right
+        // (as the buttons'; see Theme.glassEdge), never fading as far as theirs
         int line = Scene.mix(0xFFFFFFFF, s.line, 0.2f);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(Math.max(1f, px));
-        paint.setShader(new LinearGradient(0, 0, 0, h, Scene.alpha(line, 0.42f), Scene.alpha(line, 0.24f), Shader.TileMode.CLAMP));
+        paint.setStrokeWidth(Math.max(1f, 1.2f * px));
+        paint.setShader(Theme.glassEdge(box, line, RIM));
         canvas.drawPath(edge, paint);
         paint.setShader(null);
         paint.setStyle(Paint.Style.FILL);
