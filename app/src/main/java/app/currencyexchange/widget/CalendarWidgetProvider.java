@@ -238,7 +238,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         } else {
             rv.setViewVisibility(R.id.cal_more, android.view.View.GONE);
         }
-        rv.setOnClickPendingIntent(R.id.panel, TapActivity.wrap(ctx, 26, "calendar", open));
+        rv.setOnClickPendingIntent(R.id.panel, open);
         rv.setOnClickPendingIntent(R.id.btn_add, add);
         return rv;
     }
@@ -261,7 +261,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return b;
     }
 
-    /** The panel picture for a widget: the black panel lit by the shared light, with its lit edge, at its real size. */
+    /** The widget's card picture (see {@link Stage#panel}), at its real size on the home screen. */
     private static android.graphics.Bitmap background(Context ctx, AppWidgetManager awm, int id, int fallbackHeightDp) {
         Bundle o = awm.getAppWidgetOptions(id);
         boolean land = ctx.getResources().getConfiguration().orientation
@@ -275,8 +275,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         Scene scene = Ambience.scene();
         int col = LocalDate.now().getDayOfWeek().getValue() % 7;
         Stage.Spill today = new Stage.Spill(20 + (col + 0.5f) * (w - 40) / 7f, 87, 40, scene.key, 0.26f * Look.get().bloom);
-        return Stage.panel(scene, w, h, 1.25f, Stage.round(28), Stage.NIGHT,
-                Backdrop.behind(ctx, "calendar", w, h, 0, 0, w, h), new Stage.Spill[]{today}, true);
+        return Stage.panel(scene, w, h, 1.25f, Stage.round(28), new Stage.Spill[]{today}, true);
     }
 
     private static PendingIntent broadcast(Context ctx, String action, int code) {

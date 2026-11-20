@@ -102,12 +102,10 @@ final class CurrencyView {
         // The text is plain, in its own colours (no glow, no tint).
         int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED;
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
-        // the clocks card's frosted glass, behind the weather strip and the clocks (116 dp tall: its 1 dp padding, the
-        // 30 dp strip, the 84 dp clocks); the flags fade into it
-        int contentH = heightFor(k);
-        rv.setImageViewBitmap(R.id.clk_glass, Stage.panel(scene, rowW, 116, 1.5f, Stage.round(28), Stage.NIGHT,
-                Backdrop.behind(ctx, "currency", rowW, contentH, 0, 0, rowW, 116), null, false));
-        // the clocks card's lit edge, over the card (116 dp tall: its 1 dp padding, the 30 dp strip, the 84 dp clocks)
+        // the clocks card's fill, behind the weather strip and the clocks (116 dp tall: its 1 dp padding, the 30 dp strip,
+        // the 84 dp clocks); the flags fade into it
+        rv.setImageViewBitmap(R.id.clk_glass, Stage.panel(scene, rowW, 116, 1.5f, Stage.round(28), null, false));
+        // the clocks card's edge, over the card (116 dp tall: its 1 dp padding, the 30 dp strip, the 84 dp clocks)
         rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(scene, Math.round(rowW * 1.5f), Math.round(116 * 1.5f),
                 Stage.round(28 * 1.5f), 1.5f));
         // the strip's dividers in the song's line colour
@@ -187,9 +185,7 @@ final class CurrencyView {
             // the row's panel in the shared light, with the last month as a soft area chart over it and the row's lit
             // edge (the picture fills the row)
             double[][] trend = Trend.series(hist, from, market);
-            // row i sits under the 116 dp clocks card and a 7 dp gap, one row and gap below the last
-            Backdrop.Behind behind = Backdrop.behind(ctx, "currency", rowW, contentH, 0, 123 + 61 * i, rowW, ROW_DP);
-            rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW, ROW_DP, scene, i % 2 == 0, behind));
+            rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW, ROW_DP, scene));
             rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), tight(reg, CITY_SP, "Market", scene.quiet));
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), tight(reg, HEADER_SP, Util.fmt0(market), white));

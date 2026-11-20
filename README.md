@@ -30,9 +30,6 @@ the widgets and settings, so add them again afterwards.
 2. Open **Worldly**, check cities / currencies / fee, tap **Save & refresh**.
 3. Tap **Use my location for weather** (or type a home city).
 4. Tap **Add widget to home screen**.
-5. Optional: under Permissions, tap **Allow wallpaper glass** so each widget's glass shows your wallpaper behind it,
-   blurred (Android files reading the wallpaper under "All files access"; Worldly reads nothing else). Then tap each
-   widget once, so its glass lines up with where it sits.
 The status text at the bottom of the settings screen shows what worked and what failed
 (cities, market rate, Visa, weather).
 
@@ -74,35 +71,26 @@ trading session within 0.08 % of Colombia's official TRM. The daily snapshots us
 off on average, up to 1.2 % on days the market moved. On weekends the market is closed and the rate
 stays at Friday's close.
 
-## Visual language: Glass: frosted smoky glass, lit edges, hazy text, the song's light
-- **Frosted smoky glass over the wallpaper** (the Glass look, chosen in 1.67 from three, after the two cypher samples
-  and Glow_Icon_Text; `Look`, `Stage`, `Backdrop`). Each widget's glass shows the phone's own wallpaper behind it,
-  heavily blurred and dimmed (more over a bright wallpaper, so the text reads), with the song's light far behind
-  the glass, out of focus (soft blurred shapes of it, like windows of light seen through frost), under a milky veil
-  of smoke warmed by it, thicker towards the bottom left. Android doesn't let a widget blur what's behind it, so
-  Worldly reads the wallpaper itself (with "All files access" on Android 11 and up; nothing else is read), blurs it
-  once per wallpaper, and gives each panel the part behind it. A widget can't ask where it is on the screen, but each
-  tap on it says where it was tapped, so its glass lines up the first time it's tapped (a tap passes through
-  `TapActivity`, unseen); until then it assumes the middle of the screen. Without the wallpaper (not allowed, or a
-  live wallpaper) the glass takes the wallpaper's own colours, which Android gives every app. The currency rows each
-  move the song's lights about so they don't repeat, and the world clocks' flags fade down into the clocks card's
-  glass. No gloss, no grain.
-- **Light falls on the glass.** As on the cypher samples, bright things light the glass behind them: today's tile in
+## Visual language: see-through cards, hazy text, the song's light
+- **Cards, the widgets and the app's alike** (`Stage`), after the glowing card reference: near black, with just a
+  hint of the song's colour towards the right and a faint glow of it there, a faint sheen along the top, and a
+  hairline edge that's light at the top left and fades round. On the widgets the black is mildly see-through (62%),
+  so the home screen shows faintly through it; the app's cards (settings, the pickers, the converter) are nearly
+  opaque, and their titles glow softly in the light. The world clocks' flags fade down into their card. No grain. The
+  app's room behind its cards is near black, with two faint, slow washes of the light and no lighting rig (the old
+  row of chasing lamps along the top is gone).
+- **Light falls on the cards.** As on the cypher samples, bright things light the card behind them: today's tile in
   the calendar, the Music widget's play button and the trend lines spill a wide, soft glow of their light onto it; in
   the app, solid buttons cast a soft glow of their colour on the card under them. The app's room behind its cards is near black, with two faint, slow washes
   of the light and no lighting rig (the old row of chasing lamps along the top is gone).
-- **The app's cards** (settings, the pickers, the converter), after the glowing card reference: near black, with just
-  a hint of the song's colour towards the right, a hairline edge that's light at the top left and fades round, and a
-  faint sheen along the top. Their titles glow softly in the light.
 - **Buttons and icons are solid**, after the solid button and icon references: the main action, what's on (the
   chosen SBB mode, the chosen converter chip) and the Music widget's play / pause are solid in the song's colour, a
   shade lighter to the right, with no bloom; other buttons are dark and solid; icon buttons (previous, next, the
   Calendar's "+", the converter's swap) are dark solid circles with a pale symbol; the weather bar's icons are solid,
   a little darker than the line colour. Every control has the same 12 dp corners, on or off.
-- **Lit edges instead of borders.** No card has a solid outline any more: its edge is a fine line in the song's line
-  colour, brightest at the top left corner where the light comes in, sweeping along both edges and fading out by the
-  far corner, with a soft glow inside the card where it's brightest (`Stage.rim`), as on the glowing cards
-  reference. The cards keep their rounded-square shape (28 dp).
+- **Hairline edges instead of borders.** No card has a solid outline: its edge is a hairline in a pale shade of the
+  song's line colour, light at the top left and fading round the card (`Stage.rim`). The cards keep their
+  rounded-square shape (28 dp on the widgets).
 - **Everything follows the song.** The light is the colour of what's playing (`Ambience`): the album cover's primary
   colour, or the playing app's own, or Worldly's amber when nothing plays. Nothing decorative is fixed any more: the
   line colour (edges, rules, the weather bar's icons and dividers, section titles) is the song's colour paled towards
@@ -110,8 +98,8 @@ stays at Friday's close.
   white) are soft text tinted by it, and the settings screen and the converter are drawn in it too (redrawn when the song changed while
   they were away). Only the clocks' sun bands keep their own day, golden-hour, blue-hour and night colours, and
   amber still means "needs attention" on the settings screen.
-- **A colour fringe on the brightest things** (`Lens`): the Music widget's progress point, the trend lines, the lit
-  edges, the Sound widget's lit lamps, its record's rim and the line of light at the sleeve's mouth have the red and
+- **A colour fringe on the brightest things** (`Lens`): the Music widget's progress point, the trend lines, the
+  Sound widget's lit lamps, its record's rim and the line of light at the sleeve's mouth have the red and
   blue edge a real lens gives a bright light (chromatic aberration), restrained. Never on text, never on the album
   art, never on solid buttons.
 - **Light sources in a hazy room.** What gives light is drawn as light in a dark, hazy room, not as a brighter
@@ -143,8 +131,8 @@ Sound widget: `NowPlaying` reads the playing media session (through `MediaListen
 wall of lamps (`Airstream` its motion when nothing plays), `SoundRecord` the LP, `SoundPicture` lays out one widget's picture, `Scene` and `Colours` give its
 light, and `SoundWidgetProvider` + `LiveService` send the frames. Music widget: `PlayerPicture` and
 `PlayerWidgetProvider` (controls drawn by `SoundControls`), updated by `MediaListener`. `Words` writes what's playing
-for both; `Stage` is the panel every widget sits on (its black, its pool of light and its lit edge), `Look` how strong
-each effect of the Glass look is, `Ambience` the light they share, `Glow` how text and lit things glow in it, and `Lens` the colour fringe on the
+for both; `Stage` the card every widget and the app sits on, `Look` how strong each
+effect is, `Ambience` the light they share, `Glow` how text and lit things glow in it, and `Lens` the colour fringe on the
 brightest things.
 Layout units are the 750-wide grid of the original preset.
 

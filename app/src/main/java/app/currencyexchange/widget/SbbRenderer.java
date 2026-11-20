@@ -20,8 +20,8 @@ import java.time.ZonedDateTime;
  * + 12 tail. Second hand red rgb(235,0,0): 1.4 stick from 16.5 behind the centre to 26 ahead, disc of
  * 10.5 diameter centred 31.2 from the centre. Motion comes from {@link SbbClock}.
  *
- * The clock sits on the black panel every widget shares ({@link Stage#night}), lit by the light of what's playing
- * ({@link Ambience}), with its lit edge ({@link Stage#rim}). The face is lit from within, like a station clock at night: its light
+ * The clock sits on the card every widget shares ({@link Stage#fill}, {@link Stage#rim}), in the light of what's
+ * playing ({@link Ambience}). The face is lit from within, like a station clock at night: its light
  * blooms out into the haze, a tight bright halo at its rim and a wide, soft bloom in the light's colour. The clock
  * itself keeps SBB's own black, white and red.
  */
@@ -38,23 +38,15 @@ final class SbbRenderer {
     /** The face's size, as a share of the panel. */
     private static final float FACE = 0.8f;
 
-    /** What's behind the clock's panel (the blurred wallpaper), set before drawing ({@link #behind}). */
-    private static Backdrop.Behind behind;
-
-    /** Sets what's behind the clock's panel: the wallpaper, blurred, where the widget is (see {@link Backdrop}). */
-    static synchronized void behind(Backdrop.Behind b) {
-        behind = b;
-    }
-
     private static synchronized Bitmap lit(int n, Scene scene) {
-        String key = n + "|" + scene.tag() + "|" + (behind == null ? "-" : behind.key);
+        String key = n + "|" + scene.tag();
         if (lit != null && key.equals(litKey)) return lit;
         Bitmap b = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
         float corner = n * 0.19f, px = n / 150f; // the panel stands for a widget about 150 dp across
         RectF box = new RectF(0, 0, n, n);
         float[] corners = Stage.round(corner);
-        Stage.night(c, box, corners, scene, Stage.NIGHT, 0f, behind);
+        Stage.fill(c, box, corners, scene, px, 0f, null);
         // the face, lit from within: a wide, soft bloom of the light around it and a tight bright halo at its rim
         int f = Math.round(n * FACE);
         float r = f / 2f * (52.5f / 56f);

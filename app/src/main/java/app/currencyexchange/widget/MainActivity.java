@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
     private static final String[] MODES = {"smooth", "second", "minute"};
     private static final String[] MODE_LABELS = {"Smooth", "Every second", "Minute only"};
     private TextView banner, calStatus, calButton, locStatus, locButton;
-    private TextView mediaStatus, mediaButton, soundStatus, soundButton, wallStatus, wallButton;
+    private TextView mediaStatus, mediaButton, soundStatus, soundButton;
     private LinearLayout statusBox;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private StageView stage;
@@ -247,11 +247,6 @@ public class MainActivity extends Activity {
             }
         });
         perms.addView(batButton, matchWrap(8));
-        wallStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
-        wallStatus.setPadding(0, dp(12), 0, 0);
-        perms.addView(wallStatus);
-        wallButton = secondaryButton("Allow wallpaper glass", v -> openWallpaperAccess());
-        perms.addView(wallButton, matchWrap(8));
         updatePermissionCards();
 
         // ---- actions ----
@@ -308,12 +303,6 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         updatePermissionCards();
-        // wallpaper glass just turned on (or off): every widget's glass is drawn again
-        boolean wall = Backdrop.allowed(this);
-        if (wall != Store.sp(this).getBoolean("wallGlass", false)) {
-            Store.sp(this).edit().putBoolean("wallGlass", wall).apply();
-            Backdrop.redrawAll(getApplicationContext());
-        }
         Context app = getApplicationContext();
         if (Locator.allowed(this)) {
             boolean moved = Locator.refreshFromLastKnown(app);
@@ -417,13 +406,6 @@ public class MainActivity extends Activity {
                 : "Battery saving may pause the clocks. Allow Worldly to run in the background.");
         batStatus.setTextColor(bat ? Theme.TEXT : Theme.AMBER);
         batButton.setVisibility(bat ? View.GONE : View.VISIBLE);
-        boolean wall = Backdrop.allowed(this);
-        wallStatus.setText(wall ? "Wallpaper glass on - each widget's glass shows your wallpaper behind it, blurred. Tap "
-                + "each widget once so its glass lines up with where it sits."
-                : "Optional: let each widget's glass show your wallpaper behind it, blurred. Android files reading the "
-                + "wallpaper under \"All files access\"; Worldly reads nothing but the wallpaper.");
-        wallStatus.setTextColor(wall ? Theme.TEXT : Theme.MUTED);
-        wallButton.setVisibility(wall ? View.GONE : View.VISIBLE);
 
         boolean media = NowPlaying.hasAccess(this);
         mediaStatus.setText(media ? "Media access on - the Sound widget sees what's playing in any app."
@@ -446,20 +428,6 @@ public class MainActivity extends Activity {
         soundStatus.setText(levelsText);
         soundStatus.setTextColor(levels ? Theme.TEXT : Theme.AMBER);
         soundButton.setVisibility(levels ? View.GONE : View.VISIBLE);
-    }
-
-    /** Lets Worldly read the wallpaper for the widgets' glass: "All files access" on Android 11 and up, storage before. */
-    private void openWallpaperAccess() {
-        if (Build.VERSION.SDK_INT >= 30) {
-            try {
-                startActivity(new android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                        android.net.Uri.parse("package:" + getPackageName())));
-            } catch (Exception e) {
-                startActivity(new android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
-            }
-        } else {
-            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQ_ALL);
-        }
     }
 
     /** Notification access, which is how Android lets an app see other apps' media. */

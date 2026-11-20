@@ -237,7 +237,7 @@ final class SoundRecord {
 
         // The sleeve on top of the record, with only a soft glow around it: its light is inside.
         insideLight(sleeve, dp, scene);
-        sleevePaint.setColor(Stage.NIGHT);
+        sleevePaint.setColor(Theme.DEEP);
         sleevePaint.setShadowLayer(12 * dp, 0, 0, Scene.alpha(scene.deep, 0.32f * Look.get().bloom));
         canvas.drawRect(sleeve, sleevePaint); // square corners, like a real LP sleeve
         clip.rewind();

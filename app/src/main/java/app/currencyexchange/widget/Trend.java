@@ -76,30 +76,28 @@ final class Trend {
     }
 
     /**
-     * The row's picture, {@code wDp} × {@code hDp} (the whole row): its black panel, lit by the light that all the
-     * widgets share, with the chart over it in that light ({@code pts} null: no chart yet) and the row's lit edge.
-     * Rows take turns a breath lighter and darker ({@code light}).
+     * The row's picture, {@code wDp} × {@code hDp} (the whole row): its card, as every widget's, with the chart over it
+     * in the light all the widgets share ({@code pts} null: no chart yet) and the card's edge.
      */
-    static Bitmap bitmap(double[][] pts, int wDp, int hDp, Scene scene, boolean light, Backdrop.Behind behind) {
-        StringBuilder k = new StringBuilder().append(wDp).append('x').append(hDp).append('|').append(scene.tag())
-                .append('|').append(light).append('|').append(behind == null ? "-" : behind.key);
+    static Bitmap bitmap(double[][] pts, int wDp, int hDp, Scene scene) {
+        StringBuilder k = new StringBuilder().append(wDp).append('x').append(hDp).append('|').append(scene.tag());
         if (pts != null) for (double[] p : pts) k.append('|').append(p[0]).append(':').append(p[1]);
         String key = k.toString();
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
-        Bitmap made = draw(pts, wDp, hDp, scene, light, behind);
+        Bitmap made = draw(pts, wDp, hDp, scene);
         CACHE.put(key, made);
         return made;
     }
 
-    private static Bitmap draw(double[][] pts, int wDp, int hDp, Scene scene, boolean light, Backdrop.Behind behind) {
+    private static Bitmap draw(double[][] pts, int wDp, int hDp, Scene scene) {
         int w = Math.round(wDp * PXDP), h = Math.round(hDp * PXDP);
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
         // The row's panel, its round ends following the row's.
         float r = Math.min(RADIUS_DP * PXDP, h / 2f);
         RectF box = new RectF(0, 0, w, h);
-        Stage.night(c, box, Stage.round(r), scene, light ? 0xFF04060A : Stage.NIGHT, 0f, light ? 1 : 2, behind, null);
+        Stage.fill(c, box, Stage.round(r), scene, PXDP, 0f, null);
         if (pts != null) {
             // The chart on a layer of its own, dimmed towards the end of the row where the numbers sit.
             c.saveLayer(box, null);
