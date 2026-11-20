@@ -15,7 +15,7 @@ import android.util.LruCache;
  * The cards everything sits on, the widgets and the app's alike, after the glowing card reference: near black, with
  * just a hint of the song's colour towards the right ({@link #fill}), a faint sheen along the top, and a hairline edge
  * that's light at the top left and fades round ({@link #rim}). On the widgets the black is mildly see-through
- * ({@link #WIDGET}), so the home screen shows faintly through it; the app's cards are nearly opaque. The light is the
+ * ({@link Look#opacity}), so the home screen shows faintly through it; the app's cards are nearly opaque. The light is the
  * colour of what's playing ({@link Ambience}), so everything shares it. Bright things in front can light the card
  * round them ({@link Spill}). Glass on black reads by what it reflects ({@link Optics}): a faint band of the room's
  * light slanting across it, the edge doubled near the light by the glass's thickness, and the corner catching the
@@ -24,8 +24,6 @@ import android.util.LruCache;
 final class Stage {
     private Stage() {}
 
-    /** How opaque the widgets' black is: mildly see-through, so the home screen shows faintly through it. */
-    static final float WIDGET = 0.72f;
     /** The cards' black (before its opacity), with a breath of violet so it isn't flat. */
     private static final int BLACK = 0xFF0B0A0F;
     /** How bright the glass's reflection of the room is, at its brightest: barely there. */
@@ -54,7 +52,7 @@ final class Stage {
                 Scene.alpha(Scene.mix(BLACK, warm, 0.18f), opacity), Scene.alpha(warm, opacity)},
                 new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
         c.drawRect(box, p);
-        float glow = 0.05f + 0.12f * Math.min(1f, bass); // a faint glow of the light at the right, swelling with the bass
+        float glow = (0.05f + 0.12f * Math.min(1f, bass)) * Look.get().haze; // a faint glow of the light at the right, swelling with the bass
         p.setShader(new RadialGradient(box.left + w * 0.96f, box.top + h * 0.22f, Math.max(w, h) * 0.6f,
                 Scene.alpha(scene.key, glow), scene.key & 0x00FFFFFF, Shader.TileMode.CLAMP));
         c.drawRect(box, p);
@@ -66,9 +64,9 @@ final class Stage {
         spill(c, box.left, box.top, spills, 1f);
     }
 
-    /** A widget card's fill ({@link #fill} at the widgets' mild see-through black). */
+    /** A widget card's fill ({@link #fill} at the widgets' mild see-through black, {@link Look#opacity}). */
     static void fill(Canvas c, RectF box, float[] radii, Scene scene, float px, float bass, Spill[] spills) {
-        fill(c, box, radii, scene, WIDGET, px, bass, spills);
+        fill(c, box, radii, scene, Look.get().opacity, px, bass, spills);
     }
 
     /**
@@ -97,10 +95,12 @@ final class Stage {
     static void spill(Canvas c, float x0, float y0, Spill[] spills, float unit) {
         if (spills == null) return;
         Paint p = new Paint(Paint.DITHER_FLAG);
+        float haze = Look.get().haze; // the more haze, the more of the light scatters onto the card
         for (Spill s : spills) {
-            float x = x0 + s.x * unit, y = y0 + s.y * unit, r = s.r * unit;
-            p.setShader(new RadialGradient(x, y, r, new int[]{Scene.alpha(s.colour, s.strength),
-                    Scene.alpha(s.colour, s.strength * 0.4f), s.colour & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f},
+            float x = x0 + s.x * unit, y = y0 + s.y * unit, r = s.r * unit * (float) Math.sqrt(haze);
+            float a = Math.min(1f, s.strength * haze);
+            p.setShader(new RadialGradient(x, y, r, new int[]{Scene.alpha(s.colour, a),
+                    Scene.alpha(s.colour, a * 0.4f), s.colour & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f},
                     Shader.TileMode.CLAMP));
             c.drawCircle(x, y, r, p);
         }

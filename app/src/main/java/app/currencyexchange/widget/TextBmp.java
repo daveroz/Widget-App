@@ -92,7 +92,7 @@ final class TextBmp {
      */
     static Bitmap fringed(Typeface tf, float px, float fill, boolean italic, String s, int color) {
         if (s == null) s = "";
-        String key = "G|" + System.identityHashCode(tf) + "|" + px + "|" + fill + "|" + italic + "|" + color + "|" + s;
+        String key = "G|" + Look.get().tag() + System.identityHashCode(tf) + "|" + px + "|" + fill + "|" + italic + "|" + color + "|" + s;
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
@@ -127,7 +127,7 @@ final class TextBmp {
     /** As {@link #tightFixed} (a number that ticks, its digits all one width), fringed like {@link #tightFringed}. */
     static Bitmap tightFixedFringed(Typeface tf, float sizeDp, String s, String template, int color, boolean right) {
         if (s == null) s = "";
-        String key = "H|" + System.identityHashCode(tf) + "|" + sizeDp + "|" + color + "|" + right + "|" + template + "|" + s;
+        String key = "H|" + Look.get().tag() + System.identityHashCode(tf) + "|" + sizeDp + "|" + color + "|" + right + "|" + template + "|" + s;
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
         float px = sizeDp * 2.5f;

@@ -127,12 +127,20 @@ final class SoundControls {
         c.drawLine(x0, y - 4 * px, x0, y + 4 * px, line);
         c.drawLine(x1, y - 4 * px, x1, y + 4 * px, line);
         line.setStrokeWidth(Math.max(1f, 1.4f * px));
-        float bloom = Look.get().bloom;
+        Look look = Look.get();
+        float bloom = look.bloom, hal = look.halationGlow();
+        float mist = Math.min(1.25f, (float) Math.sqrt(look.haze)); // no wider than the room at the line's ends
         if (head > x0) {
+            if (hal > 0f) { // halation: a red-orange glow along the lit line, just past its bloom
+                line.setColor(Scene.alpha(Optics.HALATION, Math.min(0.3f, 0.13f * hal)));
+                line.setStrokeWidth(6 * px);
+                line.setMaskFilter(new BlurMaskFilter(3.5f * px, BlurMaskFilter.Blur.NORMAL));
+                c.drawLine(x0, y, head, y, line);
+            }
             line.setColor(Scene.alpha(scene.deep, 0.5f * bloom));
-            line.setStrokeWidth(5 * px);
-            line.setMaskFilter(new BlurMaskFilter(3.5f * px, BlurMaskFilter.Blur.NORMAL));
-            c.drawLine(x0, y, head, y, line); // its bloom
+            line.setStrokeWidth(5 * px * mist);
+            line.setMaskFilter(new BlurMaskFilter(3.5f * px * mist, BlurMaskFilter.Blur.NORMAL));
+            c.drawLine(x0, y, head, y, line); // its bloom, spreading with the haze
             line.setMaskFilter(null);
             line.setShader(new LinearGradient(x0, 0, Math.max(x0 + 1, head), 0, Scene.alpha(scene.key, 0.55f), scene.hot,
                     Shader.TileMode.CLAMP));
@@ -141,9 +149,14 @@ final class SoundControls {
             line.setShader(null);
         }
         // where the song is: a big LED-white point in a glowing ring of the light, which a tap on the line moves
+        if (hal > 0f) { // halation round the point
+            line.setColor(Scene.alpha(Optics.HALATION, Math.min(0.4f, 0.2f * hal)));
+            line.setMaskFilter(new BlurMaskFilter(4f * px, BlurMaskFilter.Blur.NORMAL));
+            c.drawCircle(head, y, 9f * px, line);
+        }
         line.setColor(Scene.alpha(scene.deep, 0.55f * bloom));
-        line.setMaskFilter(new BlurMaskFilter(4f * px, BlurMaskFilter.Blur.NORMAL));
-        c.drawCircle(head, y, 8f * px, line);
+        line.setMaskFilter(new BlurMaskFilter(4f * px * mist, BlurMaskFilter.Blur.NORMAL));
+        c.drawCircle(head, y, 8f * px * mist, line);
         line.setMaskFilter(null);
         line.setStyle(Paint.Style.STROKE);
         line.setStrokeWidth(1.4f * px);

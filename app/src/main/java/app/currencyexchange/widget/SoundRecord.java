@@ -48,6 +48,8 @@ final class SoundRecord {
     private final Paint artPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint discPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint haloPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private final Paint halationPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private static final int HALATION_CLEAR = Optics.HALATION & 0x00FFFFFF;
     /** Light over light: screened, so it brightens and never darkens. */
     private final Paint screenPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     /** The light from inside the sleeve: on the record by its mouth, inside the cover by its mouth, and the mouth itself. */
@@ -232,6 +234,10 @@ final class SoundRecord {
             fringeRing(canvas, r - 0.5f * dp, dp, eased);
             haloPaint.setAlpha(Math.round(255 * eased));
             canvas.drawCircle(0, 0, r * HALO, haloPaint);
+            if (halationPaint.getShader() != null) {
+                halationPaint.setAlpha(Math.round(255 * eased));
+                canvas.drawCircle(0, 0, r * HALO, halationPaint);
+            }
             // where the rim faces the light, up at its top left: a small light strike, as a star filter makes of it
             float g = (r - 0.5f * dp) * 0.7071f;
             Optics.star(canvas, -g, -g, 6 * dp, dp, scene.hot, 0.5f * eased);
@@ -371,7 +377,7 @@ final class SoundRecord {
      * halo, made once per cover, size and colour.
      */
     private void buildDisc(int size, float dp) {
-        String key = System.identityHashCode(cover) + "|" + size + "|" + tint;
+        String key = System.identityHashCode(cover) + "|" + size + "|" + tint + Look.get().tag();
         if (key.equals(discKey) && disc != null) return;
         discKey = key;
         if (disc != null) disc.recycle();
@@ -467,12 +473,21 @@ final class SoundRecord {
         g.drawRect(0, 0, size, size, q);
 
         // The halo: a bright rim of light at the record's edge, fading quickly out into the haze around it.
+        // It glows as strongly as the look's bloom, and spreads further out with its haze.
         float reach = r * HALO;
+        Look look = Look.get();
+        float gain = look.bloomGain(), out = Math.min(1.16f, 1.09f + 0.05f * (look.haze - 1f));
         haloPaint.setShader(new RadialGradient(0, 0, reach,
-                new int[]{0, 0, Scene.alpha(light.hot, 0.4f), light.hot, Scene.alpha(light.deep, 0.7f),
-                        Scene.alpha(light.deep, 0.18f), light.deep & 0x00FFFFFF},
-                new float[]{0f, 0.9f / HALO, 0.975f / HALO, 1f / HALO, 1.025f / HALO, 1.09f / HALO, 1f},
+                new int[]{0, 0, Scene.alpha(light.hot, 0.4f), light.hot, Scene.alpha(light.deep, Math.min(1f, 0.7f * gain)),
+                        Scene.alpha(light.deep, Math.min(0.3f, 0.18f * gain * look.haze)), light.deep & 0x00FFFFFF},
+                new float[]{0f, 0.9f / HALO, 0.975f / HALO, 1f / HALO, 1.025f / HALO, out / HALO, 1f},
                 Shader.TileMode.CLAMP));
+        // Halation: a red-orange glow just outside its bright rim (none in the Glass look as chosen).
+        float hal = look.halationGlow();
+        halationPaint.setShader(hal <= 0f ? null : new RadialGradient(0, 0, reach,
+                new int[]{HALATION_CLEAR, HALATION_CLEAR, Scene.alpha(Optics.HALATION, Math.min(0.4f, 0.2f * hal)),
+                        Scene.alpha(Optics.HALATION, Math.min(0.12f, 0.06f * hal)), HALATION_CLEAR},
+                new float[]{0f, 0.99f / HALO, 1.04f / HALO, 1.12f / HALO, 1f}, Shader.TileMode.CLAMP));
         // The light from the sleeve's mouth, across the record's vinyl: from the mouth (x = 0 here, moved there as it's
         // drawn) out to the left, near white where it comes out.
         vinylRing.rewind();

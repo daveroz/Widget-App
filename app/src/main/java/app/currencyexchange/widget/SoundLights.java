@@ -240,16 +240,17 @@ final class SoundLights {
                 int first = firstOf(s);
                 float x = left + (first + STRIP / 2f) * pitchX;
                 float y = top + (p + 1) * panelRows * pitchY - gapY;
-                drawBeam(scene, x, y, STRIP * pitchX * 2.4f, 70 * dp, 0.35f * b);
+                drawBeam(scene, x, y, STRIP * pitchX * 2.4f, 70 * dp, Math.min(1f, 0.35f * b * Look.get().haze));
             }
         }
-        // A wide, soft glow around every lit lamp.
+        // A wide, soft glow around every lit lamp, as strong as the look's bloom.
+        float gain = Look.get().bloomGain(), hal = Look.get().halationGlow();
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < columns; c++) {
                 float v = values[r * columns + c];
                 if (v < 0.08f) continue;
                 float x = left + c * pitchX + gapX, y = top + r * pitchY + gapY;
-                glowPaint.setColor(Scene.alpha(scene.deep, v * 0.3f));
+                glowPaint.setColor(Scene.alpha(scene.deep, v * 0.3f * gain));
                 rect.set(x - 1.8f * cell, y - 1.8f * cell, x + 2.8f * cell, y + 2.8f * cell);
                 softCanvas.drawBitmap(sprite, null, rect, glowPaint);
             }
@@ -260,12 +261,24 @@ final class SoundLights {
         // the dark around them, so their light bleeds softly into the gaps between them without washing out their cores.
         float spread = cell * 0.12f;
         bloom.eraseColor(0);
+        if (hal > 0f) { // halation: a red-orange glow round the lit lamps, just past their bloom (under it)
+            float out = cell * 0.45f;
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < columns; c++) {
+                    float v = values[r * columns + c];
+                    if (v < 0.08f) continue;
+                    float x = left + c * pitchX + gapX, y = top + r * pitchY + gapY;
+                    bloomLamp.setColor(Scene.alpha(Optics.HALATION, Math.min(1f, 0.32f * v * hal)));
+                    bloomCanvas.drawRect(x - out, y - out, x + cell + out, y + cell + out, bloomLamp);
+                }
+            }
+        }
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < columns; c++) {
                 float v = values[r * columns + c];
                 if (v < 0.08f) continue;
                 float x = left + c * pitchX + gapX, y = top + r * pitchY + gapY;
-                bloomLamp.setColor(Scene.alpha(scene.deep, 0.95f * v));
+                bloomLamp.setColor(Scene.alpha(scene.deep, Math.min(1f, 0.95f * v * gain)));
                 bloomCanvas.drawRect(x - spread, y - spread, x + cell + spread, y + cell + spread, bloomLamp);
             }
         }
@@ -323,14 +336,15 @@ final class SoundLights {
                     new int[]{scene.deep, Scene.alpha(scene.deep, 0.45f), Scene.alpha(scene.deep, 0.12f)},
                     new float[]{0f, (wallBottom - top) / wallBottom, 1f}, Shader.TileMode.CLAMP));
         }
-        fogPaint.setAlpha(Math.round(255 * Math.min(0.24f, 0.08f + 0.4f * all)));
+        float haze = Look.get().haze;
+        fogPaint.setAlpha(Math.round(255 * Math.min(Math.min(1f, 0.24f * haze), (0.08f + 0.4f * all) * haze)));
         softCanvas.drawRect(softBounds, fogPaint);
         for (int s = 0; s < strips; s++) {
             float light = stripLight[s];
             if (light < 0.03f) continue;
             float x = left + (firstOf(s) + STRIP / 2f) * pitchX;
             float rx = STRIP * pitchX * 2.2f, ry = Math.max(rows * pitchY * 0.6f, 5 * pitchY);
-            glowPaint.setColor(Scene.alpha(scene.deep, Math.min(0.6f, 0.8f * light)));
+            glowPaint.setColor(Scene.alpha(scene.deep, Math.min(Math.min(1f, 0.6f * haze), 0.8f * light * haze)));
             rect.set(x - rx, stripY[s] - ry, x + rx, stripY[s] + ry);
             softCanvas.drawBitmap(sprite, null, rect, glowPaint);
         }
