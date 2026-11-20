@@ -83,7 +83,7 @@ stays at Friday's close.
   the calendar, the Music widget's play button and the trend lines spill a wide, soft glow of their light onto it.
 - **Buttons are solid, with a glass rim**, after the Justice store's buttons (without their glow), in the app and on
   the widgets alike: the main action and what's on (the Music widget's play / pause, the chosen SBB mode, the
-  converter's chosen chip, the FX badge) are a deep shade of the song's colour (since 1.90 the light's main colour itself, with near-black text on a bright colour) with white
+  converter's chosen chip, the FX badge) are a deep shade of the song's colour (since 1.91 the light's hot core, the palest of its three colours, with near-black text on it) with white
   text or symbol; other buttons (the Music widget's previous and next, the Calendar's "+", the converter's swap and
   the app's other buttons) are near black, their symbols pale. No glow under any of them. The weather bar's icons are
   solid, a little darker than the line colour. Their edge is a
@@ -102,7 +102,11 @@ stays at Friday's close.
 - **Everything follows the song.** The light is the colour of what's playing (`Ambience`): the album cover's primary
   colour, or the playing app's own, or Worldly's own orange when nothing plays (since 1.89: the glowing filaments of the
   reference picture, measured off its pixels: #F37613 lit, a deeper red-orange in the haze, yellow at the hottest
-  cores; `Scene.idle`). Nothing decorative is fixed any more: the
+  cores; `Scene.idle`). Every other colour gets its three by the same rule, fitted to that picture (1.91,
+  `Scene(int)`): the hot core is the colour overexposed as a camera sees a bright light (each channel times 1.6,
+  clipped, so it shifts toward its lighter neighbour: orange to yellow, teal to cyan, violet to lavender) with a third
+  of white; the deep haze is the colour with more contrast and a little darker. Text in the light (card titles,
+  "Now playing", the calendar's labels) and lit buttons are in the hot core. Nothing decorative is fixed any more: the
   line colour (edges, rules, the weather bar's icons and dividers, section titles) is the song's colour paled towards
   a warm white, labels ("Market", event times, a song's length; not the world clocks, which stay
   white) are soft text tinted by it, and the settings screen and the converter are drawn in it too (redrawn when the song changed while

@@ -22,7 +22,7 @@ final class Scene {
     final int hot;
     /** The key, richer and a little deeper: light seen through the haze around a lamp (its bloom, halo and glow). */
     final int deep;
-    /** Text in the light (labels, titles, "in 25 minutes"): the key itself, the light's main colour (since 1.90). */
+    /** Text in the light (labels, titles, "in 25 minutes"): the light's hot core ({@link #hot}, since 1.91). */
     final int label;
     /**
      * The line colour, for structure (card edges, rules, ticks, the header's icons, section titles): the key paled
@@ -32,8 +32,20 @@ final class Scene {
     /** Quiet labels (what a value is, not the value: day names, "Market", a song's length): soft text, tinted by the key. */
     final int quiet;
 
+    /**
+     * A light of colour {@code key}, its shades by the three-colour rule (1.91), fitted to the reference picture's
+     * glowing filaments: the hot core is the colour overexposed, as a camera sees a bright light (each channel times
+     * 1.6, clipped, so the colour shifts toward its lighter neighbour: orange toward yellow, teal toward cyan) with a
+     * third of white; the deep haze is the colour with more contrast and a little darker. For the picture's orange it
+     * gives back the shades measured off it.
+     */
     Scene(int key) {
-        this(key, deepOf(key), mix(gain(key, 1.2f), Color.WHITE, 0.06f));
+        this(key, deepOf(key), hotOf(key));
+    }
+
+    /** The hot core of a light of colour {@code key} (see {@link #Scene(int)}). */
+    static int hotOf(int key) {
+        return mix(gain(key, 1.6f), Color.WHITE, 0.33f);
     }
 
     /** A light whose deep and hot shades are given rather than worked out from its key (Worldly's own, {@link #idle}). */
@@ -42,18 +54,18 @@ final class Scene {
         this.led = mix(key, Color.WHITE, 0.88f);
         this.hot = hot | 0xFF000000;
         this.deep = deep | 0xFF000000;
-        this.label = this.key;
+        this.label = this.hot;
         this.line = readable(mix(this.key, 0xFFF4EFE6, 0.3f), 0.42f);
         this.quiet = readable(mix(this.key, Theme.TEXT_SOFT, 0.62f), 0.5f);
     }
 
-    /** The key, richer and a little deeper (see {@link #deep}). */
+    /** The deep haze of a light of colour {@code key}: more contrast (each channel to the power 1.25), a little darker. */
     private static int deepOf(int key) {
-        float[] hsv = new float[3];
-        Color.colorToHSV(key | 0xFF000000, hsv);
-        hsv[1] = Math.min(0.95f, hsv[1] * 1.5f);
-        hsv[2] *= 0.92f;
-        return Color.HSVToColor(hsv);
+        return Color.rgb(deepChannel(Color.red(key)), deepChannel(Color.green(key)), deepChannel(Color.blue(key)));
+    }
+
+    private static int deepChannel(int c) {
+        return Math.round(0.93f * 255f * (float) Math.pow(c / 255f, 1.25f));
     }
 
     /**

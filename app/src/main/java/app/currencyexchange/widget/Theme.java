@@ -175,7 +175,7 @@ final class Theme {
 
     /**
      * Something that's on, or the main action, after the Justice store's buttons (without their glow): solid, in the
-     * light's main colour, with a glass rim in a light shade of it ({@link #glassEdge}); its text near black on a
+     * light's hot core ({@link #litFill}), with a glass rim paler still ({@link #glassEdge}); its text near black on a
      * bright colour, white on a deep one. The same size and corners as everything else, on or off.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
@@ -185,9 +185,9 @@ final class Theme {
                 litEdge(s), LIT_RIM, false);
     }
 
-    /** A lit button's rim colour: a light shade of the song's colour. */
+    /** A lit button's rim colour: its fill paled further toward a warm white, so the rim reads as light on it. */
     static int litEdge(Scene s) {
-        return Scene.mix(s.key, 0xFFFFF4E6, 0.55f);
+        return Scene.mix(litFill(s), 0xFFFFF8EE, 0.6f);
     }
 
     /** A dark button's fill: near black, with a breath of the song's colour. */
@@ -287,14 +287,14 @@ final class Theme {
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
-    /** A lit button's fill: the light's main colour itself (since 1.90), as on today's tile in the calendar. */
+    /** A lit button's fill: the light's hot core ({@link Scene#hot}, since 1.91). */
     static int litFill(Scene s) {
-        return s.key;
+        return s.hot;
     }
 
     /** Text on a lit button ({@link #lit}): near black on a bright colour, white on a deep one ({@link #onLit(int)}). */
     static int onLit() {
-        return onLit(accent().key);
+        return onLit(litFill(accent()));
     }
 
     /**
