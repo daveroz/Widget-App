@@ -12,67 +12,108 @@ import android.util.LruCache;
 
 
 /**
- * The panels the widgets sit on, in the Glass look ({@link Look}): near OLED black smoked glass with the light far
- * behind it, out of focus ({@link #night}), and an edge lit in the light rather than a solid border ({@link #rim}),
- * swept in from the top left corner. The light is the colour of what's playing ({@link Ambience}), so every widget
- * shares it. No gloss, no grain.
+ * The panels the widgets sit on, in the Glass look ({@link Look}), after the cypher samples: frosted, smoky glass with
+ * the light far behind it, out of focus ({@link #night}): soft blurred shapes of the light, like windows of light seen
+ * through frosted glass, under a milky veil of smoke warmed by them. The edge is lit in the light rather than drawn as a
+ * solid border ({@link #rim}), swept in from the top left corner. The light is the colour of what's playing
+ * ({@link Ambience}), so every widget shares it. No gloss, no grain.
  */
 final class Stage {
     private Stage() {}
 
-    /** The panels' black: as deep as an OLED screen's unlit pixels, with a breath of blue so it isn't flat. */
+    /** The black under the glass: as deep as an OLED screen's unlit pixels, with a breath of blue so it isn't flat. */
     static final int NIGHT = 0xFF010203;
 
     private static final int RED = 0xFFFF4A3A, BLUE = 0xFF3AA8FF;
+    /** The smoke's own colour, a warm grey, before the light warms it. */
+    private static final int SMOKE = 0xFF8C8279;
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(14);
+    /** The glass, drawn once per light, size and pattern (the Sound widget lays it under every frame). */
+    private static final LruCache<String, Bitmap> GLASS = new LruCache<String, Bitmap>(12 * 1024 * 1024) {
+        @Override
+        protected int sizeOf(String key, Bitmap b) { return b.getByteCount(); }
+    };
 
     /**
-     * A panel: its rounded shape ({@code radii}, 8 values in pixels) filled with {@code fill}, smoked, with the light
-     * behind it, which swells with {@code bass} (0 to 1, the Sound widget's). The canvas is left clipped to the shape
-     * for drawing more inside it (call {@code c.restore()} after).
+     * The lights behind the glass: x, y (their middle, as a share of the panel), width and height (as a share of the
+     * panel's size), corner (a share of their short side), blur (a share of the panel's size), strength, and tone
+     * (0 the light's colour, 1 a paler, 2 a deeper shade, 3 a warm neutral). After the cypher samples: one big soft
+     * glow low on the left, a tall one on the right, a wide pale one along the top, a few small brighter ones.
      */
-    static void night(Canvas c, RectF box, float[] radii, Scene scene, int fill, float bass) {
+    private static final float[][] LIGHTS = {
+            {0.16f, 0.66f, 0.62f, 0.75f, 0.3f, 0.2f, 0.42f, 0}, {0.82f, 0.42f, 0.36f, 0.95f, 0.25f, 0.18f, 0.36f, 2},
+            {0.5f, 0.06f, 0.7f, 0.32f, 0.3f, 0.2f, 0.2f, 1}, {0.4f, 0.8f, 0.22f, 0.22f, 0.35f, 0.1f, 0.3f, 1},
+            {0.97f, 0.94f, 0.5f, 0.5f, 0.3f, 0.2f, 0.24f, 0}, {0.64f, 0.66f, 0.16f, 0.16f, 0.4f, 0.08f, 0.22f, 3},
+            {0.28f, 0.2f, 0.18f, 0.24f, 0.35f, 0.1f, 0.16f, 3}};
+
+    /**
+     * A panel: its rounded shape ({@code radii}, 8 values in pixels) filled with {@code fill}, behind frosted smoky
+     * glass with the light far behind it, which swells with {@code bass} (0 to 1, the Sound widget's). {@code pattern}
+     * moves the lights about, so panels side by side (the currency rows) don't repeat. The canvas is left clipped to
+     * the shape for drawing more inside it (call {@code c.restore()} after).
+     */
+    static void night(Canvas c, RectF box, float[] radii, Scene scene, int fill, float bass, int pattern) {
         Path shape = new Path();
         shape.addRoundRect(box, radii, Path.Direction.CW);
         c.save();
         c.clipPath(shape);
-        Paint p = new Paint(Paint.DITHER_FLAG);
+        Paint p = new Paint(Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
         p.setColor(fill);
         c.drawRect(box, p);
-        pool(c, box, scene, bass);
-    }
-
-    /** Smoked glass, with the light far behind it, out of focus: a few soft blurs of it (inside the panel's clip). */
-    private static void pool(Canvas c, RectF box, Scene scene, float bass) {
-        float w = box.width(), h = box.height(), sh = Math.min(w, h);
-        float s = 0.12f * Look.get().pool * (1f + 0.6f * bass);
-        Paint p = new Paint(Paint.DITHER_FLAG);
-        p.setColor(Scene.alpha(0xFF8A8078, 0.03f)); // the smoke
-        c.drawRect(box, p);
-        int pale = Scene.mix(scene.key, 0xFFFFFFFF, 0.45f);
-        // x, y (share of the panel), radius (share of its short side), stretch across, strength, tone
-        float[][] lights = {{0.1f, 0.86f, 0.8f, 1.4f, 0.9f, 0}, {0.58f, 0.06f, 0.55f, 1.6f, 0.55f, 1},
-                {0.95f, 0.7f, 0.62f, 1.25f, 0.8f, 2}, {0.36f, 0.48f, 0.34f, 1.1f, 0.4f, 1},
-                {0.76f, 0.28f, 0.26f, 1f, 0.35f, 0}};
-        for (float[] l : lights) {
-            int colour = l[5] == 1 ? pale : l[5] == 2 ? scene.deep : scene.key;
-            float r = sh * l[2];
-            bokeh(c, p, box.left + w * l[0], box.top + h * l[1], r * l[3], r, colour, s * l[4]);
+        c.drawBitmap(glass(scene, Math.round(box.width()), Math.round(box.height()), pattern), box.left, box.top, p);
+        if (bass > 0.01f) { // the light behind the glass swells with the bass
+            float w = box.width(), h = box.height(), big = Math.max(w, h);
+            p.setShader(new RadialGradient(box.left + w * 0.8f, box.top + h * 0.3f, big * 0.6f,
+                    Scene.alpha(scene.deep, 0.12f * Math.min(1f, bass)), scene.deep & 0x00FFFFFF, Shader.TileMode.CLAMP));
+            c.drawRect(box, p);
+            p.setShader(null);
         }
     }
 
-    /** A light far behind the glass, out of focus: a soft disc, nearly even across, its edge melting away. */
-    private static void bokeh(Canvas c, Paint p, float x, float y, float rx, float ry, int colour, float strength) {
-        android.graphics.Matrix m = new android.graphics.Matrix();
-        RadialGradient g = new RadialGradient(0, 0, 1, new int[]{Scene.alpha(colour, strength),
-                Scene.alpha(colour, strength * 0.8f), Scene.alpha(colour, strength * 0.3f), colour & 0x00FFFFFF},
-                new float[]{0f, 0.45f, 0.75f, 1f}, Shader.TileMode.CLAMP);
-        m.setScale(rx, ry);
-        m.postTranslate(x, y);
-        g.setLocalMatrix(m);
-        p.setShader(g);
-        c.drawRect(x - rx, y - ry, x + rx, y + ry, p);
+    static void night(Canvas c, RectF box, float[] radii, Scene scene, int fill, float bass) {
+        night(c, box, radii, scene, fill, bass, 0);
+    }
+
+    /**
+     * Frosted smoky glass, {@code w} × {@code h} pixels (clear where it lets the black through): the lights behind it,
+     * blurred out of focus, then the smoke over them, a milky veil warmed by the light, thicker towards the bottom left
+     * where the light diffuses through it.
+     */
+    private static Bitmap glass(Scene scene, int w, int h, int pattern) {
+        w = Math.max(2, w);
+        h = Math.max(2, h);
+        String key = scene.tag() + "|" + w + "x" + h + "|" + pattern;
+        Bitmap hit = GLASS.get(key);
+        if (hit != null) return hit;
+        Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        float size = (float) Math.sqrt(w * (float) h) * 0.75f, strength = Look.get().pool;
+        int pale = Scene.mix(scene.key, 0xFFFFFFFF, 0.45f), warm = Scene.mix(scene.key, 0xFFE8D6BC, 0.6f);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        RectF r = new RectF();
+        for (float[] l : LIGHTS) {
+            float x = l[0], y = l[1];
+            if (pattern == 1) x = 1f - x; // mirrored
+            else if (pattern == 2) x = (x + 0.37f) % 1.05f; // moved along
+            int colour = l[7] == 1 ? pale : l[7] == 2 ? scene.deep : l[7] == 3 ? warm : scene.key;
+            float lw = size * l[2], lh = size * l[3], corner = Math.min(lw, lh) * l[4];
+            float cx = w * x, cy = h * y;
+            r.set(cx - lw / 2, cy - lh / 2, cx + lw / 2, cy + lh / 2);
+            p.setColor(Scene.alpha(colour, Math.min(1f, l[6] * strength)));
+            p.setMaskFilter(new BlurMaskFilter(Math.max(1f, size * l[5]), BlurMaskFilter.Blur.NORMAL));
+            c.drawRoundRect(r, corner, corner, p);
+        }
+        p.setMaskFilter(null);
+        // the smoke: a milky veil over the lights, warmed by them, thicker towards the bottom left
+        int smoke = Scene.mix(SMOKE, scene.key, 0.22f);
+        p.setColor(Scene.alpha(smoke, 0.1f));
+        c.drawRect(0, 0, w, h, p);
+        p.setShader(new android.graphics.LinearGradient(0, h, w * 0.7f, 0, Scene.alpha(smoke, 0.09f), smoke & 0x00FFFFFF,
+                Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, p);
         p.setShader(null);
+        GLASS.put(key, b);
+        return b;
     }
 
     /**

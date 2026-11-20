@@ -99,7 +99,7 @@ final class Trend {
         // The row's panel, its round ends following the row's.
         float r = Math.min(RADIUS_DP * PXDP, h / 2f);
         RectF box = new RectF(0, 0, w, h);
-        Stage.night(c, box, Stage.round(r), scene, light ? 0xFF04060A : Stage.NIGHT, 0f);
+        Stage.night(c, box, Stage.round(r), scene, light ? 0xFF04060A : Stage.NIGHT, 0f, light ? 1 : 2);
         if (pts != null) {
             // The chart on a layer of its own, dimmed towards the end of the row where the numbers sit.
             c.saveLayer(box, null);

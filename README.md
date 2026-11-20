@@ -71,13 +71,18 @@ trading session within 0.08 % of Colombia's official TRM. The daily snapshots us
 off on average, up to 1.2 % on days the market moved. On weekends the market is closed and the rate
 stays at Friday's close.
 
-## Visual language: Glass: smoked glass on OLED black, lit edges, the song's light
-- **Smoked glass on OLED black** (the Glass look, chosen in 1.67 from three, after the two cypher samples and
-  Glow_Icon_Text; `Look`, `Stage`). Every widget panel, the settings screen's cards and the converter are
-  near-total black (`#010203`) under a faint smoke, with the song's light far behind the glass, out of focus: a few
-  soft blurs of it, one paler, one deeper. No frost, no gloss, no grain; the app's room behind its cards is near
-  black too, with two faint, slow washes of the light and no lighting rig (the old row of chasing lamps along the top
-  is gone).
+## Visual language: Glass: frosted smoky glass, lit edges, hazy text, the song's light
+- **Frosted smoky glass** (the Glass look, chosen in 1.67 from three, after the two cypher samples and
+  Glow_Icon_Text; `Look`, `Stage`). Every widget sits on frosted glass with the song's light far behind it, out of
+  focus: soft blurred shapes of it, like windows of light seen through frost (one big glow low on the left, a tall
+  one on the right, a wide pale one along the top, a few small ones), in its colour, a paler and a deeper shade and a
+  warm neutral, under a milky veil of smoke warmed by them, thicker towards the bottom left where the light diffuses.
+  The currency rows each move the lights about so they don't repeat, and the world clocks' flags fade down into the
+  clocks card's glass. No gloss, no grain. The app's room behind its cards is near black, with two faint, slow washes
+  of the light and no lighting rig (the old row of chasing lamps along the top is gone).
+- **The app's cards** (settings, the pickers, the converter), after the glowing card reference: near black on the
+  left, warming into the song's colour on the right with a soft glow there, a hairline edge that's light at the top
+  left and fades round, and a faint sheen along the top. Their titles glow softly in the light.
 - **Lit edges instead of borders.** No card has a solid outline any more: its edge is a fine line in the song's line
   colour, brightest at the top left corner where the light comes in, sweeping along both edges and fading out by the
   far corner, with a soft glow inside the card where it's brightest (`Stage.rim`), as on the glowing cards
@@ -94,9 +99,10 @@ stays at Friday's close.
   at the sleeve's mouth have the red and blue edge a real lens gives a bright light (chromatic aberration), restrained.
   Never on text, never on the album art.
 - **Light sources in a hazy room.** What gives light is drawn as light in a dark, hazy room, not as a brighter
-  picture: bloom, a tight halo, soft edges. The Sound and Music widgets' text glows (`Glow`); on the Currency and
-  Calendar widgets only the big numbers (the clock times, the day number) bloom, softly, and the small icons (the
-  weather bar's, the Calendar's "+") glow; the rest of their text is plain. Today in the calendar sits in a large lit ring with room round its number.
+  picture: bloom, a tight halo, soft edges. The Sound and Music widgets' text glows (`Glow`); on every widget the
+  text is hazed by its own light in the song's colour (Haze_Bloom_Text: a wide, faint bloom, a softer glow close round
+  and a tight halo, short enough that the letters stay sharp), the big numbers (the clock times, the day number) a
+  little more, and the small icons (the weather bar's, the Calendar's "+") glow. Today in the calendar sits in a large lit ring with room round its number.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 
 The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,

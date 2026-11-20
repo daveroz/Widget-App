@@ -82,33 +82,123 @@ final class TextBmp {
         return make(tf, px, fill, italic, shadow, new String[]{s == null ? "" : s}, new int[]{color});
     }
 
+    /** How much taller a hazy tight picture is than {@link #tight}'s, for its haze: its views are as much taller. */
+    static final float HAZE_ROOM = 1.3f;
+
     /**
-     * As {@link #make} for one string, the letters blooming softly into the haze around them ({@code glow} strong, 0
-     * for plain) in {@code light}, as in the haze references: a short reach, so the letters themselves stay sharp. The
-     * picture is the same height as {@link #make}'s, so the text shows at the same size.
+     * As {@link #make} for one string, the letters hazed by their own light (Haze_Bloom_Text): {@code glow} strong (0
+     * for plain), in {@code light}. A short reach, so the letters stay sharp. The picture is the same height as
+     * {@link #make}'s (the haze fits in its margins), so the text shows at the same size.
      */
-    static Bitmap glowing(Typeface tf, float px, float fill, String s, int color, int light, float glow) {
-        if (glow <= 0f) return make(tf, px, fill, false, false, s, color);
+    static Bitmap glowing(Typeface tf, float px, float fill, boolean italic, String s, int color, int light, float glow) {
+        if (glow <= 0f) return make(tf, px, fill, italic, false, s, color);
         if (s == null) s = "";
-        String key = "G|" + System.identityHashCode(tf) + "|" + px + "|" + fill + "|" + color + "|" + light + "|" + glow + "|" + s;
+        String key = "G|" + System.identityHashCode(tf) + "|" + px + "|" + fill + "|" + italic + "|" + color + "|" + light
+                + "|" + glow + "|" + s;
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
         p.setTypeface(tf);
         p.setTextSize(px);
+        if (italic) p.setTextSkewX(-0.2f);
         Paint.FontMetrics fm = p.getFontMetrics();
-        float line = fm.descent - fm.ascent;
+        float line = fm.descent - fm.ascent, reach = px * 0.12f;
         int h = Math.max(2, Math.round(line / fill));
-        float reach = px * 0.1f, pad = px * 0.08f + reach * 0.5f;
+        float pad = px * 0.08f + reach;
         int bw = Math.max(2, (int) Math.ceil(p.measureText(s) + 2 * pad));
         Bitmap b = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(b);
-        float base = (h - line) / 2f - fm.ascent;
-        Glow.text(c, p, s, pad, base, color, light, glow, reach);
         p.setColor(color);
-        c.drawText(s, pad, base, p);
+        new Canvas(b).drawText(s, pad, (h - line) / 2f - fm.ascent, p);
+        b = haze(b, color, light, glow, reach);
         CACHE.put(key, b);
         return b;
+    }
+
+    static Bitmap glowing(Typeface tf, float px, float fill, String s, int color, int light, float glow) {
+        return glowing(tf, px, fill, false, s, color, light, glow);
+    }
+
+    /**
+     * As {@link #tight}, the letters hazed by their own light ({@code glow} strong, in {@code light}), with room round
+     * them for it: the picture is {@link #HAZE_ROOM} times as tall as {@link #tight}'s, the text in the same place in
+     * its middle, so a view that much taller shows it at the same size.
+     */
+    static Bitmap tightHazy(Typeface tf, float sizeDp, String s, int color, int light, float glow) {
+        return tightFixedHazy(tf, sizeDp, s, null, color, false, light, glow);
+    }
+
+    /** As {@link #tightFixed} (a number that ticks, its digits all one width), hazed like {@link #tightHazy}. */
+    static Bitmap tightFixedHazy(Typeface tf, float sizeDp, String s, String template, int color, boolean right, int light,
+                                 float glow) {
+        if (s == null) s = "";
+        String key = "H|" + System.identityHashCode(tf) + "|" + sizeDp + "|" + color + "|" + right + "|" + template + "|"
+                + light + "|" + glow + "|" + s;
+        Bitmap hit = CACHE.get(key);
+        if (hit != null) return hit;
+        float px = sizeDp * 2.5f;
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+        p.setTypeface(tf);
+        p.setTextSize(px);
+        p.setColor(color);
+        android.graphics.Rect cap = new android.graphics.Rect();
+        p.getTextBounds("H0", 0, 2, cap);
+        float top = -cap.top, below = px * 0.2f, pad = px * 0.04f; // as tight(): the same height and placement
+        int h0 = Math.max(2, (int) Math.ceil(top + below + pad));
+        int h = Math.round(h0 * HAZE_ROOM);
+        float room = (h - h0) / 2f;
+        float digit = 0f;
+        for (char d = '0'; d <= '9'; d++) digit = Math.max(digit, p.measureText(String.valueOf(d)));
+        boolean fixed = template != null;
+        float wide = fixed ? Math.max(fixedWidth(p, template, digit), fixedWidth(p, s, digit)) : p.measureText(s);
+        int w = Math.max(2, (int) Math.ceil(wide + 2 * (pad + room)));
+        Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        float base = room + top + pad;
+        float x = pad + room;
+        if (!fixed) {
+            c.drawText(s, x, base, p);
+        } else {
+            x += right ? wide - fixedWidth(p, s, digit) : 0f;
+            for (int i = 0; i < s.length(); i++) {
+                String ch = String.valueOf(s.charAt(i));
+                float cw = p.measureText(ch);
+                if (Character.isDigit(s.charAt(i))) {
+                    c.drawText(ch, x + (digit - cw) / 2f, base, p);
+                    x += digit;
+                } else {
+                    c.drawText(ch, x, base, p);
+                    x += cw;
+                }
+            }
+        }
+        b = haze(b, color, light, glow, Math.min(room * 0.9f, px * 0.12f));
+        CACHE.put(key, b);
+        return b;
+    }
+
+    /**
+     * Sharp text with its haze laid under it, as {@link Glow#text} draws it: a wide, faint bloom of {@code light}, a
+     * softer glow close round, and a tight halo hugging the letters halfway between the light and their own colour.
+     */
+    private static Bitmap haze(Bitmap sharp, int color, int light, float glow, float reach) {
+        if (glow <= 0f) return sharp;
+        Bitmap out = Bitmap.createBitmap(sharp.getWidth(), sharp.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(out);
+        Bitmap shape = sharp.extractAlpha();
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(Math.max(0.5f, reach), android.graphics.BlurMaskFilter.Blur.NORMAL));
+        p.setColor(Scene.alpha(light, Math.min(1f, 0.7f * glow)));
+        c.drawBitmap(shape, 0, 0, p);
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(Math.max(0.5f, reach * 0.38f), android.graphics.BlurMaskFilter.Blur.NORMAL));
+        p.setColor(Scene.alpha(light, Math.min(1f, 0.75f * glow)));
+        c.drawBitmap(shape, 0, 0, p);
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(Math.max(0.5f, reach * 0.125f), android.graphics.BlurMaskFilter.Blur.NORMAL));
+        p.setColor(Scene.alpha(Scene.mix(light, color, 0.5f), Math.min(1f, 0.8f * glow)));
+        c.drawBitmap(shape, 0, 0, p);
+        p.setMaskFilter(null);
+        c.drawBitmap(sharp, 0, 0, null);
+        shape.recycle();
+        return out;
     }
 
     /**

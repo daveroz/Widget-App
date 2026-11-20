@@ -36,10 +36,16 @@ final class CurrencyView {
 
     /**
      * Text as a picture at a fixed size (sizeDp = font size); the ImageView height in the layout is sizeDp * 1.46.
-     * Plain: no glow, no tint.
+     * In its own colour, hazed by its own light in the song's (Haze_Bloom_Text).
      */
     private static void txt(Context ctx, RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp) {
-        rv.setImageViewBitmap(viewId, TextBmp.make(tf, sizeDp * 2.5f, 0.8f, false, false, s, color));
+        rv.setImageViewBitmap(viewId, TextBmp.glowing(tf, sizeDp * 2.5f, 0.8f, s, color, Ambience.scene().deep,
+                Look.get().textHaze));
+    }
+
+    /** Tight text (see {@link TextBmp#tightHazy}), hazed like {@link #txt}: its view is {@link TextBmp#HAZE_ROOM} times as tall. */
+    private static Bitmap tight(Typeface tf, float sizeDp, String s, int color) {
+        return TextBmp.tightHazy(tf, sizeDp, s, color, Ambience.scene().deep, Look.get().textHaze);
     }
 
     static final int[] LAYOUTS = {R.layout.widget_k1, R.layout.widget_k2, R.layout.widget_k3,
@@ -52,7 +58,8 @@ final class CurrencyView {
 
     /** Variant with k currency rows (1..6). */
     private static void txtF(RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp, float fill) {
-        rv.setImageViewBitmap(viewId, TextBmp.make(tf, sizeDp * 2.5f, fill, false, false, s, color));
+        rv.setImageViewBitmap(viewId, TextBmp.glowing(tf, sizeDp * 2.5f, fill, s, color, Ambience.scene().deep,
+                Look.get().textHaze));
     }
 
     /** The size the clock city names actually show at (11 drawn into a 16 dp box with Carbon+'s 0.95 em line). */
@@ -87,9 +94,9 @@ final class CurrencyView {
         // The text is plain, in its own colours (no glow, no tint).
         int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED;
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
-        // the weather strip's panel (just inside the clocks card's 1 dp padding): plain black, like the clocks below it
-        rv.setImageViewBitmap(R.id.hdr_bg, Stage.panel(scene, rowW - 2, 30, 1.5f, Stage.roundTop(27),
-                Stage.NIGHT, false, false));
+        // the clocks card's frosted glass, behind the weather strip and the clocks (116 dp tall: its 1 dp padding, the
+        // 30 dp strip, the 84 dp clocks); the flags fade into it
+        rv.setImageViewBitmap(R.id.clk_glass, Stage.panel(scene, rowW, 116, 1.5f, Stage.round(28), Stage.NIGHT, true, false));
         // the clocks card's lit edge, over the card (116 dp tall: its 1 dp padding, the 30 dp strip, the 84 dp clocks)
         rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(scene, Math.round(rowW * 1.5f), Math.round(116 * 1.5f),
                 Stage.round(28 * 1.5f), 1.5f));
@@ -172,18 +179,18 @@ final class CurrencyView {
             double[][] trend = Trend.series(hist, from, market);
             rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW, ROW_DP, scene, i % 2 == 0));
             rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
-            rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), TextBmp.tight(reg, CITY_SP, "Market", scene.quiet));
-            rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), TextBmp.tight(reg, HEADER_SP, Util.fmt0(market), white));
+            rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), tight(reg, CITY_SP, "Market", scene.quiet));
+            rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), tight(reg, HEADER_SP, Util.fmt0(market), white));
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
             double visa = Util.alignToMarket(Store.visa(ctx, from, to), market);
             int vv = id(ctx, "visa_val_" + i);
             if (!Double.isNaN(visa)) {
-                rv.setImageViewBitmap(vv, TextBmp.tight(reg, HEADER_SP, Util.fmt0(visa), soft));
+                rv.setImageViewBitmap(vv, tight(reg, HEADER_SP, Util.fmt0(visa), soft));
             } else if (!Double.isNaN(market)) {
                 // Visa did not answer: estimate = market + fee, marked "~" and muted
-                rv.setImageViewBitmap(vv, TextBmp.tight(reg, HEADER_SP, "~" + Util.fmt0(market * (1.0 + Store.fee(ctx) / 100.0)), muted));
+                rv.setImageViewBitmap(vv, tight(reg, HEADER_SP, "~" + Util.fmt0(market * (1.0 + Store.fee(ctx) / 100.0)), muted));
             } else {
-                rv.setImageViewBitmap(vv, TextBmp.tight(reg, HEADER_SP, "", muted));
+                rv.setImageViewBitmap(vv, tight(reg, HEADER_SP, "", muted));
             }
         }
         return rv;
@@ -343,16 +350,17 @@ final class CurrencyView {
         return b;
     }
 
-    /** Flag faded into the night with the sun-phase band of light below (one exact boundary). */
+    /**
+     * The flag, dimmed and fading out downwards into the card's frosted glass behind it (the picture is clear where it
+     * has faded), with the sun-phase band below (one exact boundary).
+     */
     private static Bitmap clockFull(Bitmap flag, int phase) {
         final int w = CW, h = CH;
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
         final float split = Math.round(h * 0.94f);
-        Paint base = new Paint();
-        base.setColor(Theme.DEEP);
-        c.drawRect(0, 0, w, h, base);
         RectF fr = new RectF(0, 0, w, split);
+        c.saveLayer(fr, null);
         if (flag != null) {
             cover(c, flag, fr, 0);
         } else {
@@ -361,8 +369,13 @@ final class CurrencyView {
             c.drawRect(fr, p);
         }
         Paint gp = new Paint();
-        gp.setShader(new LinearGradient(0, 0, 0, split, 0x66000000, Theme.DEEP, Shader.TileMode.CLAMP));
-        c.drawRect(fr, gp);
+        gp.setShader(new LinearGradient(0, 0, 0, split, 0x66000000, 0xB3000000, Shader.TileMode.CLAMP));
+        c.drawRect(fr, gp); // dimmed, so the text over it reads
+        gp.setShader(new LinearGradient(0, 0, 0, split, new int[]{0xF2000000, 0x99000000, 0x00000000},
+                new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
+        gp.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+        c.drawRect(fr, gp); // fading into the glass
+        c.restore();
         // The sun-phase band: a plain strip in its colour, with no bloom (no glow into the flag, no bright edge).
         Paint sp = new Paint();
         sp.setColor(phaseColor(phase));

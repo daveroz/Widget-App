@@ -117,7 +117,11 @@ final class Theme {
         return g;
     }
 
-    /** A card, as the widgets' panels are drawn: the black, the look's pool of the light, and its lit edge. */
+    /**
+     * A card on the settings screen, after the glowing card reference: near black on the left, warming into the song's
+     * colour on the right, with a hairline edge that's light at the top left and fades round, and a faint sheen along
+     * its top.
+     */
     static Drawable card(Context c, float radiusDp) {
         return new Card(dp(c, radiusDp), dp(c, 1), CARD);
     }
@@ -133,7 +137,7 @@ final class Theme {
         return box(c, active ? Scene.alpha(s.key, 0.14f) : WELL, active ? Scene.alpha(s.key, 0.6f) : line(0.22f), radiusDp);
     }
 
-    /** A card picture, drawn once whenever its size changes, in the light and look it was made in. */
+    /** A card picture ({@link #card}), drawn once whenever its size changes, in the light it was made in. */
     static final class Card extends Drawable {
         private final float radius, px;
         private final int fill;
@@ -158,11 +162,33 @@ final class Theme {
             if (picture == null) {
                 picture = Bitmap.createBitmap(b.width(), b.height(), Bitmap.Config.ARGB_8888);
                 Canvas c = new Canvas(picture);
-                RectF box = new RectF(0, 0, b.width(), b.height());
-                float[] radii = Stage.round(Math.min(radius, b.height() / 2f));
-                Stage.night(c, box, radii, scene, fill, 0f);
-                c.restore();
-                Stage.rim(c, box, radii, scene, px);
+                int w = b.width(), h = b.height();
+                float r = Math.min(radius, h / 2f), alpha = ((fill >>> 24) & 0xFF) / 255f;
+                RectF box = new RectF(0, 0, w, h);
+                Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+                // near black on the left, warming into the song's colour on the right
+                int dark = 0xFF0B0A0F, warm = Scene.mix(dark, scene.deep, 0.42f);
+                p.setShader(new android.graphics.LinearGradient(0, 0, w, 0,
+                        new int[]{Scene.alpha(dark, alpha), Scene.alpha(Scene.mix(dark, warm, 0.18f), alpha), Scene.alpha(warm, alpha)},
+                        new float[]{0f, 0.45f, 1f}, android.graphics.Shader.TileMode.CLAMP));
+                c.drawRoundRect(box, r, r, p);
+                // a soft glow of the light on the right, strongest towards the top
+                p.setShader(new android.graphics.RadialGradient(w * 0.96f, h * 0.22f, Math.max(w, h) * 0.6f,
+                        Scene.alpha(scene.key, 0.14f), scene.key & 0x00FFFFFF, android.graphics.Shader.TileMode.CLAMP));
+                c.drawRoundRect(box, r, r, p);
+                // a faint sheen along the top
+                p.setShader(new android.graphics.LinearGradient(0, 0, 0, Math.min(h, 44 * px), 0x0FFFFFFF, 0x00FFFFFF,
+                        android.graphics.Shader.TileMode.CLAMP));
+                c.drawRoundRect(box, r, r, p);
+                // the hairline edge, light at the top left, fading round the card
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(px);
+                int edge = Scene.mix(0xFFFFFFFF, scene.line, 0.45f);
+                p.setShader(new android.graphics.RadialGradient(0, 0, Math.max(w, h) * 0.95f,
+                        new int[]{Scene.alpha(edge, 0.42f), Scene.alpha(edge, 0.16f), Scene.alpha(edge, 0.06f)},
+                        new float[]{0f, 0.35f, 1f}, android.graphics.Shader.TileMode.CLAMP));
+                float in = px / 2;
+                c.drawRoundRect(new RectF(in, in, w - in, h - in), r - in, r - in, p);
             }
             canvas.drawBitmap(picture, b.left, b.top, null);
         }
@@ -248,6 +274,11 @@ final class Theme {
         @Override public void setAlpha(int alpha) { }
         @Override public void setColorFilter(ColorFilter cf) { }
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    }
+
+    /** Text hazed by its own light, as on the widgets: a soft glow of the song's light round the letters. */
+    static void haze(Context c, TextView t, float strength) {
+        t.setShadowLayer(dp(c, 7), 0, 0, Scene.alpha(accent().deep, Math.min(1f, 0.85f * strength)));
     }
 
     /** Small label: bold capitals, spaced out, like markings on a piece of equipment. */
