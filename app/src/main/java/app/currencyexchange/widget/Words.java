@@ -14,9 +14,8 @@ import java.util.Locale;
  * light's colour, "· Spotify" in grey), the title, and the artist, centred in the band they're given. Three lines
  * when there's room, else the label and the title.
  *
- * The letters are lit like the lamps: the label and the title glow, their light blooming softly into the haze around
- * them (a wide, faint halo and a tight one hugging the letters), the title a warm white; the artist glows faintly and
- * the app's name not at all. The glow is blurred, so draw the words once into a picture and reuse it, not every frame.
+ * No line glows: every line has the lens's colour fringe instead (a red edge on one side, a blue one on the other;
+ * see {@link Lens}), the title a warm white. Draw the words once into a picture and reuse it, not every frame.
  */
 final class Words {
     private Words() {}
@@ -65,38 +64,33 @@ final class Words {
         int titleColour = Scene.mix(Theme.TEXT, scene.hot, 0.3f); // a warm white, lit by the key (warmer than elsewhere: it's the star)
         int detailColour = Glow.muted(scene);
 
-        // Then twice: first the glow of every line (so no glow lies over another line's letters), then the letters.
-        float bloom = Look.get().bloom;
+        // Then twice: first the fringe of every line (so no fringe lies over another line's letters), then the letters.
         for (int pass = 0; pass < 2; pass++) {
-            boolean glow = pass == 0;
+            boolean fringe = pass == 0;
             text.setTypeface(bold);
             text.setTextSize(LABEL_DP * dp);
             text.setLetterSpacing(0.22f);
-            line(c, text, head, x, y, labelColour, scene.deep, glow ? bloom : -1f, dp);
-            if (tail != null && !glow) line(c, text, tail, x + used, y, Theme.DIM, 0, -1f, dp);
+            line(c, text, head, x, y, labelColour, fringe, dp);
+            if (tail != null) line(c, text, tail, x + used, y, Theme.DIM, fringe, dp);
             text.setLetterSpacing(0f);
             text.setTextSize(TITLE_DP * dp);
-            line(c, text, name, x, titleY, titleColour, scene.deep, glow ? bloom : -1f, dp);
+            line(c, text, name, x, titleY, titleColour, fringe, dp);
             if (more != null) {
                 text.setTypeface(regular);
                 text.setTextSize(DETAIL_DP * dp);
-                line(c, text, more, x, detailY, detailColour, scene.deep, glow ? 0.3f * bloom : -1f, dp);
+                line(c, text, more, x, detailY, detailColour, fringe, dp);
             }
         }
     }
 
-    /**
-     * One line of text: the sharp letters in {@code colour} ({@code glow} below 0), or their glow in {@code light},
-     * {@code glow} strong: a wide, faint bloom, a softer glow close around, and a tight halo hugging the letters.
-     */
-    private static void line(Canvas c, TextPaint text, String s, float x, float y, int colour, int light, float glow,
-                             float dp) {
-        if (glow < 0f) {
-            text.setColor(colour);
-            c.drawText(s, x, y, text);
+    /** One line of text: its fringe ({@code fringe}; see {@link Lens#text}), or its letters in {@code colour}. */
+    private static void line(Canvas c, TextPaint text, String s, float x, float y, int colour, boolean fringe, float dp) {
+        if (fringe) {
+            Lens.text(c, text, s, x, y, dp, Look.get().textFringe);
             return;
         }
-        Glow.text(c, text, s, x, y, colour, light, glow, 12 * dp);
+        text.setColor(colour);
+        c.drawText(s, x, y, text);
     }
 
     static TextPaint paint() {

@@ -7,10 +7,10 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 
 /**
- * The colour fringe a real lens gives a bright light (chromatic aberration), as in the chromatic references: kept for
- * the brightest things only (what's lit, a glowing line, the lamps), never for text, a red edge on one side and a
- * blue one on the other, showing only where the light spills past itself. How far apart and how strong depends on
- * the chosen {@link Look}: faint on Haze, clear on Optic.
+ * The colour fringe a real lens gives a bright light (chromatic aberration), as in the chromatic references: on the
+ * brightest things (what's lit, a glowing line, the lamps) and on text, in place of any glow: a red edge on one side
+ * and a blue one on the other, showing only where it spills past the letters or the light. How far apart and how
+ * strong is set in {@link Look}.
  */
 final class Lens {
     private Lens() {}
@@ -36,5 +36,23 @@ final class Lens {
         p.setColorFilter(null);
         c.drawBitmap(src, 0, 0, p);
         return out;
+    }
+
+    /**
+     * The fringe of text drawn straight onto a canvas (not the letters themselves; draw them after, over it): a red
+     * copy of {@code s} pulled left and a blue one right, at {@code pxPerDp} pixels per dp, {@code weight} times the
+     * look's strength, with {@code paint}'s typeface, size and alignment.
+     */
+    static void text(Canvas c, Paint paint, String s, float x, float y, float pxPerDp, float weight) {
+        Look look = Look.get();
+        float strength = Math.min(1f, look.fringe * weight);
+        if (strength <= 0f || s == null || s.isEmpty()) return;
+        float shift = look.fringeDp * pxPerDp;
+        int was = paint.getColor();
+        paint.setColor(Scene.alpha(RED, strength));
+        c.drawText(s, x - shift, y, paint);
+        paint.setColor(Scene.alpha(BLUE, strength));
+        c.drawText(s, x + shift, y, paint);
+        paint.setColor(was);
     }
 }

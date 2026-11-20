@@ -10,9 +10,9 @@ import android.text.TextPaint;
 import java.util.Locale;
 
 /**
- * The Music widget's picture: the black panel every widget shares ({@link Stage#night}), lit by the light of what's
- * playing, with its lit edge ({@link Stage#rim}). The controls are real views laid over it ({@link PlayerWidgetProvider}). With nothing
- * playing (or no media access) it says so, quietly, in the middle, the words glowing in the light.
+ * The Music widget's picture: the card every widget shares ({@link Stage#fill}, {@link Stage#rim}), in the light of
+ * what's playing. The controls are real views laid over it ({@link PlayerWidgetProvider}). With nothing
+ * playing (or no media access) it says so, quietly, in the middle, in the light's colour with the lens's fringe.
  */
 final class PlayerPicture {
     private PlayerPicture() {}
@@ -23,12 +23,11 @@ final class PlayerPicture {
         float radius = Math.min(28 * dp, h / 2f);
         RectF box = new RectF(0, 0, w, h);
         float[] corners = Stage.round(radius);
-        Backdrop.Behind behind = Backdrop.behind(ctx, "music", w / dp, h / dp, 0, 0, w / dp, h / dp);
-        // while there are controls, the play button lights the glass behind it (10 dp margin, the 46 dp previous
+        // while there are controls, the play button lights the card round it (10 dp margin, the 46 dp previous
         // button, half the 50 dp play button; the controls are centred top to bottom)
         Stage.Spill[] spills = access && track != null
                 ? new Stage.Spill[]{new Stage.Spill(81 * dp, h / 2f, 46 * dp, scene.deep, 0.28f * Look.get().bloom)} : null;
-        Stage.night(c, box, corners, scene, Stage.NIGHT, 0f, 0, behind, spills);
+        Stage.fill(c, box, corners, scene, dp, 0f, spills);
         if (!access || track == null) {
             String say = (!access ? "Media access needed  ·  tap to turn it on" : "Nothing playing").toUpperCase(Locale.getDefault());
             TextPaint text = Words.paint();
@@ -38,7 +37,7 @@ final class PlayerPicture {
             text.setTextAlign(Paint.Align.CENTER);
             int colour = Glow.label(scene);
             float y = h / 2f + Words.LABEL_DP * dp * 0.36f;
-            Glow.text(c, text, say, w / 2f, y, colour, scene.deep, Glow.LABEL * Look.get().bloom, 12 * dp);
+            Lens.text(c, text, say, w / 2f, y, dp, Look.get().textFringe); // the lens's fringe, no glow
             text.setColor(colour);
             c.drawText(say, w / 2f, y, text);
         }

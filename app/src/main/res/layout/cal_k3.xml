@@ -80,19 +80,30 @@
                 android:layout_weight="1"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
-                <ImageView
-                    android:id="@+id/wk_label_0"
-                    android:layout_width="wrap_content"
-                    android:layout_height="14dp"
-                    android:adjustViewBounds="true"
-                    android:scaleType="fitCenter" />
-                <ImageView
-                    android:id="@+id/wk_num_0"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:adjustViewBounds="true"
-                    android:layout_marginTop="0dp"
-                    android:scaleType="fitCenter" />
+                <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
+                <LinearLayout
+                    android:id="@+id/wk_col_0"
+                    android:layout_width="match_parent"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginEnd="3dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="4dp">
+                    <ImageView
+                        android:id="@+id/wk_label_0"
+                        android:layout_width="wrap_content"
+                        android:layout_height="14dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitCenter" />
+                    <ImageView
+                        android:id="@+id/wk_num_0"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:adjustViewBounds="true"
+                        android:layout_marginTop="0dp"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -100,19 +111,30 @@
                 android:layout_weight="1"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
-                <ImageView
-                    android:id="@+id/wk_label_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="14dp"
-                    android:adjustViewBounds="true"
-                    android:scaleType="fitCenter" />
-                <ImageView
-                    android:id="@+id/wk_num_1"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:adjustViewBounds="true"
-                    android:layout_marginTop="0dp"
-                    android:scaleType="fitCenter" />
+                <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
+                <LinearLayout
+                    android:id="@+id/wk_col_1"
+                    android:layout_width="match_parent"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginEnd="3dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="4dp">
+                    <ImageView
+                        android:id="@+id/wk_label_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="14dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitCenter" />
+                    <ImageView
+                        android:id="@+id/wk_num_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:adjustViewBounds="true"
+                        android:layout_marginTop="0dp"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -120,19 +142,30 @@
                 android:layout_weight="1"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
-                <ImageView
-                    android:id="@+id/wk_label_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="14dp"
-                    android:adjustViewBounds="true"
-                    android:scaleType="fitCenter" />
-                <ImageView
-                    android:id="@+id/wk_num_2"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:adjustViewBounds="true"
-                    android:layout_marginTop="0dp"
-                    android:scaleType="fitCenter" />
+                <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
+                <LinearLayout
+                    android:id="@+id/wk_col_2"
+                    android:layout_width="match_parent"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginEnd="3dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="4dp">
+                    <ImageView
+                        android:id="@+id/wk_label_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="14dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitCenter" />
+                    <ImageView
+                        android:id="@+id/wk_num_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:adjustViewBounds="true"
+                        android:layout_marginTop="0dp"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -140,19 +173,30 @@
                 android:layout_weight="1"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
-                <ImageView
-                    android:id="@+id/wk_label_3"
-                    android:layout_width="wrap_content"
-                    android:layout_height="14dp"
-                    android:adjustViewBounds="true"
-                    android:scaleType="fitCenter" />
-                <ImageView
-                    android:id="@+id/wk_num_3"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:adjustViewBounds="true"
-                    android:layout_marginTop="0dp"
-                    android:scaleType="fitCenter" />
+                <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
+                <LinearLayout
+                    android:id="@+id/wk_col_3"
+                    android:layout_width="match_parent"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginEnd="3dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="4dp">
+                    <ImageView
+                        android:id="@+id/wk_label_3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="14dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitCenter" />
+                    <ImageView
+                        android:id="@+id/wk_num_3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:adjustViewBounds="true"
+                        android:layout_marginTop="0dp"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -160,19 +204,30 @@
                 android:layout_weight="1"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
-                <ImageView
-                    android:id="@+id/wk_label_4"
-                    android:layout_width="wrap_content"
-                    android:layout_height="14dp"
-                    android:adjustViewBounds="true"
-                    android:scaleType="fitCenter" />
-                <ImageView
-                    android:id="@+id/wk_num_4"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:adjustViewBounds="true"
-                    android:layout_marginTop="0dp"
-                    android:scaleType="fitCenter" />
+                <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
+                <LinearLayout
+                    android:id="@+id/wk_col_4"
+                    android:layout_width="match_parent"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginEnd="3dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="4dp">
+                    <ImageView
+                        android:id="@+id/wk_label_4"
+                        android:layout_width="wrap_content"
+                        android:layout_height="14dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitCenter" />
+                    <ImageView
+                        android:id="@+id/wk_num_4"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:adjustViewBounds="true"
+                        android:layout_marginTop="0dp"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -180,19 +235,30 @@
                 android:layout_weight="1"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
-                <ImageView
-                    android:id="@+id/wk_label_5"
-                    android:layout_width="wrap_content"
-                    android:layout_height="14dp"
-                    android:adjustViewBounds="true"
-                    android:scaleType="fitCenter" />
-                <ImageView
-                    android:id="@+id/wk_num_5"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:adjustViewBounds="true"
-                    android:layout_marginTop="0dp"
-                    android:scaleType="fitCenter" />
+                <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
+                <LinearLayout
+                    android:id="@+id/wk_col_5"
+                    android:layout_width="match_parent"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginEnd="3dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="4dp">
+                    <ImageView
+                        android:id="@+id/wk_label_5"
+                        android:layout_width="wrap_content"
+                        android:layout_height="14dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitCenter" />
+                    <ImageView
+                        android:id="@+id/wk_num_5"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:adjustViewBounds="true"
+                        android:layout_marginTop="0dp"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -200,19 +266,30 @@
                 android:layout_weight="1"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
-                <ImageView
-                    android:id="@+id/wk_label_6"
-                    android:layout_width="wrap_content"
-                    android:layout_height="14dp"
-                    android:adjustViewBounds="true"
-                    android:scaleType="fitCenter" />
-                <ImageView
-                    android:id="@+id/wk_num_6"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:adjustViewBounds="true"
-                    android:layout_marginTop="0dp"
-                    android:scaleType="fitCenter" />
+                <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
+                <LinearLayout
+                    android:id="@+id/wk_col_6"
+                    android:layout_width="match_parent"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginEnd="3dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="4dp">
+                    <ImageView
+                        android:id="@+id/wk_label_6"
+                        android:layout_width="wrap_content"
+                        android:layout_height="14dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitCenter" />
+                    <ImageView
+                        android:id="@+id/wk_num_6"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:adjustViewBounds="true"
+                        android:layout_marginTop="0dp"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 

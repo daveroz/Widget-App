@@ -159,33 +159,11 @@ final class Theme {
             if (picture == null) {
                 picture = Bitmap.createBitmap(b.width(), b.height(), Bitmap.Config.ARGB_8888);
                 Canvas c = new Canvas(picture);
-                int w = b.width(), h = b.height();
-                float r = Math.min(radius, h / 2f), alpha = ((fill >>> 24) & 0xFF) / 255f;
-                RectF box = new RectF(0, 0, w, h);
-                Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-                // near black on the left, warming into the song's colour on the right
-                int dark = 0xFF0B0A0F, warm = Scene.mix(dark, scene.deep, 0.16f); // just a hint of the colour
-                p.setShader(new android.graphics.LinearGradient(0, 0, w, 0,
-                        new int[]{Scene.alpha(dark, alpha), Scene.alpha(Scene.mix(dark, warm, 0.18f), alpha), Scene.alpha(warm, alpha)},
-                        new float[]{0f, 0.45f, 1f}, android.graphics.Shader.TileMode.CLAMP));
-                c.drawRoundRect(box, r, r, p);
-                // a soft glow of the light on the right, strongest towards the top
-                p.setShader(new android.graphics.RadialGradient(w * 0.96f, h * 0.22f, Math.max(w, h) * 0.6f,
-                        Scene.alpha(scene.key, 0.05f), scene.key & 0x00FFFFFF, android.graphics.Shader.TileMode.CLAMP));
-                c.drawRoundRect(box, r, r, p);
-                // a faint sheen along the top
-                p.setShader(new android.graphics.LinearGradient(0, 0, 0, Math.min(h, 44 * px), 0x0FFFFFFF, 0x00FFFFFF,
-                        android.graphics.Shader.TileMode.CLAMP));
-                c.drawRoundRect(box, r, r, p);
-                // the hairline edge, light at the top left, fading round the card
-                p.setStyle(Paint.Style.STROKE);
-                p.setStrokeWidth(px);
-                int edge = Scene.mix(0xFFFFFFFF, scene.line, 0.45f);
-                p.setShader(new android.graphics.RadialGradient(0, 0, Math.max(w, h) * 0.95f,
-                        new int[]{Scene.alpha(edge, 0.42f), Scene.alpha(edge, 0.16f), Scene.alpha(edge, 0.06f)},
-                        new float[]{0f, 0.35f, 1f}, android.graphics.Shader.TileMode.CLAMP));
-                float in = px / 2;
-                c.drawRoundRect(new RectF(in, in, w - in, h - in), r - in, r - in, p);
+                float r = Math.min(radius, b.height() / 2f), opacity = ((fill >>> 24) & 0xFF) / 255f;
+                RectF box = new RectF(0, 0, b.width(), b.height());
+                Stage.fill(c, box, Stage.round(r), scene, opacity, px, 0f, null); // the same card as the widgets'
+                c.restore();
+                Stage.rim(c, box, Stage.round(r), scene, px);
             }
             canvas.drawBitmap(picture, b.left, b.top, null);
         }
@@ -211,7 +189,15 @@ final class Theme {
 
     /** Text on a solid button ({@link #lit}): white, or near black on a light colour, so it reads. */
     static int onLit() {
-        return Scene.luminance(accent().key) > 0.55f ? 0xFF0B0A12 : 0xFFFFFFFF;
+        return onLit(accent().key);
+    }
+
+    /**
+     * Text or a symbol on something solid in {@code colour}: white on a deep colour (violet, crimson), near black on a
+     * bright one (amber, teal, green), where white would barely read.
+     */
+    static int onLit(int colour) {
+        return Scene.luminance(colour) > 0.3f ? 0xFF0B0A12 : 0xFFFFFFFF;
     }
 
     /** A button that's off, or a quieter action: solid and dark, a deep shade of the song's colour (no outline). */
@@ -252,9 +238,53 @@ final class Theme {
         v.setElevation(dp(c, 8));
     }
 
-    /** Text hazed by its own light, as on the widgets: a soft glow of the song's light round the letters. */
-    static void haze(Context c, TextView t, float strength) {
-        t.setShadowLayer(dp(c, 7), 0, 0, Scene.alpha(accent().deep, Math.min(1f, 0.85f * strength)));
+    /** Gives a title the lens's colour fringe, as the widgets' text has (no glow); it must be a {@link FringeText}. */
+    static void fringe(TextView t) {
+        if (t instanceof FringeText) ((FringeText) t).fringe(true);
+    }
+
+    /**
+     * A TextView that can draw the lens's colour fringe under its letters ({@link #fringe}): a red copy pulled left
+     * and a blue one right, as on the widgets (see {@link Lens}), never a glow.
+     */
+    static class FringeText extends TextView {
+        private boolean on;
+
+        FringeText(Context c) {
+            super(c);
+        }
+
+        void fringe(boolean on) {
+            this.on = on;
+            invalidate();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            android.text.Layout layout = getLayout();
+            if (on && layout != null) {
+                Look look = Look.get();
+                float shift = look.fringeDp * getResources().getDisplayMetrics().density;
+                float strength = Math.min(1f, look.fringe * look.textFringe);
+                // where TextView puts its text: inside the padding, moved down for a centred or bottom gravity
+                int box = getHeight() - getExtendedPaddingTop() - getExtendedPaddingBottom(), gap = box - layout.getHeight();
+                int vertical = getGravity() & android.view.Gravity.VERTICAL_GRAVITY_MASK;
+                float down = gap <= 0 ? 0 : vertical == android.view.Gravity.BOTTOM ? gap
+                        : vertical == android.view.Gravity.CENTER_VERTICAL ? gap / 2f : 0;
+                android.text.TextPaint p = getPaint();
+                int was = p.getColor();
+                canvas.save();
+                canvas.translate(getCompoundPaddingLeft() - shift, getExtendedPaddingTop() + down);
+                p.setColor(Scene.alpha(Lens.RED, strength));
+                layout.draw(canvas);
+                canvas.translate(2 * shift, 0);
+                p.setColor(Scene.alpha(Lens.BLUE, strength));
+                layout.draw(canvas);
+                canvas.restore();
+                p.setColor(was);
+            }
+            super.onDraw(canvas);
+        }
     }
 
     /** Small label: bold capitals, spaced out, like markings on a piece of equipment. */

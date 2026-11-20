@@ -55,14 +55,6 @@ public class ConverterActivity extends Activity {
         row = Math.max(0, Math.min(Store.count(this) - 1,
                 getIntent().getIntExtra(EXTRA_ROW, Store.sp(this).getInt("convRow", 0))));
         reverse = Store.sp(this).getBoolean("convRev", false);
-        // The row tapped says where the widget is, so its glass lines up with the wallpaper: the widget's frame starts
-        // 123 dp above the first row (the 116 dp clocks card and a 7 dp gap) and 61 dp more above each row after it.
-        android.graphics.Rect tapped = getIntent().getSourceBounds();
-        if (tapped != null && getIntent().hasExtra(EXTRA_ROW)) {
-            int top = Math.round(tapped.top - (123 + 61 * getIntent().getIntExtra(EXTRA_ROW, 0))
-                    * getResources().getDisplayMetrics().density);
-            Backdrop.saw(this, "currency", new android.graphics.Rect(tapped.left, top, tapped.right, top + 1));
-        }
         setContentView(build());
         int w = Math.min(Math.round(getResources().getDisplayMetrics().widthPixels * 0.92f), dp(420));
         getWindow().setLayout(w, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -101,7 +93,7 @@ public class ConverterActivity extends Activity {
 
         TextView title = text("CONVERTER", 11, Theme.uiBold(this), Theme.accent().line);
         Theme.label(this, title);
-        Theme.haze(this, title, 1f);
+        Theme.fringe(title);
         title.setPadding(dp(2), 0, 0, dp(10));
         card.addView(title);
 
@@ -201,7 +193,7 @@ public class ConverterActivity extends Activity {
 
     /**
      * The card floats over the home screen, so it brings its own light: the widgets' black panel, nearly opaque so the
-     * numbers read over any wallpaper, lit by the song's light in the chosen look, with its lit edge.
+     * numbers read over any wallpaper: the app's card (see {@link Stage}), in the song's light.
      */
     private Drawable room() {
         return Theme.card(this, 16, 0xF7010203);
@@ -321,7 +313,7 @@ public class ConverterActivity extends Activity {
     }
 
     private TextView text(String s, float sp, Typeface tf, int color) {
-        TextView t = new TextView(this);
+        TextView t = new Theme.FringeText(this); // titles can take the lens's fringe (Theme.fringe)
         t.setText(s);
         t.setTextSize(sp);
         t.setTypeface(tf);

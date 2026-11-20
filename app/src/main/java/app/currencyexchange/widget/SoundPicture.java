@@ -105,11 +105,11 @@ final class SoundPicture {
         Canvas c = new Canvas(out);
         float bass = lights.bass();
 
-        // Its stage: the black panel lit by the look's pool of the light (swelling with the bass), with no grain.
+        // Its card, as every widget's: the mild see-through black, a hint of the light (swelling with the bass).
         float radius = Math.min(28 * dp, h / 2f);
         box.set(0, 0, w, h);
         float[] corners = Stage.round(radius);
-        Stage.night(c, box, corners, scene, Stage.NIGHT, bass, Backdrop.behind(ctx, "sound", w / dp, h / dp, 0, 0, w / dp, h / dp));
+        Stage.fill(c, box, corners, scene, dp, bass, null);
 
         // Zones: on top, the cover with its LP on the right and the words on the left; below, the wall of lamps from
         // margin to margin, its top a little behind the LP, down to the bottom margin.
@@ -130,7 +130,7 @@ final class SoundPicture {
         record.draw(c, sleeve, dp, scene);
         c.drawBitmap(words(ctx, w, h, pad, wall.top - pad, textRight - pad, dp), 0, 0, null);
         c.restore();
-        c.drawBitmap(Stage.edge(scene, w, h, corners, dp), 0, 0, null); // its lit edge, drawn once per light and size
+        c.drawBitmap(Stage.edge(scene, w, h, corners, dp), 0, 0, null); // its edge, drawn once per light and size
         return out;
     }
 
