@@ -33,7 +33,7 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     /** Each widget's picture size, worked out when it's placed or resized, not on every frame. */
     private static final Map<Integer, float[]> SIZES = new HashMap<>();
     private static NowPlaying.Track track;
-    private static Scene scene = Scene.amber();
+    private static Scene scene = Scene.idle();
     private static boolean access;
     /** Which app a tap opens (a full update is sent when it changes). */
     private static String state = "";

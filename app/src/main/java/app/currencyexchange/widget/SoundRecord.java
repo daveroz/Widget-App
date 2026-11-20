@@ -385,7 +385,7 @@ final class SoundRecord {
         disc = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(disc);
         float cx = r;
-        Scene light = new Scene(tint != 0 ? tint : Theme.AMBER);
+        Scene light = tint == 0 || (tint | 0xFF000000) == Scene.IDLE ? Scene.idle() : new Scene(tint); // Worldly's own light keeps its own shades
         int vinyl = vinylFrom(light.deep);
         int lustre = Scene.mix(vinyl, light.hot, 0.6f);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);

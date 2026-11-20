@@ -33,22 +33,39 @@ final class Scene {
     final int quiet;
 
     Scene(int key) {
+        this(key, deepOf(key), mix(gain(key, 1.2f), Color.WHITE, 0.06f));
+    }
+
+    /** A light whose deep and hot shades are given rather than worked out from its key (Worldly's own, {@link #idle}). */
+    private Scene(int key, int deep, int hot) {
         this.key = key | 0xFF000000;
         this.led = mix(key, Color.WHITE, 0.88f);
-        this.hot = mix(gain(key, 1.2f), Color.WHITE, 0.06f);
-        float[] hsv = new float[3];
-        Color.colorToHSV(this.key, hsv);
-        hsv[1] = Math.min(0.95f, hsv[1] * 1.5f);
-        hsv[2] *= 0.92f;
-        this.deep = Color.HSVToColor(hsv);
+        this.hot = hot | 0xFF000000;
+        this.deep = deep | 0xFF000000;
         this.label = mix(key, Color.WHITE, 0.25f);
         this.line = readable(mix(this.key, 0xFFF4EFE6, 0.3f), 0.42f);
         this.quiet = readable(mix(this.key, Theme.TEXT_SOFT, 0.62f), 0.5f);
     }
 
-    /** Worldly's own amber: the light while nothing plays. */
-    static Scene amber() {
-        return new Scene(Theme.AMBER);
+    /** The key, richer and a little deeper (see {@link #deep}). */
+    private static int deepOf(int key) {
+        float[] hsv = new float[3];
+        Color.colorToHSV(key | 0xFF000000, hsv);
+        hsv[1] = Math.min(0.95f, hsv[1] * 1.5f);
+        hsv[2] *= 0.92f;
+        return Color.HSVToColor(hsv);
+    }
+
+    /**
+     * Worldly's own light, while nothing plays (since 1.89): the glowing orange of the filaments in the reference
+     * picture, measured off its pixels: #F37613 where they're lit, a deeper red-orange where the glow fades into the
+     * dark (its haze), and yellow at the white-hot cores (its hot shade).
+     */
+    static final int IDLE = 0xFFF37613, IDLE_DEEP = 0xFFE05A10, IDLE_HOT = 0xFFFCD467;
+
+    /** Worldly's own light: the light while nothing plays ({@link #IDLE}). */
+    static Scene idle() {
+        return new Scene(IDLE, IDLE_DEEP, IDLE_HOT);
     }
 
     /** A cool white, for apps and covers with no real colour of their own. */
@@ -73,7 +90,8 @@ final class Scene {
 
     /** What a cached picture drawn in this light depends on: its colour. */
     String tag() {
-        return Integer.toHexString(key) + Look.get().tag(); // a picture drawn in another look isn't reused
+        // its colour and hot shade (Worldly's own light gives its own), and the look: pictures aren't reused across them
+        return Integer.toHexString(key) + "." + Integer.toHexString(hot) + Look.get().tag();
     }
 
     static int alpha(int colour, float a) {

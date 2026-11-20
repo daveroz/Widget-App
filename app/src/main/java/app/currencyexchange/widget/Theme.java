@@ -17,7 +17,7 @@ import android.widget.TextView;
 /**
  * Worldly's visual language: OLED-black panels lit in the playing song's colour, with edges lit like light catching
  * them rather than solid borders, in the chosen {@link Look}. Structure (edges, rules, ticks, small labels) is in the
- * song's line colour ({@link Scene#line}); the key light (the song's colour, amber when nothing plays) is kept for what
+ * song's line colour ({@link Scene#line}); the key light (the song's colour, Worldly's own orange when nothing plays) is kept for what
  * matters right now: live values, today, and what's on, which is "lit" (a touch of the key on the black with a glowing
  * key edge). Small labels are spaced bold capitals. Type stays the original Carbon+ font from the KWGT preset. Used by
  * the settings screen, the converter and the widget renderer so they all feel like one family. Amber stays fixed
@@ -53,7 +53,7 @@ final class Theme {
     static final int LED = 0xFFFDF2E7;
     static final int GREEN = 0xFF34D399;
 
-    /** The light the screens are drawn in: the playing song's colour, as on the widgets (amber when nothing plays). */
+    /** The light the screens are drawn in: the playing song's colour, as on the widgets (Worldly's own orange when nothing plays). */
     static Scene accent() {
         return Ambience.scene();
     }

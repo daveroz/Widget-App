@@ -32,7 +32,7 @@ final class SoundPicture {
     private String wordsKey = "";
 
     private NowPlaying.Track track;
-    private Scene scene = Scene.amber();
+    private Scene scene = Scene.idle();
     private boolean access = true;
     /** The cover, and a small copy of it for drawing every frame (players send them up to 1000 px or more). */
     private Bitmap coverFrom, coverSmall;
