@@ -111,13 +111,13 @@ final class Trend {
             c.restore();
         }
         c.restore();
-        Stage.rim(c, box, Stage.round(r), scene, PXDP);
+        Stage.rim(c, box, Stage.round(r), PXDP);
         return out;
     }
 
     /**
      * The chart: the curve as a thread of light in the shared light's colour (a warm core, a tight glow and a wide,
-     * faint bloom in the haze), over a soft area of its light fading downward, with a light strike at its high.
+     * faint bloom in the haze), over a soft area of its light fading downward.
      */
     private static void chart(Canvas c, double[][] pts, int w, int h, Scene scene) {
         int n = pts.length;
@@ -194,14 +194,6 @@ final class Trend {
         c.restore();
         line.setColor(alpha(scene.hot, Math.round(LINE_ALPHA * 1.4f)));
         c.drawPath(curve, line);
-
-        // where the thread is brightest, at the month's high: a small light strike, as a star filter makes of a glint
-        int peak = -1;
-        for (int i = 0; i < n; i++) {
-            if (xs[i] < w * 0.06f || xs[i] > w * 0.94f) continue;
-            if (peak < 0 || ys[i] < ys[peak]) peak = i;
-        }
-        if (peak >= 0) Optics.star(c, xs[peak], ys[peak], 7f * PXDP, PXDP, scene.hot, 0.6f);
     }
 
     /** Smooth curve through the points that never overshoots them (Steffen's monotone cubic, as Bezier segments). */

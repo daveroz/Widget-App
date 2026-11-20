@@ -247,9 +247,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int s = Math.round(44 * px);
         android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas c = new android.graphics.Canvas(b);
+        // as the app's dark buttons: near black with a glass rim
+        Theme.glassCircle(c, s / 2f, s / 2f, 19 * px, 1.2f * px, Theme.darkFill(scene), Theme.darkEdge(scene), Theme.DARK_RIM);
         android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        p.setColor(Theme.iconFill(scene));
-        c.drawCircle(s / 2f, s / 2f, 19 * px, p);
         p.setStyle(android.graphics.Paint.Style.STROKE);
         p.setStrokeWidth(2.2f * px);
         p.setStrokeCap(android.graphics.Paint.Cap.ROUND);

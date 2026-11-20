@@ -238,9 +238,6 @@ final class SoundRecord {
                 halationPaint.setAlpha(Math.round(255 * eased));
                 canvas.drawCircle(0, 0, r * HALO, halationPaint);
             }
-            // where the rim faces the light, up at its top left: a small light strike, as a star filter makes of it
-            float g = (r - 0.5f * dp) * 0.7071f;
-            Optics.star(canvas, -g, -g, 6 * dp, dp, scene.hot, 0.5f * eased);
             canvas.restore();
         }
 

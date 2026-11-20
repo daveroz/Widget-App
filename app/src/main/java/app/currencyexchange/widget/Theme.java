@@ -163,7 +163,7 @@ final class Theme {
                 RectF box = new RectF(0, 0, b.width(), b.height());
                 Stage.fill(c, box, Stage.round(r), scene, opacity, px, 0f, null); // the same card as the widgets'
                 c.restore();
-                Stage.rim(c, box, Stage.round(r), scene, px);
+                Stage.rim(c, box, Stage.round(r), px);
             }
             canvas.drawBitmap(picture, b.left, b.top, null);
         }
@@ -182,15 +182,45 @@ final class Theme {
         Scene s = accent();
         int fill = litFill(s);
         return new GlassButton(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.1f) : fill, dp(c, radiusDp), dp(c, 1.2f),
-                Scene.mix(s.key, 0xFFFFF4E6, 0.55f), LIT_RIM, false);
+                litEdge(s), LIT_RIM, false);
+    }
+
+    /** A lit button's rim colour: a light shade of the song's colour. */
+    static int litEdge(Scene s) {
+        return Scene.mix(s.key, 0xFFFFF4E6, 0.55f);
+    }
+
+    /** A dark button's fill: near black, with a breath of the song's colour. */
+    static int darkFill(Scene s) {
+        return Scene.mix(0xFF17191A, s.key, 0.04f);
+    }
+
+    /** A dark button's rim colour: a warm white, a touch of the song's line colour in it. */
+    static int darkEdge(Scene s) {
+        return Scene.mix(0xFFF3ECE8, s.line, 0.15f);
+    }
+
+    /**
+     * A round button drawn straight onto a canvas (the widgets' buttons): a solid {@code fill} at (cx, cy), radius
+     * {@code r}, with a glass rim {@code stroke} wide ({@link #glassEdge}) in {@code edge}, {@code rim} strong.
+     */
+    static void glassCircle(Canvas c, float cx, float cy, float r, float stroke, int fill, int edge, float[] rim) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+        p.setColor(fill);
+        c.drawCircle(cx, cy, r, p);
+        float in = stroke / 2;
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(stroke);
+        p.setShader(glassEdge(new RectF(cx - r, cy - r, cx + r, cy + r), edge, rim));
+        c.drawCircle(cx, cy, r - in, p);
     }
 
     /**
      * How strong a glass rim is along its length ({@link #glassEdge}): a dark button's, measured off the Justice store's
      * "Shop all" button (white over its near black), and a lit button's, fuller.
      */
-    private static final float[] DARK_RIM = {0.27f, 0.2f, 0.06f, 0.03f, 0.06f, 0.13f, 0.15f};
-    private static final float[] LIT_RIM = {0.8f, 0.66f, 0.36f, 0.28f, 0.34f, 0.5f, 0.56f};
+    static final float[] DARK_RIM = {0.27f, 0.2f, 0.06f, 0.03f, 0.06f, 0.13f, 0.15f};
+    static final float[] LIT_RIM = {0.8f, 0.66f, 0.36f, 0.28f, 0.34f, 0.5f, 0.56f};
     /** Where along the rim each strength is, from its top left (0) round to its bottom right (1). */
     private static final float[] RIM_AT = {0f, 0.2f, 0.35f, 0.5f, 0.65f, 0.8f, 1f};
 
@@ -290,9 +320,9 @@ final class Theme {
 
     private static Drawable darkButton(Context c, float radiusDp, boolean pressed, boolean round) {
         Scene s = accent();
-        int fill = Scene.mix(0xFF17191A, s.key, 0.04f);
+        int fill = darkFill(s);
         return new GlassButton(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.06f) : fill, dp(c, radiusDp), dp(c, 1.2f),
-                Scene.mix(0xFFF3ECE8, s.line, 0.15f), DARK_RIM, round);
+                darkEdge(s), DARK_RIM, round);
     }
 
     /** An icon button's dark fill: the song's colour, deep and dark. */

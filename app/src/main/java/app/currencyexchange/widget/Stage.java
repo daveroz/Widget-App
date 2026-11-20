@@ -108,17 +108,23 @@ final class Stage {
     }
 
     /**
-     * A card's edge, just inside {@code box}, as glass on black shows it: a hairline ({@code px} pixels per dp), a pale
-     * shade of the song's line colour, light at the top left and fading round the card; a fainter line a little inside
-     * it near the top left, the glass's other face seen through its thickness; and the corner there catching the light,
-     * with a small strike where it's brightest ({@link Optics#catchlight}).
+     * The cards' edge colour, a warm white: the same whatever is playing, so the edge and the flare at its corner never
+     * change colour.
      */
-    static void rim(Canvas c, RectF box, float[] radii, Scene scene, float px) {
+    static final int EDGE = 0xFFF0EBE4;
+
+    /**
+     * A card's edge, just inside {@code box}, as glass on black shows it: a hairline ({@code px} pixels per dp) in a
+     * fixed warm white ({@link #EDGE}), light at the top left and fading round the card; a fainter line a little inside
+     * it near the top left, the glass's other face seen through its thickness; and the corner there catching the light,
+     * with a flare where it's brightest ({@link Optics#catchlight}): the only flares there are.
+     */
+    static void rim(Canvas c, RectF box, float[] radii, float px) {
         float line = Math.max(1f, px), in = line / 2;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(line);
-        int edge = Scene.mix(0xFFFFFFFF, scene.line, 0.45f);
+        int edge = EDGE;
         float reach = Math.max(box.width(), box.height());
         p.setShader(new RadialGradient(box.left, box.top, reach * 0.95f,
                 new int[]{Scene.alpha(edge, 0.42f), Scene.alpha(edge, 0.16f), Scene.alpha(edge, 0.06f)},
@@ -132,7 +138,7 @@ final class Stage {
                 new int[]{Scene.alpha(edge, 0.14f), Scene.alpha(edge, 0.04f), edge & 0x00FFFFFF},
                 new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(inset(box, radii, in + deep), p);
-        Optics.catchlight(c, box, path, Math.max(0, radii[0] - in), in, px, scene.line, CATCH);
+        Optics.catchlight(c, box, path, Math.max(0, radii[0] - in), in, px, EDGE, CATCH);
     }
 
     /** {@code box}'s rounded shape, {@code in} pixels inside it. */
@@ -171,7 +177,7 @@ final class Stage {
         fill(c, box, radii, scene, px, 0f, null);
         spill(c, 0, 0, spillsDp, px);
         c.restore();
-        if (edged) rim(c, box, radii, scene, px);
+        if (edged) rim(c, box, radii, px);
         CACHE.put(key, b);
         return b;
     }
@@ -180,15 +186,15 @@ final class Stage {
      * Just the edge, on a clear picture {@code w} × {@code h} pixels: for laying over a card drawn by views (the
      * Currency widget's clocks) or over a picture redrawn every frame (the Sound widget). Drawn once per light and size.
      */
-    static Bitmap edge(Scene scene, int w, int h, float[] radii, float px) {
-        StringBuilder k = new StringBuilder("e|").append(scene.tag()).append('|').append(w).append('x').append(h)
+    static Bitmap edge(int w, int h, float[] radii, float px) {
+        StringBuilder k = new StringBuilder("e|").append(Look.get().tag()).append('|').append(w).append('x').append(h)
                 .append('|').append(px);
         for (float r : radii) k.append(',').append(r);
         String key = k.toString();
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
         Bitmap b = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
-        rim(new Canvas(b), new RectF(0, 0, b.getWidth(), b.getHeight()), radii, scene, px);
+        rim(new Canvas(b), new RectF(0, 0, b.getWidth(), b.getHeight()), radii, px);
         CACHE.put(key, b);
         return b;
     }

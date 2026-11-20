@@ -16,7 +16,8 @@ import android.graphics.Shader;
  * <ul>
  * <li><b>Light strikes</b> ({@link #star}): a cross-screen ("star") filter, a fine grid on the glass, spreads a point
  *     of light into thin spikes square to its lines; four here, the horizontal pair a little longer and bluer, as a
- *     2-point star or an anamorphic lens streaks it. Only on true points of light: a glint, a lamp, the progress point.</li>
+ *     2-point star or an anamorphic lens streaks it. Only where a card's edge catches the light, at its top left
+ *     corner ({@link #catchlight}), in the edge's fixed colour; nothing inside the cards has one.</li>
  * <li><b>Glass reflections</b> ({@link #reflection}, {@link #catchlight}): glass on black reads by the light it
  *     reflects: a soft band of the room's light slanting across it, and the edge catching the light brightest where
  *     it turns (white-line lighting; glass reflects most at grazing angles).</li>
@@ -39,13 +40,17 @@ final class Optics {
      * A light strike on a point of light at (x, y), as a cross-screen filter makes it: a soft, pearly core (the mist
      * round a highlight), a faint red-orange ring of halation just outside it, and four thin spikes tapering to nothing,
      * the vertical pair {@code reach} long, the horizontal pair half as long again and fading to blue; in a pale shade
-     * of {@code colour}, {@code strength} strong at the middle. {@code px} is pixels per dp.
+     * of {@code colour}, {@code strength} strong at the middle (times the look's {@link Look#flares}). {@code colour} is
+     * the light's own: the song's for what's lit in the song's colour, fixed for a light of a fixed colour. {@code px}
+     * is pixels per dp.
      */
     static void star(Canvas c, float x, float y, float reach, float px, int colour, float strength) {
-        if (strength <= 0f || reach <= 0f) return;
+        Look look = Look.get();
+        if (strength <= 0f || reach <= 0f || look.flares <= 0f) return;
+        strength = Math.min(1.2f, strength * look.flares); // the look's flares: brighter, and reaching a little further
+        reach *= 0.55f + 0.45f * look.flares;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
         int pale = Scene.mix(colour, 0xFFFFFFFF, 0.6f);
-        Look look = Look.get();
         float core = reach * 0.32f * (float) Math.sqrt(look.haze); // the mist round it spreads with the haze
         p.setShader(new RadialGradient(x, y, core, new int[]{Scene.alpha(pale, Math.min(1f, 0.9f * strength * look.haze)),
                 Scene.alpha(colour, Math.min(1f, 0.28f * strength * look.haze)), colour & 0x00FFFFFF},

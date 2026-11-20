@@ -96,7 +96,7 @@ final class CurrencyView {
         // the 84 dp clocks); the flags fade into it
         rv.setImageViewBitmap(R.id.clk_glass, Stage.panel(scene, rowW, 116, 1.5f, Stage.round(28), null, false));
         // the clocks card's edge, over the card (116 dp tall: its 1 dp padding, the 30 dp strip, the 84 dp clocks)
-        rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(scene, Math.round(rowW * 1.5f), Math.round(116 * 1.5f),
+        rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(Math.round(rowW * 1.5f), Math.round(116 * 1.5f),
                 Stage.round(28 * 1.5f), 1.5f));
         // the strip's dividers in the song's line colour
         for (int sep : new int[]{R.id.sep0, R.id.sep1, R.id.sep2}) rv.setInt(sep, "setColorFilter", scene.line);
@@ -294,7 +294,7 @@ final class CurrencyView {
 
     /** side 0: middle cell {full}; 1: left cell {corner, rest}; 2: right cell {rest, corner}. */
     private static Bitmap[] clockPieces(Bitmap flag, int phase, int side) {
-        String key = "c|" + System.identityHashCode(flag) + "|" + phase + "|" + side;
+        String key = "c|" + System.identityHashCode(flag) + "|" + phase + "|" + side + Look.get().tag();
         Bitmap a = PICS.get(key + "|0"), b = PICS.get(key + "|1");
         if (a != null && (side == 0 || b != null)) return side == 0 ? new Bitmap[]{a} : new Bitmap[]{a, b};
         Bitmap full = clockFull(flag, phase);
@@ -355,10 +355,33 @@ final class CurrencyView {
         gp.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
         c.drawRect(fr, gp); // fading into the glass
         c.restore();
-        // The sun-phase band: a plain strip in its colour, with no bloom (no glow into the flag, no bright edge).
-        Paint sp = new Paint();
-        sp.setColor(phaseColor(phase));
+        // The sun-phase band, lit like the other lights (the look's strengths): its light rising off it into the glass
+        // (a bloom that spreads further with the haze), halation's red-orange above it when the look has any, a trace
+        // of the lens's fringe along its top (a line gets little: the blue copy pulled up), and a brighter core.
+        int col = phaseColor(phase);
+        Look look = Look.get();
+        float band = h - split, mist = (float) Math.sqrt(look.haze), reach = band * 2.6f * mist;
+        Paint sp = new Paint(Paint.DITHER_FLAG);
+        sp.setShader(new LinearGradient(0, split, 0, split - reach, new int[]{Scene.alpha(col, Math.min(1f, 0.4f * look.bloomGain())),
+                Scene.alpha(col, Math.min(1f, 0.12f * look.bloomGain() * look.haze)), col & 0x00FFFFFF},
+                new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
+        c.drawRect(0, split - reach, w, split, sp); // its bloom
+        if (look.halationGlow() > 0f) {
+            sp.setShader(new LinearGradient(0, split, 0, split - reach * 0.7f,
+                    Scene.alpha(Optics.HALATION, Math.min(0.5f, 0.22f * look.halationGlow())), Optics.HALATION & 0x00FFFFFF,
+                    Shader.TileMode.CLAMP));
+            c.drawRect(0, split - reach * 0.7f, w, split, sp);
+        }
+        sp.setShader(null);
+        float lift = look.fringeDp * PXDP;
+        if (look.fringe > 0f) {
+            sp.setColor(Scene.alpha(Lens.BLUE, look.fringe * Lens.LINES));
+            c.drawRect(0, split - lift, w, h - lift, sp);
+        }
+        sp.setColor(col);
         c.drawRect(0, split, w, h, sp);
+        sp.setColor(Scene.alpha(Scene.mix(col, 0xFFFFFFFF, 0.35f), 0.55f)); // its core, a little brighter
+        c.drawRect(0, split + band * 0.3f, w, h - band * 0.3f, sp);
         return out;
     }
 
