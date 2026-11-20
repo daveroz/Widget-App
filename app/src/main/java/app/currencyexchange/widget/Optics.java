@@ -45,13 +45,16 @@ final class Optics {
         if (strength <= 0f || reach <= 0f) return;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
         int pale = Scene.mix(colour, 0xFFFFFFFF, 0.6f);
-        float core = reach * 0.32f;
-        p.setShader(new RadialGradient(x, y, core, new int[]{Scene.alpha(pale, 0.9f * strength),
-                Scene.alpha(colour, 0.28f * strength), colour & 0x00FFFFFF}, new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
+        Look look = Look.get();
+        float core = reach * 0.32f * (float) Math.sqrt(look.haze); // the mist round it spreads with the haze
+        p.setShader(new RadialGradient(x, y, core, new int[]{Scene.alpha(pale, Math.min(1f, 0.9f * strength * look.haze)),
+                Scene.alpha(colour, Math.min(1f, 0.28f * strength * look.haze)), colour & 0x00FFFFFF},
+                new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
         c.drawCircle(x, y, core, p);
         // halation: a faint red-orange ring just outside the core, light bounced back through the film
-        float ring = reach * 0.62f;
-        p.setShader(new RadialGradient(x, y, ring, new int[]{HALATION & 0x00FFFFFF, Scene.alpha(HALATION, 0.16f * strength),
+        float ring = reach * 0.62f * (float) Math.sqrt(look.halation);
+        p.setShader(new RadialGradient(x, y, ring, new int[]{HALATION & 0x00FFFFFF,
+                Scene.alpha(HALATION, Math.min(1f, 0.16f * strength * look.halation)),
                 HALATION & 0x00FFFFFF}, new float[]{0.3f, 0.55f, 1f}, Shader.TileMode.CLAMP));
         c.drawCircle(x, y, ring, p);
         float thick = Math.max(0.8f, 0.9f * px);

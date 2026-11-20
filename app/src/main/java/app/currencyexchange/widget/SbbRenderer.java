@@ -51,9 +51,15 @@ final class SbbRenderer {
         int f = Math.round(n * FACE);
         float r = f / 2f * (52.5f / 56f);
         Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-        glow.setColor(Scene.alpha(scene.deep, 0.55f * Look.get().bloom));
-        glow.setMaskFilter(new BlurMaskFilter(n * 0.08f, BlurMaskFilter.Blur.OUTER));
-        c.drawCircle(n / 2f, n / 2f, r, glow);
+        Look look = Look.get();
+        glow.setColor(Scene.alpha(scene.deep, 0.55f * look.bloom));
+        glow.setMaskFilter(new BlurMaskFilter(n * 0.08f * (float) Math.sqrt(look.haze), BlurMaskFilter.Blur.OUTER));
+        c.drawCircle(n / 2f, n / 2f, r, glow); // spreading with the haze
+        if (look.halationGlow() > 0f) { // halation: a red-orange glow just past its bright rim
+            glow.setColor(Scene.alpha(Optics.HALATION, Math.min(1f, 0.32f * look.halationGlow())));
+            glow.setMaskFilter(new BlurMaskFilter(n * 0.03f, BlurMaskFilter.Blur.OUTER));
+            c.drawCircle(n / 2f, n / 2f, r, glow);
+        }
         glow.setColor(Scene.alpha(Scene.mix(scene.hot, 0xFFFFFFFF, 0.5f), 0.75f));
         glow.setMaskFilter(new BlurMaskFilter(n * 0.018f, BlurMaskFilter.Blur.OUTER));
         c.drawCircle(n / 2f, n / 2f, r, glow);

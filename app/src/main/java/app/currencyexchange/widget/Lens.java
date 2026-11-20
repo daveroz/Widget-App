@@ -18,6 +18,13 @@ final class Lens {
     static final int RED = 0xFFFF4A3A, BLUE = 0xFF3AA8FF;
 
     /**
+     * How much of the fringe a straight line gets (a progress line and its ticks, a trend line, the line of light at the
+     * sleeve's mouth): pulled sideways, a line gets a whole red and blue copy beside it, which looks odd, so lines get
+     * only a trace of it. Points of light (the progress point, the lamps, the record's rim) keep it all.
+     */
+    static final float LINES = 0.3f;
+
+    /**
      * A copy of {@code src} with the look's fringe behind it: a red copy pulled left and a blue one right, by the
      * look's distance at {@code pxPerDp} pixels per dp, {@code weight} times the look's strength. For bright things.
      */

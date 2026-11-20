@@ -73,7 +73,7 @@ final class Scene {
 
     /** What a cached picture drawn in this light depends on: its colour. */
     String tag() {
-        return Integer.toHexString(key);
+        return Integer.toHexString(key) + Look.get().tag(); // a picture drawn in another look isn't reused
     }
 
     static int alpha(int colour, float a) {

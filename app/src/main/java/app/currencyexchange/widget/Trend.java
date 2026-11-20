@@ -156,16 +156,24 @@ final class Trend {
         glow.setStyle(Paint.Style.STROKE);
         glow.setStrokeCap(Paint.Cap.ROUND);
         glow.setStrokeJoin(Paint.Join.ROUND);
-        glow.setStrokeWidth(LINE_DP * PXDP * 14f);
-        glow.setColor(alpha(scene.deep, Math.round(0x22 * Look.get().bloom)));
-        glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 12f, BlurMaskFilter.Blur.NORMAL));
-        c.drawPath(curve, glow);
+        Look look = Look.get();
+        float mist = (float) Math.sqrt(look.haze), hal = look.halationGlow();
+        glow.setStrokeWidth(LINE_DP * PXDP * 14f * mist);
+        glow.setColor(alpha(scene.deep, Math.min(255, Math.round(0x22 * look.bloom * look.haze))));
+        glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 12f * mist, BlurMaskFilter.Blur.NORMAL));
+        c.drawPath(curve, glow); // its light, scattered wide by the haze
+        if (hal > 0f) { // halation: a red-orange glow along the thread, just past its tight glow
+            glow.setStrokeWidth(LINE_DP * PXDP * 7f);
+            glow.setColor(Scene.alpha(Optics.HALATION, Math.min(1f, 0.2f * hal)));
+            glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 4f, BlurMaskFilter.Blur.NORMAL));
+            c.drawPath(curve, glow);
+        }
         glow.setStrokeWidth(LINE_DP * PXDP * 5f);
-        glow.setColor(alpha(scene.deep, Math.round(LINE_ALPHA * 0.5f * Look.get().bloom)));
+        glow.setColor(alpha(scene.deep, Math.min(255, Math.round(LINE_ALPHA * 0.5f * look.bloom))));
         glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 5f, BlurMaskFilter.Blur.NORMAL));
         c.drawPath(curve, glow);
         glow.setStrokeWidth(LINE_DP * PXDP * 2f);
-        glow.setColor(alpha(scene.deep, Math.round(LINE_ALPHA * 0.9f * Look.get().bloom)));
+        glow.setColor(alpha(scene.deep, Math.min(255, Math.round(LINE_ALPHA * 0.9f * look.bloom))));
         glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 1.5f, BlurMaskFilter.Blur.NORMAL));
         c.drawPath(curve, glow);
 
@@ -174,15 +182,14 @@ final class Trend {
         line.setStrokeWidth(LINE_DP * PXDP);
         line.setStrokeCap(Paint.Cap.ROUND);
         line.setStrokeJoin(Paint.Join.ROUND);
-        // the faint colour fringe of a bright light through a lens: a red copy a touch to the left, a blue one right
-        Look look = Look.get();
+        // a trace of the colour fringe of a bright light through a lens (a line gets little: Lens.LINES)
         float shift = look.fringeDp * PXDP;
         c.save();
         c.translate(-shift, 0);
-        line.setColor(Scene.alpha(Lens.RED, look.fringe * 0.6f));
+        line.setColor(Scene.alpha(Lens.RED, look.fringe * Lens.LINES));
         c.drawPath(curve, line);
         c.translate(2 * shift, 0);
-        line.setColor(Scene.alpha(Lens.BLUE, look.fringe * 0.6f));
+        line.setColor(Scene.alpha(Lens.BLUE, look.fringe * Lens.LINES));
         c.drawPath(curve, line);
         c.restore();
         line.setColor(alpha(scene.hot, Math.round(LINE_ALPHA * 1.4f)));

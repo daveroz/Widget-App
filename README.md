@@ -74,7 +74,7 @@ stays at Friday's close.
 ## Visual language: see-through cards, hazy text, the song's light
 - **Cards, the widgets and the app's alike** (`Stage`), after the glowing card reference: near black, with just a
   hint of the song's colour towards the right and a faint glow of it there, a faint sheen along the top, and a
-  hairline edge that's light at the top left and fades round (with the glass reflections below). On the widgets the black is mildly see-through (72%),
+  hairline edge that's light at the top left and fades round (with the glass reflections below). On the widgets the black is a little see-through (84% opaque),
   so the home screen shows faintly through it; the app's cards (settings, the pickers, the converter) are nearly
   opaque, and their titles have the lens's colour fringe. The world clocks' flags fade down into their card. No grain. The
   app's room behind its cards is near black, with two faint, slow washes of the light and no lighting rig (the old
@@ -99,7 +99,9 @@ stays at Friday's close.
   amber still means "needs attention" on the settings screen.
 - **A colour fringe on the brightest things** (`Lens`): the Music widget's progress point, the trend lines, all text,
   the Sound widget's lit lamps, its record's rim and the line of light at the sleeve's mouth have the red and blue
-  edge a real lens gives a bright light (chromatic aberration), restrained. Never on the album art or solid buttons.
+  edge a real lens gives a bright light (chromatic aberration), restrained (1.1 dp apart, 65% strong). Straight lines
+  (the progress line and its ticks, the trend lines, the line at the sleeve's mouth) get only a trace of it, as a line
+  pulled sideways gets a whole red and blue copy beside it. Never on the album art or solid buttons.
 - **Light sources in a hazy room.** What gives light (the lamps, the record, the trend lines, the SBB clock's face)
   is drawn as light in a dark, hazy room, not as a brighter picture: bloom, a tight halo, soft edges.
 - **No text glows; all text has a subtle lens fringe instead** (`Lens`): every widget's text (the Sound and Music
