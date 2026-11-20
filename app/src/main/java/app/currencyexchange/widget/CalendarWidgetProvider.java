@@ -75,10 +75,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     private static int heightFor(int k) { return k == 0 ? 114 : 136 + 42 * k; }
 
     /**
-     * The week row's day numbers fill this share of their picture's height: the pictures show in 34 dp boxes, so the
-     * numbers stay the size they were in the old 26 dp boxes, and today's ring has room around its number.
+     * The week row's day numbers fill this share of their picture's height: the pictures show in 30 dp boxes, so the
+     * numbers stay the size they were in the old 26 dp boxes.
      */
-    private static final float NUMBER_FILL = 0.58f * 26f / 34f;
+    private static final float NUMBER_FILL = 0.58f * 26f / 30f;
 
     static void updateAll(Context ctx) {
         AppWidgetManager awm = AppWidgetManager.getInstance(ctx);
@@ -168,19 +168,26 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         t(rv, tf, R.id.cal_sub, "Today, " + today.format(java.time.format.DateTimeFormatter.ofPattern("EEEE", loc))
                 + "  \u00B7  Week " + week, muted, 11, 0.8f, false);
 
-        // week row, Sunday first
+        // week row, Sunday first; today sits on a solid tile in the song's colour, covering its day name and number
         LocalDate sunday = today.minusDays(today.getDayOfWeek().getValue() % 7);
+        int onTile = Theme.onLit(scene.key);
         for (int i = 0; i < 7; i++) {
             LocalDate d = sunday.plusDays(i);
             boolean isToday = d.equals(today);
-            int lab = rid(ctx, "wk_label_" + i), num = rid(ctx, "wk_num_" + i);
-            t(rv, tf, lab, d.format(java.time.format.DateTimeFormatter.ofPattern("EEE", loc)).toUpperCase(loc),
-                    isToday ? label : muted, 9.5f, 0.8f, false);
-            if (isToday) { // lit in the light: a touch of it inside a glowing ring of it, the number white on top
-                rv.setImageViewBitmap(num, lit(scene, TextBmp.make(tf, 13 * 2.5f, NUMBER_FILL, false, false,
-                        String.valueOf(d.getDayOfMonth()), 0xFFFFFFFF)));
+            int col = rid(ctx, "wk_col_" + i), lab = rid(ctx, "wk_label_" + i), num = rid(ctx, "wk_num_" + i);
+            String name = d.format(java.time.format.DateTimeFormatter.ofPattern("EEE", loc)).toUpperCase(loc);
+            String day = String.valueOf(d.getDayOfMonth());
+            if (isToday) { // solid, like a button: plain text on it, no glow
+                rv.setInt(col, "setBackgroundResource", R.drawable.cal_today);
+                if (android.os.Build.VERSION.SDK_INT >= 31) {
+                    rv.setColorStateList(col, "setBackgroundTintList", android.content.res.ColorStateList.valueOf(scene.key));
+                }
+                rv.setImageViewBitmap(lab, TextBmp.make(Theme.uiBold(ctx), 9.5f * 2.5f, 0.8f, false, false, name, onTile));
+                rv.setImageViewBitmap(num, TextBmp.make(tf, 13 * 2.5f, NUMBER_FILL, false, false, day, onTile));
             } else {
-                t(rv, tf, num, String.valueOf(d.getDayOfMonth()), soft, 13, NUMBER_FILL, false);
+                rv.setInt(col, "setBackgroundResource", 0);
+                t(rv, tf, lab, name, muted, 9.5f, 0.8f, false);
+                t(rv, tf, num, day, soft, 13, NUMBER_FILL, false);
             }
         }
 
@@ -236,40 +243,6 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return rv;
     }
 
-    /**
-     * Today's number, lit like a lamp: a touch of the light inside a ring of it, the ring glowing out into the haze
-     * (a wide bloom and a tight halo), the number white on top (plain, like the rest of the text). The ring is a little
-     * under three times the digits' height across, so even a two-digit date has room to breathe inside it.
-     */
-    private static android.graphics.Bitmap lit(Scene scene, android.graphics.Bitmap number) {
-        int s = Math.max(number.getWidth(), number.getHeight());
-        android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
-        android.graphics.Canvas c = new android.graphics.Canvas(b);
-        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        float ring = s * 0.034f, bloom = s * 0.075f, r = s / 2f - ring - bloom; // room for the bloom round the ring
-        float m = s / 2f;
-        float strength = Look.get().bloom;
-        p.setStyle(android.graphics.Paint.Style.STROKE);
-        p.setStrokeWidth(ring * 2.4f);
-        p.setColor(Scene.alpha(scene.deep, 0.8f * strength));
-        p.setMaskFilter(new android.graphics.BlurMaskFilter(bloom, android.graphics.BlurMaskFilter.Blur.NORMAL));
-        c.drawCircle(m, m, r, p);
-        p.setStrokeWidth(ring);
-        p.setColor(Scene.alpha(scene.hot, 0.7f * strength));
-        p.setMaskFilter(new android.graphics.BlurMaskFilter(ring, android.graphics.BlurMaskFilter.Blur.NORMAL));
-        c.drawCircle(m, m, r, p);
-        p.setMaskFilter(null);
-        p.setStyle(android.graphics.Paint.Style.FILL);
-        p.setColor(Scene.alpha(scene.deep, 0.28f));
-        c.drawCircle(m, m, r, p);
-        p.setStyle(android.graphics.Paint.Style.STROKE);
-        p.setStrokeWidth(ring);
-        p.setColor(Scene.mix(scene.key, scene.hot, 0.5f));
-        c.drawCircle(m, m, r, p);
-        c.drawBitmap(number, (s - number.getWidth()) / 2f, (s - number.getHeight()) / 2f, null);
-        return Lens.fringe(b, 2.5f, 1f); // the colour fringe of a bright light through a lens (2.5 px per dp)
-    }
-
     /** The "+": a round icon button, as on the icon reference: a dark solid circle with a pale plus. */
     private static android.graphics.Bitmap addButton(Scene scene) {
         float px = 3f;
@@ -297,11 +270,11 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int h = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
         if (w <= 0) w = 320;
         if (h <= 0) h = fallbackHeightDp;
-        // today's ring lights the glass behind it: in its column of the week row (20 dp side padding, seven columns),
-        // its middle 94 dp down (13 dp padding, the 48 dp header, 2 dp, the 14 dp day name, half the 34 dp ring)
+        // today's tile lights the glass round it: in its column of the week row (20 dp side padding, seven columns),
+        // its middle 87 dp down (13 dp padding, the 48 dp header, 2 dp, half the 48 dp week row)
         Scene scene = Ambience.scene();
         int col = LocalDate.now().getDayOfWeek().getValue() % 7;
-        Stage.Spill today = new Stage.Spill(20 + (col + 0.5f) * (w - 40) / 7f, 94, 34, scene.deep, 0.3f * Look.get().bloom);
+        Stage.Spill today = new Stage.Spill(20 + (col + 0.5f) * (w - 40) / 7f, 87, 40, scene.key, 0.26f * Look.get().bloom);
         return Stage.panel(scene, w, h, 1.25f, Stage.round(28), Stage.NIGHT,
                 Backdrop.behind(ctx, "calendar", w, h, 0, 0, w, h), new Stage.Spill[]{today}, true);
     }

@@ -211,7 +211,15 @@ final class Theme {
 
     /** Text on a solid button ({@link #lit}): white, or near black on a light colour, so it reads. */
     static int onLit() {
-        return Scene.luminance(accent().key) > 0.55f ? 0xFF0B0A12 : 0xFFFFFFFF;
+        return onLit(accent().key);
+    }
+
+    /**
+     * Text or a symbol on something solid in {@code colour}: white on a deep colour (violet, crimson), near black on a
+     * bright one (amber, teal, green), where white would barely read.
+     */
+    static int onLit(int colour) {
+        return Scene.luminance(colour) > 0.3f ? 0xFF0B0A12 : 0xFFFFFFFF;
     }
 
     /** A button that's off, or a quieter action: solid and dark, a deep shade of the song's colour (no outline). */

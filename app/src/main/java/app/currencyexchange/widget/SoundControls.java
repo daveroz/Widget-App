@@ -51,7 +51,7 @@ final class SoundControls {
                 Scene.mix(scene.key, 0xFFFFFFFF, 0.12f), Shader.TileMode.CLAMP));
         c.drawCircle(cx, cx, r, p);
         p.setShader(null);
-        p.setColor(Scene.luminance(scene.key) > 0.55f ? 0xFF0B0A12 : 0xFFFFFFFF);
+        p.setColor(Theme.onLit(scene.key));
         c.drawPath(symbol(cx, r * 0.36f, playing), p);
         CACHE.put(key, b);
         return b;
