@@ -102,11 +102,11 @@ stays at Friday's close.
   edge a real lens gives a bright light (chromatic aberration), restrained. Never on the album art or solid buttons.
 - **Light sources in a hazy room.** What gives light (the lamps, the record, the trend lines, the SBB clock's face)
   is drawn as light in a dark, hazy room, not as a brighter picture: bloom, a tight halo, soft edges.
-- **No text glows; text has the lens's fringe instead.** All the widgets' text (the Sound and Music widgets' words
-  included) and the app's titles have the colour fringe a lens gives (`Lens`): a faint red edge on one side of the
-  letters and a blue one on the other, the big numbers (the clock times, the day number) at full strength. The world
-  clocks' day, time and city stay white whatever is playing. Today in the calendar sits on a solid tile in the song's
-  colour, covering its day name and number, its text plain like a button's.
+- **No text glows; all text has a subtle lens fringe instead** (`Lens`): every widget's text (the Sound and Music
+  widgets' words and today's calendar tile included) and all the app's text (titles, body, buttons, lists, inputs) has
+  a faint red edge on one side of the letters and a blue one on the other, gentler than on the bright things (0.6 dp
+  apart, 28% strong). The world clocks' day, time and city stay white whatever is playing. Today in the calendar sits
+  on a solid tile in the song's colour, covering its day name and number.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 
 The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,

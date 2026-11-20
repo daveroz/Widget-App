@@ -93,7 +93,6 @@ public class ConverterActivity extends Activity {
 
         TextView title = text("CONVERTER", 11, Theme.uiBold(this), Theme.accent().line);
         Theme.label(this, title);
-        Theme.fringe(title);
         title.setPadding(dp(2), 0, 0, dp(10));
         card.addView(title);
 
@@ -115,7 +114,7 @@ public class ConverterActivity extends Activity {
         inCode = text("", 17, Theme.uiMedium(this), Theme.TEXT);
         inCode.setPadding(dp(8), 0, dp(8), 0);
         amountBox.addView(inCode);
-        amount = new EditText(this);
+        amount = new Theme.FringeEdit(this);
         amount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
         amount.setImeOptions(EditorInfo.IME_ACTION_DONE);
@@ -313,7 +312,7 @@ public class ConverterActivity extends Activity {
     }
 
     private TextView text(String s, float sp, Typeface tf, int color) {
-        TextView t = new Theme.FringeText(this); // titles can take the lens's fringe (Theme.fringe)
+        TextView t = new Theme.FringeText(this); // the subtle fringe all text has
         t.setText(s);
         t.setTextSize(sp);
         t.setTypeface(tf);

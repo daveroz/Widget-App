@@ -8,18 +8,22 @@ package app.currencyexchange.widget;
  * is.
  */
 final class Look {
-    private static final Look GLASS = new Look(0.95f, 0.58f, 0.85f, 1.15f);
+    private static final Look GLASS = new Look(0.95f, 0.58f, 0.6f, 0.28f, 1.15f);
 
     /** The colour fringe on the brightest things: how far red and blue are pulled apart (dp), and how strongly. */
     final float fringeDp, fringe;
-    /** The fringe on text (all of it, the widgets' and the app's titles; none glows), as a share of {@link #fringe}. */
-    final float textFringe;
+    /**
+     * The fringe on text (all of it, the widgets' and the app's; none glows): subtler than on the bright things, its
+     * colours pulled less far apart (dp) and fainter.
+     */
+    final float textFringeDp, textFringe;
     /** How strong the glow around lit things is (1 = as it was before the looks). */
     final float bloom;
 
-    private Look(float fringeDp, float fringe, float textFringe, float bloom) {
+    private Look(float fringeDp, float fringe, float textFringeDp, float textFringe, float bloom) {
         this.fringeDp = fringeDp;
         this.fringe = fringe;
+        this.textFringeDp = textFringeDp;
         this.textFringe = textFringe;
         this.bloom = bloom;
     }
