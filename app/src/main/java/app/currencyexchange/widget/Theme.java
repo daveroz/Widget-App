@@ -63,15 +63,21 @@ final class Theme {
         return Scene.alpha(accent().line, strength);
     }
 
-    private static Typeface uiMedium, uiSemi, uiBold, monoMedium, monoSemi, monoBold, futura;
+    private static Typeface uiMedium, uiSemi, uiBold, monoMedium, monoSemi, monoBold;
+
+    /**
+     * How large text is drawn for a given size. Every size was tuned for Carbon+, the font before Futura (1.85), whose
+     * capitals are 0.58 of its size; Futura's are 0.754, so sizes are scaled by this to keep the same capital height.
+     */
+    static final float FONT_SCALE = 0.58f / 0.754f;
 
     private static synchronized void init(Context c) {
         if (uiMedium != null) return;
         Context app = c.getApplicationContext();
-        // The original Carbon+ font from the KWGT preset is used everywhere: regular for text and numbers,
-        // Bold for titles and the big clock digits.
-        Typeface regular = load(app, "fonts/carbonplus.otf", Typeface.create("sans-serif", Typeface.NORMAL));
-        Typeface bold = load(app, "fonts/carbonplus-Bold.otf", Typeface.create("sans-serif", Typeface.BOLD));
+        // Futura 100 everywhere: Text Medium (cut for small sizes) for text and numbers, Bold for titles and the big
+        // clock digits.
+        Typeface regular = load(app, "fonts/futura100-text-medium.otf", Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        Typeface bold = load(app, "fonts/futura100-bold.otf", Typeface.create("sans-serif", Typeface.BOLD));
         uiMedium = regular;
         uiSemi = regular;
         uiBold = bold;
@@ -86,12 +92,6 @@ final class Theme {
         } catch (Exception e) {
             return fallback;
         }
-    }
-
-    /** The Calendar preset's own font (Futura Medium BT), bundled from the KWGT file. */
-    static synchronized Typeface futura(Context c) {
-        if (futura == null) futura = load(c.getApplicationContext(), "fonts/futura-medium-bt.ttf", Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        return futura;
     }
 
     static Typeface uiMedium(Context c) { init(c); return uiMedium; }
@@ -337,6 +337,12 @@ final class Theme {
 
     /** A TextView with the subtle colour fringe all text has (see {@link Lens#text}), never a glow. */
     static class FringeText extends TextView {
+        /** Sizes as tuned for Carbon+, drawn at the same capital height in Futura ({@link #FONT_SCALE}). */
+        @Override
+        public void setTextSize(int unit, float size) {
+            super.setTextSize(unit, size * FONT_SCALE);
+        }
+
         FringeText(Context c) {
             super(c);
         }
@@ -350,6 +356,11 @@ final class Theme {
 
     /** An input with the subtle colour fringe all text has, as {@link FringeText}. */
     static class FringeEdit extends android.widget.EditText {
+        @Override
+        public void setTextSize(int unit, float size) {
+            super.setTextSize(unit, size * FONT_SCALE);
+        }
+
         FringeEdit(Context c) {
             super(c);
         }

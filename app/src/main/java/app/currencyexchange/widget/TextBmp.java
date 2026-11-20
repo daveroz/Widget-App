@@ -8,7 +8,7 @@ import android.util.LruCache;
 
 /**
  * Text drawn as a small transparent picture. Launchers draw RemoteViews text with their own fonts, so this is the
- * only way to guarantee the original fonts (Carbon+). Every picture has the same line height for a given size, so
+ * only way to guarantee the app's own font (Futura). Every picture has the same line height for a given size, so
  * text from different strings scales consistently when an ImageView shrinks it (scaleType fit*).
  * `fill` = text line height / picture height; the rest is empty margin that keeps text from touching the box.
  */
@@ -16,6 +16,20 @@ final class TextBmp {
     private TextBmp() {}
 
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(300);
+
+    /**
+     * Text is laid out by its capital height, as Carbon+ (the font before Futura) laid it out: a line 1.638 capitals
+     * tall with the baseline 1.207 capitals down. Every view was sized for that, so text shows at the same size in
+     * Futura, whose own line is much taller for its capitals.
+     */
+    private static final float LINE_PER_CAP = 950f / 580f, ASC_PER_CAP = 700f / 580f;
+
+    /** How tall {@code p}'s capitals are, in pixels. */
+    private static float cap(Paint p) {
+        android.graphics.Rect r = new android.graphics.Rect();
+        p.getTextBounds("H", 0, 1, r);
+        return -r.top;
+    }
 
     static Bitmap make(Typeface tf, float px, float fill, boolean italic, boolean shadow, String[] parts, int[] colors) {
         StringBuilder k = new StringBuilder();
@@ -30,8 +44,8 @@ final class TextBmp {
         p.setTypeface(tf);
         p.setTextSize(px);
         if (italic) p.setTextSkewX(-0.2f);
-        Paint.FontMetrics fm = p.getFontMetrics();
-        float line = fm.descent - fm.ascent;
+        float capH = cap(p);
+        float line = capH * LINE_PER_CAP;
         int h = Math.max(2, Math.round(line / fill));
         float total = 0;
         float[] w = new float[parts.length];
@@ -40,7 +54,7 @@ final class TextBmp {
         int bw = Math.max(2, (int) Math.ceil(total + 2 * pad));
         Bitmap b = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
-        float base = (h - line) / 2f - fm.ascent;
+        float base = (h - line) / 2f + capH * ASC_PER_CAP;
         float x = pad;
         for (int i = 0; i < parts.length; i++) {
             p.setColor(colors[i]);
@@ -99,14 +113,14 @@ final class TextBmp {
         p.setTypeface(tf);
         p.setTextSize(px);
         if (italic) p.setTextSkewX(-0.2f);
-        Paint.FontMetrics fm = p.getFontMetrics();
-        float line = fm.descent - fm.ascent, reach = px * 0.12f; // room for the fringe each side
+        float capH = cap(p);
+        float line = capH * LINE_PER_CAP, reach = px * 0.12f; // room for the fringe each side
         int h = Math.max(2, Math.round(line / fill));
         float pad = px * 0.08f + reach;
         int bw = Math.max(2, (int) Math.ceil(p.measureText(s) + 2 * pad));
         Bitmap b = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
         p.setColor(color);
-        new Canvas(b).drawText(s, pad, (h - line) / 2f - fm.ascent, p);
+        new Canvas(b).drawText(s, pad, (h - line) / 2f + capH * ASC_PER_CAP, p);
         b = Lens.textFringe(b, 2.5f);
         CACHE.put(key, b);
         return b;

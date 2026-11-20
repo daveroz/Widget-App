@@ -41,7 +41,7 @@ final class Words {
 
         // Lay the lines out first.
         text.setTypeface(bold);
-        text.setTextSize(LABEL_DP * dp);
+        text.setTextSize(Theme.FONT_SCALE * LABEL_DP * dp);
         text.setLetterSpacing(0.22f);
         String head = label.toUpperCase(Locale.getDefault());
         float used = text.measureText(head);
@@ -51,12 +51,12 @@ final class Words {
             if (text.measureText(tail) > width - used) tail = null; // the app's name only when it fits whole
         }
         text.setLetterSpacing(0f);
-        text.setTextSize(TITLE_DP * dp);
+        text.setTextSize(Theme.FONT_SCALE * TITLE_DP * dp);
         String name = TextUtils.ellipsize(title, text, width, TextUtils.TruncateAt.END).toString();
         String more = null;
         if (three) {
             text.setTypeface(regular);
-            text.setTextSize(DETAIL_DP * dp);
+            text.setTextSize(Theme.FONT_SCALE * DETAIL_DP * dp);
             more = TextUtils.ellipsize(detail, text, width, TextUtils.TruncateAt.END).toString();
         }
         float titleY = y + 20 * dp, detailY = titleY + 16 * dp;
@@ -68,16 +68,16 @@ final class Words {
         for (int pass = 0; pass < 2; pass++) {
             boolean fringe = pass == 0;
             text.setTypeface(bold);
-            text.setTextSize(LABEL_DP * dp);
+            text.setTextSize(Theme.FONT_SCALE * LABEL_DP * dp);
             text.setLetterSpacing(0.22f);
             line(c, text, head, x, y, labelColour, fringe, dp);
             if (tail != null) line(c, text, tail, x + used, y, Theme.DIM, fringe, dp);
             text.setLetterSpacing(0f);
-            text.setTextSize(TITLE_DP * dp);
+            text.setTextSize(Theme.FONT_SCALE * TITLE_DP * dp);
             line(c, text, name, x, titleY, titleColour, fringe, dp);
             if (more != null) {
                 text.setTypeface(regular);
-                text.setTextSize(DETAIL_DP * dp);
+                text.setTextSize(Theme.FONT_SCALE * DETAIL_DP * dp);
                 line(c, text, more, x, detailY, detailColour, fringe, dp);
             }
         }
