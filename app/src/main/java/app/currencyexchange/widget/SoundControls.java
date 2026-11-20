@@ -100,7 +100,7 @@ final class SoundControls {
 
     /**
      * The progress line, {@code widthDp} wide: a hairline lit from the left up to {@code fraction}, blooming into the
-     * haze, and where the song is, an LED-white point in a glowing ring of the light, with a light strike on it.
+     * haze, and where the song is, an LED-white point in a glowing ring of the light.
      */
     static Bitmap bar(Scene scene, float fraction, int widthDp) {
         float px = 2f;
@@ -165,9 +165,7 @@ final class SoundControls {
         line.setMaskFilter(null);
         line.setColor(scene.led);
         c.drawCircle(head, y, 5f * px, line);
-        Canvas onto = new Canvas(out);
-        onto.drawBitmap(Lens.fringe(b, px, 0.9f), 0, 0, null); // the colour fringe of a bright light through a lens
-        Optics.star(onto, head, y, 13f * px, px, scene.hot, 0.6f); // and the strike a star filter makes of it
+        new Canvas(out).drawBitmap(Lens.fringe(b, px, 0.9f), 0, 0, null); // the colour fringe of a bright light through a lens
         return out;
     }
 

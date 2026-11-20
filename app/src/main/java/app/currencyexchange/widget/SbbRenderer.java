@@ -38,9 +38,6 @@ final class SbbRenderer {
     /** The face's size, as a share of the panel. */
     private static final float FACE = 0.8f;
 
-    /** The face's own light, a warm white: the colour of the flare on its rim, whatever is playing. */
-    private static final int FACE_LIGHT = 0xFFFFF6EA;
-
     private static synchronized Bitmap lit(int n, Scene scene) {
         String key = n + "|" + scene.tag();
         if (lit != null && key.equals(litKey)) return lit;
@@ -67,12 +64,8 @@ final class SbbRenderer {
         glow.setMaskFilter(new BlurMaskFilter(n * 0.018f, BlurMaskFilter.Blur.OUTER));
         c.drawCircle(n / 2f, n / 2f, r, glow);
         c.drawBitmap(face(f), (n - f) / 2f, (n - f) / 2f, null);
-        // where the face's rim catches the light, at its top left: a small light strike, white like the face (a light of
-        // a fixed colour keeps its flare that colour)
-        float g = r * 0.7071f;
-        Optics.star(c, n / 2f - g, n / 2f - g, 6 * px, px, FACE_LIGHT, 0.45f);
         c.restore();
-        Stage.rim(c, box, corners, scene, px);
+        Stage.rim(c, box, corners, px);
         lit = b;
         litKey = key;
         return b;

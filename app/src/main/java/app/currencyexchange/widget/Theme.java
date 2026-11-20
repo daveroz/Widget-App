@@ -163,7 +163,7 @@ final class Theme {
                 RectF box = new RectF(0, 0, b.width(), b.height());
                 Stage.fill(c, box, Stage.round(r), scene, opacity, px, 0f, null); // the same card as the widgets'
                 c.restore();
-                Stage.rim(c, box, Stage.round(r), scene, px);
+                Stage.rim(c, box, Stage.round(r), px);
             }
             canvas.drawBitmap(picture, b.left, b.top, null);
         }

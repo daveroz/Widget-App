@@ -130,7 +130,7 @@ final class SoundPicture {
         record.draw(c, sleeve, dp, scene);
         c.drawBitmap(words(ctx, w, h, pad, wall.top - pad, textRight - pad, dp), 0, 0, null);
         c.restore();
-        c.drawBitmap(Stage.edge(scene, w, h, corners, dp), 0, 0, null); // its edge, drawn once per light and size
+        c.drawBitmap(Stage.edge(w, h, corners, dp), 0, 0, null); // its edge, drawn once per light and size
         return out;
     }
 

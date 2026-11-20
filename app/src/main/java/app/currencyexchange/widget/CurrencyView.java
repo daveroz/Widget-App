@@ -96,7 +96,7 @@ final class CurrencyView {
         // the 84 dp clocks); the flags fade into it
         rv.setImageViewBitmap(R.id.clk_glass, Stage.panel(scene, rowW, 116, 1.5f, Stage.round(28), null, false));
         // the clocks card's edge, over the card (116 dp tall: its 1 dp padding, the 30 dp strip, the 84 dp clocks)
-        rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(scene, Math.round(rowW * 1.5f), Math.round(116 * 1.5f),
+        rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(Math.round(rowW * 1.5f), Math.round(116 * 1.5f),
                 Stage.round(28 * 1.5f), 1.5f));
         // the strip's dividers in the song's line colour
         for (int sep : new int[]{R.id.sep0, R.id.sep1, R.id.sep2}) rv.setInt(sep, "setColorFilter", scene.line);

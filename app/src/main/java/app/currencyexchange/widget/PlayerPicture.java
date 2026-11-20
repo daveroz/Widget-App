@@ -39,7 +39,7 @@ final class PlayerPicture {
             c.drawText(say, w / 2f, y, text);
         }
         c.restore();
-        Stage.rim(c, box, corners, scene, dp);
+        Stage.rim(c, box, corners, dp);
         return out;
     }
 }

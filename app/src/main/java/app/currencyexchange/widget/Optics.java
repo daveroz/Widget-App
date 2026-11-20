@@ -16,7 +16,8 @@ import android.graphics.Shader;
  * <ul>
  * <li><b>Light strikes</b> ({@link #star}): a cross-screen ("star") filter, a fine grid on the glass, spreads a point
  *     of light into thin spikes square to its lines; four here, the horizontal pair a little longer and bluer, as a
- *     2-point star or an anamorphic lens streaks it. Only on true points of light: a glint, a lamp, the progress point.</li>
+ *     2-point star or an anamorphic lens streaks it. Only where a card's edge catches the light, at its top left
+ *     corner ({@link #catchlight}), in the edge's fixed colour; nothing inside the cards has one.</li>
  * <li><b>Glass reflections</b> ({@link #reflection}, {@link #catchlight}): glass on black reads by the light it
  *     reflects: a soft band of the room's light slanting across it, and the edge catching the light brightest where
  *     it turns (white-line lighting; glass reflects most at grazing angles).</li>

@@ -96,8 +96,8 @@ stays at Friday's close.
   with a faint sheen and the same glass rim as the buttons, brighter all round. What's behind is drawn small, blurred and stretched back
   up, again after every scroll and now and then for the room's drifting light. Only in the app; the widgets can't see
   what's behind them.
-- **Hairline edges instead of borders.** No card has a solid outline: its edge is a hairline in a pale shade of the
-  song's line colour, light at the top left and fading round the card (`Stage.rim`). The cards keep their
+- **Hairline edges instead of borders.** No card has a solid outline: its edge is a hairline in a fixed warm white
+  (`Stage.EDGE`, the same whatever is playing), light at the top left and fading round the card (`Stage.rim`). The cards keep their
   rounded-square shape (28 dp on the widgets).
 - **Everything follows the song.** The light is the colour of what's playing (`Ambience`): the album cover's primary
   colour, or the playing app's own, or Worldly's amber when nothing plays. Nothing decorative is fixed any more: the
@@ -120,11 +120,9 @@ stays at Friday's close.
   make those looks on a real camera:
   - *Light strikes*: a cross-screen ("star") filter turns a point of light into thin spikes; here four, the
     horizontal pair a little longer and fading to blue, like a 2-point star or anamorphic streak. Only on true points
-    of light: the Music widget's progress point, each trend line's high, the record's rim, the SBB clock's face and
-    the corner of every card (not on buttons). Fairly strong since 1.83 (flares 1.9 in `Look`). Each takes the
-    colour of its light: the song's where the light is the song's (the card corners, the progress point, the trend
-    lines), the record's own colour on its rim (it changes only while the record is back in the sleeve), and white on
-    the SBB face, a light of a fixed colour.
+    of light. Since 1.84 only where a card's edge catches the light, at its top left corner (the widgets' cards, the
+    app's cards and its glass header), never on anything inside a card. Fairly strong (flares 1.9 in `Look`), in the
+    edge's fixed warm white, so it never changes colour with the song.
   - *Glass reflections*: glass on black reads by what it reflects (white-line lighting; glass reflects most at grazing
     angles). Every card has a faint band of the room's light slanting across its top right, a second, fainter edge
     a little inside near the top left (the glass's other face, seen through its thickness), and its top left corner

@@ -126,14 +126,14 @@ final class GlassBar extends LinearLayout {
         canvas.restore();
         // its rim: light caught by the glass's edge, brightest at the top left and back, softer, at the bottom right
         // (as the buttons'; see Theme.glassEdge), never fading as far as theirs
-        int line = Scene.mix(0xFFFFFFFF, s.line, 0.2f);
+        int line = Stage.EDGE; // a fixed warm white, as every card's edge
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(Math.max(1f, 1.2f * px));
         paint.setShader(Theme.glassEdge(box, line, RIM));
         canvas.drawPath(edge, paint);
         paint.setShader(null);
         paint.setStyle(Paint.Style.FILL);
-        Optics.catchlight(canvas, box, edge, radius - Math.max(1f, px) / 2, Math.max(1f, px) / 2, px, s.line, 0.5f);
+        Optics.catchlight(canvas, box, edge, radius - Math.max(1f, px) / 2, Math.max(1f, px) / 2, px, Stage.EDGE, 0.5f);
     }
 
     /** The room round the bar taken in too, so the blur at its edges has something to draw from. */
