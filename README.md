@@ -71,13 +71,24 @@ trading session within 0.08 % of Colombia's official TRM. The daily snapshots us
 off on average, up to 1.2 % on days the market moved. On weekends the market is closed and the rate
 stays at Friday's close.
 
-## Visual language: light in fog (shared with the Deco launcher and SAB Monitor)
+## Visual language: frosted glass in haze, with Foundation's line work
 - **A night stage in haze.** The settings screen sits on a dark stage (`#05070b`): two slow washes of
   amber light, fog banks drifting through, a row of small lamps along the top running a slow chase
   (each blooming in the haze), and a fine film grain, lighter and darker specks, over the whole screen,
   its cards and text included (`StageView`).
-- **Glass.** Cards are the night at 72% (`#0a0f16`) with a hairline edge of cool light
-  (`rgba(170,220,255,0.12)`); inputs and pickers are darker wells inside the glass.
+- **Frosted glass.** Every widget panel but the Sound widget's is frosted glass (`Stage.glass`): a faint smoky
+  frost over the night, with warm lights far behind it, out of focus (a few soft, wide blobs of the light, one
+  paler, one deeper), after the glass references. App cards are the night at 72% (`#0a0f16`); inputs and
+  pickers are darker wells inside the glass.
+- **Gold line work, after Territory Studio's screens for Foundation.** Structure is drawn in a warm gold line
+  colour (`#d2a867`): hairline frames and dividers, the header's icons, section titles, and small labels (what a
+  value is, not the value: day names, "Market", event times, a song's length) in a quieter cream gold. Values stay
+  white, and the key light is kept for what matters right now. The data reads like an instrument: each world
+  clock has a 24-hour sun scale along its foot (every hour of that city's day in its day, golden-hour, blue-hour
+  or night colour, the hour it is now at full strength and standing taller, so you see where each city is in its
+  day and how long until its sun sets or rises); the Music widget's play button has a ring of segments that
+  light up as the song plays, and its progress line has a tick at each end; the 30-day trend lines sit on a
+  faint baseline at the month's low.
 - **One key light: amber `#eb9438`.** Something that's on (the save button, the chosen SBB mode, the
   converter's amount and chip) is *lit*: a touch of amber on the glass, the light bleeding into the glass
   along a bright amber edge, and outside it a soft bloom with a tight halo, not a solid block. Lines drawn
@@ -90,8 +101,7 @@ stays at Friday's close.
   glows most, the main text is a warm white glowing softly, quiet text barely; the Currency and Calendar
   widgets keep their text plain, in its own colours. Today in the calendar, the
   Music widget's play button and progress line, and the 30-day trend lines glow like lamps (a warm core,
-  a tight halo, a wide bloom); the sun-phase strips under the clocks are plain bands of colour, with no
-  bloom; the SBB
+  a tight halo, a wide bloom); the clocks' sun scales are plain, with no bloom; the SBB
   clock's face is lit from within. On the settings screen and the converter the text is plain; lit
   controls bloom, and film grain lies over everything.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
@@ -99,8 +109,8 @@ stays at Friday's close.
   two washes of the light (top right and low left) with a fine film grain and a hairline edge. The light
   is the colour of what's playing (`Ambience`): the album cover's primary colour, or the playing app's
   own for videos, or Worldly's amber when nothing plays. When the song changes, every widget takes on its
-  colour: the panels' haze, the Currency icons, arrows and trend lines (the clocks' sun-phase strip keeps its own day,
-  golden-hour, blue-hour and night colours), the Calendar's
+  colour: the panels' haze and the lights behind their glass, the Currency arrows and trend lines (the clocks'
+  sun scales keep their own day, golden-hour, blue-hour and night colours), the Calendar's
   today and accents, and the glow around the SBB clock's face (the clock keeps SBB's black, white and
   red), and the Music widget's panel and controls. It follows the music through notification access, with or
   without a Sound widget; between songs it holds the colour for a moment, and when nothing plays any more every

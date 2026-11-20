@@ -18,11 +18,12 @@ import android.graphics.drawable.StateListDrawable;
 import android.widget.TextView;
 
 /**
- * The Deco "light in fog" visual language, shared with the Deco launcher and SAB Monitor: a night stage in haze,
- * glass panels with hairline edges, and one amber key light. Something that's on is "lit" (a touch of the key on
- * the glass with a glowing key edge) rather than a solid block, and small labels are spaced bold capitals.
- * Type stays the original Carbon+ font from the KWGT preset. Used by the settings screen, the converter and the
- * widget renderer so they all feel like one family.
+ * Worldly's visual language: frosted glass in haze, lit by warm lights out of focus behind it, with the line work of
+ * Territory Studio's screens for Foundation drawn on it. Structure (hairline frames, rules, ticks, small labels) is
+ * in the line colour ({@link #LINE}); the key light (amber, or the playing song's colour) is kept for what matters
+ * right now: live values, the current hour, today, and what's on, which is "lit" (a touch of the key on the glass
+ * with a glowing key edge). Small labels are spaced bold capitals. Type stays the original Carbon+ font from the
+ * KWGT preset. Used by the settings screen, the converter and the widget renderer so they all feel like one family.
  */
 final class Theme {
     private Theme() {}
@@ -38,10 +39,14 @@ final class Theme {
     static final int GLASS = 0xB80A0F16;
     /** A well inside glass (inputs, pickers): darker, still see-through. */
     static final int WELL = 0x8C05070B;
-    // hairlines: a cool white at low strength, so they read as an edge of light, not a line of paint
-    static final int BORDER_SOFT = 0x14AADCFF;
-    static final int BORDER = 0x1FAADCFF;
-    static final int BORDER_STRONG = 0x38AADCFF;
+    /** The line colour, for structure (frames, rules, ticks, labels): a warm gold, as in the glass references. */
+    static final int LINE = 0xFFD2A867;
+    // hairlines in the line colour, at low strength
+    static final int BORDER_SOFT = 0x24D2A867;
+    static final int BORDER = 0x3DD2A867;
+    static final int BORDER_STRONG = 0x66D2A867;
+    /** Small labels (what a value is, not the value): a cream gold, quieter than the values. */
+    static final int LABEL = 0xFFD9C29C;
     static final int NIGHT = 0xFF33405A;     // the night strip on the clocks
     // text
     static final int TEXT = 0xFFEEF4F8;

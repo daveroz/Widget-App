@@ -20,7 +20,8 @@ import java.util.Random;
  * washes also swell with the bass.
  *
  * The other widgets' panels also hold a haze ({@link #haze}): the light scattered in the air, warming the night and
- * lying in two soft banks of fog, so whatever glows on them glows in a room rather than on a flat colour. (The Sound
+ * lying in two soft banks of fog, so whatever glows on them glows in a room rather than on a flat colour. They're
+ * frosted glass ({@link #glass}): a faint smoky frost, with warm lights far behind it, out of focus. (The Sound
  * widget's wall of lamps lights its own fog.)
  */
 final class Stage {
@@ -83,6 +84,34 @@ final class Stage {
         p.setShader(null);
     }
 
+    /**
+     * Frosted glass, as in the glass references: a faint smoky frost over the night, and lights far behind it, out of
+     * focus: a few soft, wide blobs of the light, one paler and one deeper, faint enough that what's on the panel
+     * reads over them. Draw it inside the panel's clip, after its haze.
+     */
+    static void glass(Canvas c, RectF box, Scene scene) {
+        float w = box.width(), h = box.height(), s = Math.min(w, h);
+        Paint p = new Paint(Paint.DITHER_FLAG);
+        p.setColor(0x1A9A8672); // the frost
+        c.drawRect(box, p);
+        // x, y (share of the panel), radius (share of its short side), stretch across, strength, tone
+        float[][] lights = {{0.08f, 0.9f, 0.85f, 1.5f, 0.3f, 0}, {0.55f, 0.08f, 0.6f, 1.7f, 0.17f, 1},
+                {0.95f, 0.72f, 0.7f, 1.3f, 0.26f, 2}, {0.34f, 0.5f, 0.4f, 1.1f, 0.12f, 1}};
+        for (float[] l : lights) {
+            int colour = l[5] == 1 ? Scene.mix(scene.key, 0xFFFFFFFF, 0.5f) : l[5] == 2 ? scene.deep : scene.key;
+            float x = box.left + w * l[0], y = box.top + h * l[1], r = s * l[2];
+            android.graphics.Matrix m = new android.graphics.Matrix();
+            RadialGradient g = new RadialGradient(0, 0, 1, new int[]{Scene.alpha(colour, l[4]), Scene.alpha(colour, l[4] * 0.55f),
+                    colour & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP);
+            m.setScale(r * l[3], r);
+            m.postTranslate(x, y);
+            g.setLocalMatrix(m);
+            p.setShader(g);
+            c.drawRect(x - r * l[3], y - r, x + r * l[3], y + r, p);
+        }
+        p.setShader(null);
+    }
+
     /** Film grain over everything drawn on a panel, the light included, for a cinematic, physical texture. */
     static void film(Canvas c, RectF box) {
         c.drawRect(box, FILM);
@@ -117,12 +146,17 @@ final class Stage {
         if (edgePx > 0) edge(c, box, radii, edgePx);
     }
 
-    /** The hairline edge of a panel, just inside {@code box}. */
+    /** The hairline edge of a panel, just inside {@code box}, in the Sound widget's cool white. */
     static void edge(Canvas c, RectF box, float[] radii, float px) {
+        edge(c, box, radii, px, EDGE);
+    }
+
+    /** The hairline edge of a panel, just inside {@code box}, in {@code colour}. */
+    static void edge(Canvas c, RectF box, float[] radii, float px, int colour) {
         Paint e = new Paint(Paint.ANTI_ALIAS_FLAG);
         e.setStyle(Paint.Style.STROKE);
         e.setStrokeWidth(px);
-        e.setColor(EDGE);
+        e.setColor(colour);
         float in = px / 2;
         float[] r = new float[8];
         for (int i = 0; i < 8; i++) r[i] = Math.max(0, radii[i] - in);
@@ -142,7 +176,7 @@ final class Stage {
     }
 
     /**
-     * A panel picture, {@code wDp} × {@code hDp} at {@code px} pixels per dp, with its haze and film grain and no edge
+     * A panel picture, {@code wDp} × {@code hDp} at {@code px} pixels per dp, frosted, with its haze and film grain and no edge
      * (the widget's own crisp edge goes over it): for the backgrounds of the Calendar and the Currency header, drawn
      * once per light and size.
      */
@@ -161,6 +195,7 @@ final class Stage {
         RectF box = new RectF(0, 0, w, h);
         paint(c, box, radii, scene, 0f, fillLeft, fillRight, 0f, true);
         haze(c, box, scene);
+        glass(c, box, scene);
         film(c, box);
         c.restore();
         CACHE.put(key, b);

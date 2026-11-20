@@ -48,6 +48,7 @@ final class SbbRenderer {
         float[] corners = Stage.round(corner);
         Stage.paint(c, box, corners, scene, 0f, Stage.NIGHT, Stage.NIGHT, 0f, true);
         Stage.haze(c, box, scene);
+        Stage.glass(c, box, scene);
         // the face, lit from within: a wide, soft bloom of the light around it and a tight bright halo at its rim
         int f = Math.round(n * FACE);
         float r = f / 2f * (52.5f / 56f);
@@ -61,7 +62,7 @@ final class SbbRenderer {
         c.drawBitmap(face(f), (n - f) / 2f, (n - f) / 2f, null);
         Stage.film(c, box);
         c.restore();
-        Stage.edge(c, box, corners, Math.max(1f, px));
+        Stage.edge(c, box, corners, Math.max(1f, px), Theme.BORDER);
         lit = b;
         litKey = key;
         return b;

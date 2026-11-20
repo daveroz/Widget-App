@@ -25,6 +25,7 @@ final class PlayerPicture {
         float[] corners = Stage.round(radius);
         Stage.paint(c, box, corners, scene, 0f, Stage.NIGHT, Stage.NIGHT, 0f, true);
         Stage.haze(c, box, scene);
+        Stage.glass(c, box, scene);
         if (!access || track == null) {
             String say = (!access ? "Media access needed  ·  tap to turn it on" : "Nothing playing").toUpperCase(Locale.getDefault());
             TextPaint text = Words.paint();
@@ -40,7 +41,7 @@ final class PlayerPicture {
         }
         Stage.film(c, box);
         c.restore();
-        Stage.edge(c, box, corners, Math.max(1f, dp));
+        Stage.edge(c, box, corners, Math.max(1f, dp), Theme.BORDER);
         return out;
     }
 }

@@ -293,8 +293,9 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
             // Both times as wide as the song's longest, with every digit as wide as the widest: their pictures don't
             // change size as the seconds tick, so the progress line between them keeps its width.
             String longest = SoundControls.clock(Math.max(t.duration, at)).replaceAll("\\d", "0");
-            done = TextBmp.tightFixed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(at), longest, Theme.MUTED, true);
-            all = TextBmp.tightFixed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), longest, Theme.MUTED, false);
+            // how far in is a live value; the song's length is a label
+            done = TextBmp.tightFixed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(at), longest, Theme.TEXT_SOFT, true);
+            all = TextBmp.tightFixed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), longest, Theme.LABEL, false);
             used += 8 + (done.getWidth() + all.getWidth()) / 2.5f; // the time pictures are 2.5 px per dp
         }
         int barDp = Math.max(40, Math.round(wDp - used));
@@ -312,7 +313,8 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
                 rv.setOnClickPendingIntent(SEEK_ZONES[i], action(ctx, ACTION_SEEK, 200 + i, SoundControls.fractionAt(middle, barDp)));
             }
         }
-        rv.setImageViewBitmap(R.id.btn_play, SoundControls.playButton(scene, t.playing, 50));
+        rv.setImageViewBitmap(R.id.btn_play, SoundControls.playButton(scene, t.playing, 50,
+                timed ? at / (float) t.duration : -1f));
         rv.setViewVisibility(R.id.seek, timed ? View.VISIBLE : View.INVISIBLE);
         rv.setViewVisibility(R.id.t_elapsed, times ? View.VISIBLE : View.GONE);
         rv.setViewVisibility(R.id.t_total, times ? View.VISIBLE : View.GONE);

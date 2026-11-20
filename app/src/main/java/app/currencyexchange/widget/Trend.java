@@ -103,6 +103,7 @@ final class Trend {
         Stage.paint(c, box, Stage.round(r), scene, 0f,
                 light ? 0xF0101A2B : 0xF00B1220, light ? 0xF00B1220 : Stage.NIGHT, 0f, true);
         Stage.haze(c, box, scene);
+        Stage.glass(c, box, scene);
         if (pts != null) {
             // The chart on a layer of its own, dimmed towards the end of the row where the numbers sit.
             c.saveLayer(box, null);
@@ -149,6 +150,11 @@ final class Trend {
         fill.setShader(new LinearGradient(0, top, 0, h,
                 alpha(scene.deep, FILL_ALPHA), alpha(scene.deep, 0), Shader.TileMode.CLAMP));
         c.drawPath(area, fill);
+
+        // A hairline at the month's low, so the line reads against a level.
+        Paint rule = new Paint();
+        rule.setColor(Theme.BORDER);
+        c.drawRect(0, bottom, w, bottom + Math.max(1f, PXDP * 0.5f), rule);
 
         // The line is a thread of light in the haze: a wide, faint bloom, a tight glow, and a warm core.
         Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);

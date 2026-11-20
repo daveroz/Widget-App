@@ -146,7 +146,8 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         java.util.Locale loc = java.util.Locale.getDefault();
 
         // The text is plain, in its own colours (no glow, no tint); only today and "in 5 minutes" are in the light.
-        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED, label = scene.label;
+        // Labels (what something is, when it is) are in the line colour.
+        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.LABEL, label = scene.label;
         t(rv, tf, R.id.cal_day, String.valueOf(today.getDayOfMonth()), white, 32, 0.82f, false);
         t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false);
         int week = today.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.SUNDAY, 1).weekOfYear());
