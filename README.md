@@ -123,7 +123,7 @@ stays at Friday's close.
   - *Light strikes*: a cross-screen ("star") filter turns a point of light into thin spikes; here four, the
     horizontal pair a little longer and fading to blue, like a 2-point star or anamorphic streak. Only on true points
     of light: the Music widget's play button gloss and progress point, each trend line's high, the record's rim, the
-    SBB clock's face, the corner of every card, and the app's solid buttons.
+    SBB clock's face and the corner of every card (not the app's buttons).
   - *Glass reflections*: glass on black reads by what it reflects (white-line lighting; glass reflects most at grazing
     angles). Every card has a faint band of the room's light slanting across its top right, a second, fainter edge
     a little inside near the top left (the glass's other face, seen through its thickness), and its top left corner

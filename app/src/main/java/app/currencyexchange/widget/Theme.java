@@ -175,17 +175,14 @@ final class Theme {
 
     /**
      * Something that's on, or the main action, after the Justice store's gold button (without its glow): solid, in a
-     * deep shade of the song's colour, with a glass rim in a light shade of it ({@link #glassEdge}); white text. A small
-     * light strike where its rim catches the light. The same size and corners as everything else, on or off.
+     * deep shade of the song's colour, with a glass rim in a light shade of it ({@link #glassEdge}); white text. The
+     * same size and corners as everything else, on or off.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
         Scene s = accent();
         int fill = litFill(s);
-        Drawable g = new GlassButton(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.1f) : fill, dp(c, radiusDp), dp(c, 1.2f),
+        return new GlassButton(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.1f) : fill, dp(c, radiusDp), dp(c, 1.2f),
                 Scene.mix(s.key, 0xFFFFF4E6, 0.55f), LIT_RIM, false);
-        if (pressed) return g;
-        // where its rim catches the light, at the top left bend: a small light strike (the outline stays the button's)
-        return new android.graphics.drawable.LayerDrawable(new Drawable[]{g, new Glint(dp(c, radiusDp), dp(c, 1), s.hot)});
     }
 
     /**
@@ -263,31 +260,6 @@ final class Theme {
     /** A lit button's fill: the song's colour, deep (amber becomes the Justice button's dark gold). */
     static int litFill(Scene s) {
         return Scene.mix(s.key, 0xFF000000, 0.45f);
-    }
-
-    /** A small light strike ({@link Optics#star}) where a rounded button's top left bend catches the light. */
-    private static final class Glint extends Drawable {
-        private final float radius, px;
-        private final int colour;
-
-        Glint(float radius, float px, int colour) {
-            this.radius = radius;
-            this.px = px;
-            this.colour = colour;
-        }
-
-        @Override
-        public void draw(Canvas canvas) {
-            Rect b = getBounds();
-            if (b.width() <= 0 || b.height() <= 0) return;
-            float r = Math.min(radius, b.height() / 2f), g = r * (1 - 0.7071f) + 2.5f * px; // just inside the bend
-            float x = b.left + g, y = b.top + g;
-            Optics.star(canvas, x, y, Math.min(5 * px, (x - b.left) / 1.6f), px, colour, 0.45f); // inside the button
-        }
-
-        @Override public void setAlpha(int alpha) { }
-        @Override public void setColorFilter(ColorFilter cf) { }
-        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
     /** Text on a lit button ({@link #lit}): near white, as its fill is a deep shade of the colour. */
