@@ -17,7 +17,7 @@ import android.widget.TextView;
 /**
  * Worldly's visual language: OLED-black panels lit in the playing song's colour, with edges lit like light catching
  * them rather than solid borders, in the chosen {@link Look}. Structure (edges, rules, ticks, small labels) is in the
- * song's line colour ({@link Scene#line}); the key light (the song's colour, amber when nothing plays) is kept for what
+ * song's line colour ({@link Scene#line}); the key light (the song's colour, Worldly's own orange when nothing plays) is kept for what
  * matters right now: live values, today, and what's on, which is "lit" (a touch of the key on the black with a glowing
  * key edge). Small labels are spaced bold capitals. Type stays the original Carbon+ font from the KWGT preset. Used by
  * the settings screen, the converter and the widget renderer so they all feel like one family. Amber stays fixed
@@ -53,7 +53,7 @@ final class Theme {
     static final int LED = 0xFFFDF2E7;
     static final int GREEN = 0xFF34D399;
 
-    /** The light the screens are drawn in: the playing song's colour, as on the widgets (amber when nothing plays). */
+    /** The light the screens are drawn in: the playing song's colour, as on the widgets (Worldly's own orange when nothing plays). */
     static Scene accent() {
         return Ambience.scene();
     }
@@ -174,20 +174,20 @@ final class Theme {
     }
 
     /**
-     * Something that's on, or the main action, after the Justice store's gold button (without its glow): solid, in a
-     * deep shade of the song's colour, with a glass rim in a light shade of it ({@link #glassEdge}); white text. The
-     * same size and corners as everything else, on or off.
+     * Something that's on, or the main action, after the Justice store's buttons (without their glow): solid, in the
+     * light's main colour ({@link #litFill}), with a glass rim paler than it ({@link #glassEdge}); its text near black
+     * on a bright colour, white on a deep one. The same size and corners as everything else, on or off.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
         Scene s = accent();
         int fill = litFill(s);
-        return new GlassButton(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.1f) : fill, dp(c, radiusDp), dp(c, 1.2f),
+        return new GlassButton(pressed ? Scene.mix(fill, 0xFF000000, 0.14f) : fill, dp(c, radiusDp), dp(c, 1.2f),
                 litEdge(s), LIT_RIM, false);
     }
 
-    /** A lit button's rim colour: a light shade of the song's colour. */
+    /** A lit button's rim colour: its fill paled further toward a warm white, so the rim reads as light on it. */
     static int litEdge(Scene s) {
-        return Scene.mix(s.key, 0xFFFFF4E6, 0.55f);
+        return Scene.mix(litFill(s), 0xFFFFF8EE, 0.6f);
     }
 
     /** A dark button's fill: near black, with a breath of the song's colour. */
@@ -287,14 +287,14 @@ final class Theme {
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
-    /** A lit button's fill: the song's colour, deep (amber becomes the Justice button's dark gold). */
+    /** A lit button's fill: the light's main colour, the middle one of its three ({@link Scene#key}). */
     static int litFill(Scene s) {
-        return Scene.mix(s.key, 0xFF000000, 0.45f);
+        return s.key;
     }
 
-    /** Text on a lit button ({@link #lit}): near white, as its fill is a deep shade of the colour. */
+    /** Text on a lit button ({@link #lit}): near black on a bright colour, white on a deep one ({@link #onLit(int)}). */
     static int onLit() {
-        return 0xFFF6F1EA;
+        return onLit(litFill(accent()));
     }
 
     /**

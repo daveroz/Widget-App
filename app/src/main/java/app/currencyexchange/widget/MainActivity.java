@@ -109,7 +109,7 @@ public class MainActivity extends Activity {
         Theme.label(this, tagline);
         tagline.setTextSize(10);
         tagline.setLetterSpacing(0.14f);
-        tagline.setTextColor(Theme.accent().line);
+        tagline.setTextColor(Theme.accent().key);
         titles.addView(tagline);
         head.addView(titles);
 
@@ -594,7 +594,7 @@ public class MainActivity extends Activity {
         LinearLayout root = vbox();
         root.setPadding(dp(14), dp(14), dp(14), dp(10));
         root.setBackground(Theme.card(this, 18, 0xFA010203));
-        TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().line);
+        TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().key);
         Theme.cardTitle(this, t);
         t.setPadding(dp(2), 0, 0, dp(8));
         root.addView(t);
@@ -754,7 +754,7 @@ public class MainActivity extends Activity {
         LinearLayout c = vbox();
         c.setBackground(Theme.card(this, 16));
         c.setPadding(dp(16), dp(16), dp(16), dp(16));
-        TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().line);
+        TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().key);
         Theme.cardTitle(this, t);
         t.setPadding(dp(2), 0, 0, dp(10));
         c.addView(t);

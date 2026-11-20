@@ -6,21 +6,21 @@ import android.os.HandlerThread;
 
 /**
  * The light all the widgets share: the colour of what's playing (the album cover's primary colour, or the playing
- * app's own for videos and apps without a cover), or Worldly's amber when nothing plays. The Sound widget keeps it
+ * app's own for videos and apps without a cover), or Worldly's own orange when nothing plays. The Sound widget keeps it
  * current while it runs; the media listener does when a song changes, so the Currency, Calendar and SBB clock
  * widgets follow the music even without a Sound widget. When it changes, those widgets and the Music widget are
  * redrawn in its colour.
  *
  * Between songs the light is held for a moment ({@link NowPlaying#BLIP_MS}); {@link #holdingUntil} says until when,
- * so whoever looked can look again then (a stopped player sends no more events), and the light goes back to amber.
+ * so whoever looked can look again then (a stopped player sends no more events), and the light goes back to Worldly's own orange.
  */
 final class Ambience {
     private Ambience() {}
 
-    private static Scene scene = Scene.amber();
+    private static Scene scene = Scene.idle();
     /** The cover picture or app the last light was worked out for, and that light. */
     private static Object litFor;
-    private static Scene lit = Scene.amber();
+    private static Scene lit = Scene.idle();
     /** When a cover's light was last seen (and from which app), and when anything was: to ride over the gap between songs. */
     private static long coverAt, seenAt;
     private static String coverApp;
@@ -50,7 +50,7 @@ final class Ambience {
         Object key = now == null ? null : now.hasCover() ? now.art : now.packageName;
         if (key == null) {
             litFor = null;
-            return Scene.amber();
+            return Scene.idle();
         }
         seenAt = t;
         if (now.hasCover()) {

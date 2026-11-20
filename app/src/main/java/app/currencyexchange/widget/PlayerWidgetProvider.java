@@ -49,7 +49,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
     private static final Map<Integer, String> PICTURED = new HashMap<>();
     private static final Map<Integer, String> SHOWN = new HashMap<>();
     private static NowPlaying.Track track;
-    private static Scene scene = Scene.amber();
+    private static Scene scene = Scene.idle();
     private static boolean access;
     /**
      * What a control just asked for, shown straight away: players take a moment to say they've paused or jumped,
