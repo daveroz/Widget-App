@@ -9,10 +9,10 @@ package app.currencyexchange.widget;
  */
 final class Look {
     /**
-     * The look as chosen (1.78: a little less see-through, 84%, and a stronger fringe on lit things; 1.82: no effects
-     * at all on text, so its fringe is 0).
+     * The look as chosen (1.78: a little less see-through, 84%; 1.82: no effects at all on text; 1.83, picked in the
+     * light lab: halation 1.2, bloom 1.4, flares 1.9, soft diffusion 1, no chromatic fringe anywhere).
      */
-    static final Look GLASS = new Look(0.84f, 1.1f, 0.65f, 0.6f, 0f, 1.15f, 1f, 1f);
+    static final Look GLASS = new Look(0.84f, 0f, 0f, 0.6f, 0f, 1.4f, 1f, 1.2f, 1.9f);
 
     private static Look current = GLASS;
 
@@ -39,8 +39,14 @@ final class Look {
      */
     final float halation;
 
+    /**
+     * How strong the light strikes (star-filter flares) are ({@link Optics#star}): 1 = as first drawn in 1.77, 0 = none.
+     * Stronger flares are brighter and reach a little further.
+     */
+    final float flares;
+
     Look(float opacity, float fringeDp, float fringe, float textFringeDp, float textFringe, float bloom, float haze,
-         float halation) {
+         float halation, float flares) {
         this.opacity = opacity;
         this.fringeDp = fringeDp;
         this.fringe = fringe;
@@ -49,6 +55,7 @@ final class Look {
         this.bloom = bloom;
         this.haze = haze;
         this.halation = halation;
+        this.flares = flares;
     }
 
     /** The look the widgets and the app are drawn in. */

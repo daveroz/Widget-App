@@ -106,15 +106,13 @@ stays at Friday's close.
   white) are soft text tinted by it, and the settings screen and the converter are drawn in it too (redrawn when the song changed while
   they were away). Only the clocks' sun bands keep their own day, golden-hour, blue-hour and night colours, and
   amber still means "needs attention" on the settings screen.
-- **A colour fringe on the brightest things** (`Lens`): the Music widget's progress point, the trend lines, the
-  Sound widget's lit lamps, its record's rim and the line of light at the sleeve's mouth have the red and blue
-  edge a real lens gives a bright light (chromatic aberration), restrained (1.1 dp apart, 65% strong). Straight lines
-  (the progress line and its ticks, the trend lines, the line at the sleeve's mouth) get only a trace of it, as a line
-  pulled sideways gets a whole red and blue copy beside it. Never on the album art or solid buttons.
+- **No colour fringe** (since 1.83, picked in the light lab). The code for it stays (`Lens`, set in `Look`): the
+  red and blue edge a real lens gives a bright light (chromatic aberration) on the progress point, the trend lines,
+  the lit lamps, the record's rim and the line at the sleeve's mouth, straight lines getting only a trace of it.
 - **Light sources in a hazy room.** What gives light (the lamps, the record, the trend lines, the SBB clock's face,
   the world clocks' sun bands) is drawn as light in a dark, hazy room, not as a brighter picture: bloom, a tight
   halo, soft edges. The sun bands (day, golden hour, blue hour, night) have a brighter core, their light rising off
-  them into the glass, a trace of the fringe along their top, and halation when the look has it.
+  them into the glass, and a faint red-orange halation above it.
 - **Text has no effects**: no glow and no fringe, on the widgets or in the app; it's just the Carbon+ letters in
   their colour. The world clocks' day, time and city stay white whatever is playing. Today in the calendar sits
   on a solid tile in the song's colour, covering its day name and number.
@@ -122,15 +120,20 @@ stays at Friday's close.
   make those looks on a real camera:
   - *Light strikes*: a cross-screen ("star") filter turns a point of light into thin spikes; here four, the
     horizontal pair a little longer and fading to blue, like a 2-point star or anamorphic streak. Only on true points
-    of light: the Music widget's play button gloss and progress point, each trend line's high, the record's rim, the
-    SBB clock's face and the corner of every card (not the app's buttons).
+    of light: the Music widget's progress point, each trend line's high, the record's rim, the SBB clock's face and
+    the corner of every card (not on buttons). Fairly strong since 1.83 (flares 1.9 in `Look`). Each takes the
+    colour of its light: the song's where the light is the song's (the card corners, the progress point, the trend
+    lines), the record's own colour on its rim (it changes only while the record is back in the sleeve), and white on
+    the SBB face, a light of a fixed colour.
   - *Glass reflections*: glass on black reads by what it reflects (white-line lighting; glass reflects most at grazing
     angles). Every card has a faint band of the room's light slanting across its top right, a second, fainter edge
     a little inside near the top left (the glass's other face, seen through its thickness), and its top left corner
     catching the light, with a small strike where it's brightest.
   - *Haze, bloom and halation*: each strike has a soft, pearly core, the glow a Black Pro-Mist filter scatters round
-    a highlight, and a faint red-orange ring just outside it, the halation film gets round bright points.
-  - *Fringe*: the lens's colour fringe above, unchanged.
+    a highlight, and a faint red-orange ring just outside it, the halation film gets round bright points. Since 1.83
+    the glow round lit things is a little stronger (bloom 1.4) and every lit thing (the lamps, the record's rim, the
+    progress line and point, the trend lines, the SBB face, the sun bands) has a faint halation (1.2).
+  - *Fringe*: none (see above).
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 
 The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,

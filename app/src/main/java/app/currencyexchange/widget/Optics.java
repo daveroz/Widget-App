@@ -39,13 +39,17 @@ final class Optics {
      * A light strike on a point of light at (x, y), as a cross-screen filter makes it: a soft, pearly core (the mist
      * round a highlight), a faint red-orange ring of halation just outside it, and four thin spikes tapering to nothing,
      * the vertical pair {@code reach} long, the horizontal pair half as long again and fading to blue; in a pale shade
-     * of {@code colour}, {@code strength} strong at the middle. {@code px} is pixels per dp.
+     * of {@code colour}, {@code strength} strong at the middle (times the look's {@link Look#flares}). {@code colour} is
+     * the light's own: the song's for what's lit in the song's colour, fixed for a light of a fixed colour. {@code px}
+     * is pixels per dp.
      */
     static void star(Canvas c, float x, float y, float reach, float px, int colour, float strength) {
-        if (strength <= 0f || reach <= 0f) return;
+        Look look = Look.get();
+        if (strength <= 0f || reach <= 0f || look.flares <= 0f) return;
+        strength = Math.min(1.2f, strength * look.flares); // the look's flares: brighter, and reaching a little further
+        reach *= 0.55f + 0.45f * look.flares;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
         int pale = Scene.mix(colour, 0xFFFFFFFF, 0.6f);
-        Look look = Look.get();
         float core = reach * 0.32f * (float) Math.sqrt(look.haze); // the mist round it spreads with the haze
         p.setShader(new RadialGradient(x, y, core, new int[]{Scene.alpha(pale, Math.min(1f, 0.9f * strength * look.haze)),
                 Scene.alpha(colour, Math.min(1f, 0.28f * strength * look.haze)), colour & 0x00FFFFFF},
