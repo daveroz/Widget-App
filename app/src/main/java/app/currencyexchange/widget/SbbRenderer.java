@@ -20,8 +20,8 @@ import java.time.ZonedDateTime;
  * + 12 tail. Second hand red rgb(235,0,0): 1.4 stick from 16.5 behind the centre to 26 ahead, disc of
  * 10.5 diameter centred 31.2 from the centre. Motion comes from {@link SbbClock}.
  *
- * The clock sits on frosted glass like the other widgets ({@link Stage#glassPanel}), lit by the light of what's
- * playing ({@link Ambience}), in its haze. The face is lit from within, like a station clock at night: its light
+ * The clock sits on the black panel every widget shares ({@link Stage#night}), lit by the light of what's playing
+ * ({@link Ambience}), with its lit edge ({@link Stage#rim}). The face is lit from within, like a station clock at night: its light
  * blooms out into the haze, a tight bright halo at its rim and a wide, soft bloom in the light's colour. The clock
  * itself keeps SBB's own black, white and red.
  */
@@ -39,19 +39,19 @@ final class SbbRenderer {
     private static final float FACE = 0.8f;
 
     private static synchronized Bitmap lit(int n, Scene scene) {
-        String key = n + "|" + scene.key;
+        String key = n + "|" + scene.tag();
         if (lit != null && key.equals(litKey)) return lit;
         Bitmap b = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
         float corner = n * 0.19f, px = n / 150f; // the panel stands for a widget about 150 dp across
         RectF box = new RectF(0, 0, n, n);
         float[] corners = Stage.round(corner);
-        Stage.glassPanel(c, box, corners, scene, Stage.NIGHT, Stage.NIGHT);
+        Stage.night(c, box, corners, scene, Stage.NIGHT, 0f);
         // the face, lit from within: a wide, soft bloom of the light around it and a tight bright halo at its rim
         int f = Math.round(n * FACE);
         float r = f / 2f * (52.5f / 56f);
         Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-        glow.setColor(Scene.alpha(scene.deep, 0.55f));
+        glow.setColor(Scene.alpha(scene.deep, 0.55f * Look.get().bloom));
         glow.setMaskFilter(new BlurMaskFilter(n * 0.08f, BlurMaskFilter.Blur.OUTER));
         c.drawCircle(n / 2f, n / 2f, r, glow);
         glow.setColor(Scene.alpha(Scene.mix(scene.hot, 0xFFFFFFFF, 0.5f), 0.75f));
@@ -59,7 +59,7 @@ final class SbbRenderer {
         c.drawCircle(n / 2f, n / 2f, r, glow);
         c.drawBitmap(face(f), (n - f) / 2f, (n - f) / 2f, null);
         c.restore();
-        Stage.edge(c, box, corners, Math.max(1f, px), Scene.alpha(scene.line, 0.24f));
+        Stage.rim(c, box, corners, scene, px);
         lit = b;
         litKey = key;
         return b;

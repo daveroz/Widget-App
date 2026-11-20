@@ -11,12 +11,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/clocks_card"
             android:background="@drawable/cur_clocks"
-            android:foreground="@drawable/cur_clocks_edge"
             android:clipToOutline="true"
             android:orientation="vertical"
             android:padding="1dp">
@@ -44,8 +45,9 @@
                 android:orientation="horizontal">
                 <ImageView
                     android:id="@+id/hdr_wx"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_margin="-3dp"
                     android:src="@drawable/wx_cloud"
                     android:scaleType="fitCenter" />
                 <ImageView
@@ -70,8 +72,9 @@
                 android:orientation="horizontal">
                 <ImageView
                     android:id="@+id/ic0"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_margin="-3dp"
                     android:src="@drawable/ic_umbrella"
                     android:scaleType="fitCenter" />
                 <ImageView
@@ -96,8 +99,9 @@
                 android:orientation="horizontal">
                 <ImageView
                     android:id="@+id/ic1"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_margin="-3dp"
                     android:src="@drawable/ic_sunrise"
                     android:scaleType="fitCenter" />
                 <ImageView
@@ -122,8 +126,9 @@
                 android:orientation="horizontal">
                 <ImageView
                     android:id="@+id/ic2"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_margin="-3dp"
                     android:src="@drawable/ic_sunset"
                     android:scaleType="fitCenter" />
                 <ImageView
@@ -305,6 +310,14 @@
             </FrameLayout>
         </LinearLayout>
         </LinearLayout>
+            <!-- the clocks card's lit edge, in the song's light (CurrencyView) -->
+            <ImageView
+                android:id="@+id/clk_rim"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:importantForAccessibility="no"
+                android:scaleType="fitXY" />
+        </FrameLayout>
         <FrameLayout
             android:id="@+id/row_0"
             android:layout_width="match_parent"
@@ -318,7 +331,7 @@
                 android:id="@+id/trend_0"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="1dp"
+                android:padding="0dp"
                 android:scaleType="fitXY" />
             <LinearLayout
                 android:layout_width="match_parent"
@@ -425,7 +438,7 @@
                 android:id="@+id/trend_1"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="1dp"
+                android:padding="0dp"
                 android:scaleType="fitXY" />
             <LinearLayout
                 android:layout_width="match_parent"
@@ -532,7 +545,7 @@
                 android:id="@+id/trend_2"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="1dp"
+                android:padding="0dp"
                 android:scaleType="fitXY" />
             <LinearLayout
                 android:layout_width="match_parent"
@@ -639,7 +652,7 @@
                 android:id="@+id/trend_3"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="1dp"
+                android:padding="0dp"
                 android:scaleType="fitXY" />
             <LinearLayout
                 android:layout_width="match_parent"
@@ -746,7 +759,7 @@
                 android:id="@+id/trend_4"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="1dp"
+                android:padding="0dp"
                 android:scaleType="fitXY" />
             <LinearLayout
                 android:layout_width="match_parent"
@@ -853,7 +866,7 @@
                 android:id="@+id/trend_5"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="1dp"
+                android:padding="0dp"
                 android:scaleType="fitXY" />
             <LinearLayout
                 android:layout_width="match_parent"

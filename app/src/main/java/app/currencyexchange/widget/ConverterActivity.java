@@ -6,8 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -93,7 +91,7 @@ public class ConverterActivity extends Activity {
         card.setBackground(room());
         card.setPadding(dp(16), dp(14), dp(16), dp(14));
 
-        TextView title = text("CONVERTER", 11, Theme.uiBold(this), Theme.LINE);
+        TextView title = text("CONVERTER", 11, Theme.uiBold(this), Theme.accent().line);
         Theme.label(this, title);
         title.setPadding(dp(2), 0, 0, dp(10));
         card.addView(title);
@@ -127,7 +125,7 @@ public class ConverterActivity extends Activity {
         amount.setTextColor(Theme.TEXT);
         amount.setHint("0");
         amount.setHintTextColor(Theme.DIM);
-        amount.setHighlightColor(0x55EB9438);
+        amount.setHighlightColor(Scene.alpha(Theme.accent().key, 0.33f));
         amount.setBackground(null);
         amount.setPadding(0, dp(4), 0, dp(4));
         amount.setText(Store.sp(this).getString("convAmt", "100"));
@@ -164,13 +162,13 @@ public class ConverterActivity extends Activity {
         LinearLayout res = vbox();
         res.setBackground(Theme.well(this, 12, false));
         res.setPadding(dp(14), dp(10), dp(14), dp(10));
-        TextView mktLbl = text("Market", 14, Theme.uiMedium(this), Theme.MUTED);
+        TextView mktLbl = text("Market", 14, Theme.uiMedium(this), Theme.accent().quiet);
         Theme.label(this, mktLbl);
         mktVal = text("", 22, Theme.monoMedium(this), Theme.TEXT);
         mktCode = text("", 14, Theme.uiMedium(this), Theme.MUTED);
         res.addView(resultRow(mktLbl, mktVal, mktCode));
         View div = new View(this);
-        div.setBackgroundColor(Theme.BORDER_SOFT);
+        div.setBackgroundColor(Theme.line(0.16f));
         LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(1)));
         dl.topMargin = dp(8);
         dl.bottomMargin = dp(8);
@@ -192,25 +190,11 @@ public class ConverterActivity extends Activity {
     }
 
     /**
-     * The card floats over the home screen, so it brings its own light: night glass, nearly opaque so the numbers
-     * read over any wallpaper, with a faint wash of the key light from the top right.
+     * The card floats over the home screen, so it brings its own light: the widgets' black panel, nearly opaque so the
+     * numbers read over any wallpaper, lit by the song's light in the chosen look, with its lit edge.
      */
     private Drawable room() {
-        GradientDrawable base = Theme.box(this, 0xF2080C12, Theme.BORDER_STRONG, 16);
-        GradientDrawable wash = new GradientDrawable();
-        wash.setGradientType(GradientDrawable.RADIAL_GRADIENT);
-        wash.setColors(new int[]{0x33EB9438, 0x0FEB9438, 0x00EB9438});
-        wash.setGradientCenter(0.92f, 0.02f);
-        wash.setGradientRadius(dp(320));
-        wash.setCornerRadius(Theme.dp(this, 16));
-        // a warm light far behind the glass, out of focus, low on the left
-        GradientDrawable far = new GradientDrawable();
-        far.setGradientType(GradientDrawable.RADIAL_GRADIENT);
-        far.setColors(new int[]{0x08EB9438, 0x03EB9438, 0x00EB9438});
-        far.setGradientCenter(0.08f, 0.92f);
-        far.setGradientRadius(dp(220));
-        far.setCornerRadius(Theme.dp(this, 16));
-        return new LayerDrawable(new Drawable[]{base, wash, far, Theme.frost(this, 16)});
+        return Theme.card(this, 16, 0xF7010203);
     }
 
     private LinearLayout resultRow(View label, TextView value, TextView code) {

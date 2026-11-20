@@ -256,7 +256,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
     /** What the picture shows (the panel in the light, or "Nothing playing"): it's drawn again only when this changes. */
     private static String pictureKey(int id) {
         float[] s = SIZES.get(id);
-        return (track == null ? "none" : "track") + "|" + scene.key + "|" + access + "|" + (s == null ? "" : s[0] + "x" + s[1]);
+        return (track == null ? "none" : "track") + "|" + scene.tag() + "|" + access + "|" + (s == null ? "" : s[0] + "x" + s[1]);
     }
 
     private static Bitmap picture(Context ctx, int id) {
@@ -276,7 +276,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
         float[] size = size(ctx, id);
         int wDp = Math.round(size[0] / size[2]);
         long at = t == null ? 0 : t.positionAt(NowPlaying.now());
-        String key = t == null ? "none" : t.playing + "|" + scene.key + "|" + at / 1000 + "|" + t.duration + "|" + wDp;
+        String key = t == null ? "none" : t.playing + "|" + scene.tag() + "|" + at / 1000 + "|" + t.duration + "|" + wDp;
         if (!full && key.equals(SHOWN.get(id))) return false;
         SHOWN.put(id, key);
         if (t == null) {

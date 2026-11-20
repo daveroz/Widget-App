@@ -18,35 +18,28 @@ import android.graphics.drawable.StateListDrawable;
 import android.widget.TextView;
 
 /**
- * Worldly's visual language: frosted glass in haze, lit by warm lights out of focus behind it, with the line work of
- * Territory Studio's screens for Foundation drawn on it. Structure (hairline frames, rules, ticks, small labels) is
- * in the line colour ({@link #LINE}); the key light (amber, or the playing song's colour) is kept for what matters
- * right now: live values, the current hour, today, and what's on, which is "lit" (a touch of the key on the glass
- * with a glowing key edge). Small labels are spaced bold capitals. Type stays the original Carbon+ font from the
- * KWGT preset. Used by the settings screen, the converter and the widget renderer so they all feel like one family.
+ * Worldly's visual language: OLED-black panels lit in the playing song's colour, with edges lit like light catching
+ * them rather than solid borders, in the chosen {@link Look}. Structure (edges, rules, ticks, small labels) is in the
+ * song's line colour ({@link Scene#line}); the key light (the song's colour, amber when nothing plays) is kept for what
+ * matters right now: live values, today, and what's on, which is "lit" (a touch of the key on the black with a glowing
+ * key edge). Small labels are spaced bold capitals. Type stays the original Carbon+ font from the KWGT preset. Used by
+ * the settings screen, the converter and the widget renderer so they all feel like one family. Amber stays fixed
+ * only where it means something: "needs attention" on the settings screen.
  */
 final class Theme {
     private Theme() {}
 
     // surfaces (darkest to lightest)
-    static final int BG = 0xFF05070B;        // the night behind everything
+    static final int BG = 0xFF020304;        // the night behind everything
     static final int HEADER = 0xFF070A10;
     static final int PANEL = 0xFF0B1220;
     static final int SURFACE = 0xFF0D1422;
     static final int SURFACE_HI = 0xFF131C2C;
-    static final int DEEP = 0xFF070A10;
-    /** Glass: the night at 72%, over the light. */
-    static final int GLASS = 0xB80A0F16;
-    /** A well inside glass (inputs, pickers): darker, still see-through. */
-    static final int WELL = 0x8C05070B;
-    /** The line colour, for structure (frames, rules, ticks, labels): a warm gold, as in the glass references. */
-    static final int LINE = 0xFFD2A867;
-    // hairlines in the line colour, at low strength
-    static final int BORDER_SOFT = 0x24D2A867;
-    static final int BORDER = 0x3DD2A867;
-    static final int BORDER_STRONG = 0x66D2A867;
-    /** Small labels (what a value is, not the value): a cream gold, quieter than the values. */
-    static final int LABEL = 0xFFD9C29C;
+    static final int DEEP = 0xFF020306;
+    /** A card on the settings screen: nearly the panels' black, so the room behind barely shows. */
+    static final int CARD = 0xF5010203;
+    /** A well inside a card (inputs, pickers): a breath lighter than the card. */
+    static final int WELL = 0xFF06080C;
     static final int NIGHT = 0xFF33405A;     // the night strip on the clocks
     // text
     static final int TEXT = 0xFFEEF4F8;
@@ -61,11 +54,17 @@ final class Theme {
     static final int AMBER_LIGHT = 0xFFF0AE6A;
     /** The key almost white: the hot core of a lamp. */
     static final int LED = 0xFFFDF2E7;
-    static final int KEY_GLASS = 0x24EB9438;
-    static final int KEY_GLASS_HI = 0x3DEB9438;
-    static final int KEY_EDGE = 0x99EB9438;
-    static final int KEY_HALO = 0x1FEB9438;
     static final int GREEN = 0xFF34D399;
+
+    /** The light the screens are drawn in: the playing song's colour, as on the widgets (amber when nothing plays). */
+    static Scene accent() {
+        return Ambience.scene();
+    }
+
+    /** A hairline in the song's line colour, {@code strength} strong (0 to 1). */
+    static int line(float strength) {
+        return Scene.alpha(accent().line, strength);
+    }
 
     private static Typeface uiMedium, uiSemi, uiBold, monoMedium, monoSemi, monoBold, futura;
 
@@ -118,25 +117,59 @@ final class Theme {
         return g;
     }
 
-    /** A glass panel: the night at 72% with a hairline edge, frosted (see {@link #frost}). */
-    static Drawable glass(Context c, float radiusDp) {
-        return new android.graphics.drawable.LayerDrawable(new Drawable[]{box(c, GLASS, BORDER, radiusDp), frost(c, radiusDp)});
+    /** A card, as the widgets' panels are drawn: the black, the look's pool of the light, and its lit edge. */
+    static Drawable card(Context c, float radiusDp) {
+        return new Card(dp(c, radiusDp), dp(c, 1), CARD);
     }
 
-    /**
-     * The gloss on a glass card, as in the glass references: a soft sheen towards the top where the glass catches the
-     * room's light. Lay it over the card's fill.
-     */
-    static Drawable frost(Context c, float radiusDp) {
-        GradientDrawable gloss = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0x0EFFF2DE, 0x03FFF2DE, 0x00FFF2DE});
-        gloss.setCornerRadius(dp(c, radiusDp));
-        return gloss;
+    /** A card floating over anything (the converter): nearly opaque, so the numbers read over any wallpaper. */
+    static Drawable card(Context c, float radiusDp, int fill) {
+        return new Card(dp(c, radiusDp), dp(c, 1), fill);
     }
 
-    /** A well inside glass: inputs and pickers. The edge turns to the key when it's focused or pressed. */
+    /** A well inside a card: inputs and pickers. The edge turns to the key when it's focused or pressed. */
     static GradientDrawable well(Context c, float radiusDp, boolean active) {
-        return box(c, active ? KEY_GLASS : WELL, active ? KEY_EDGE : BORDER, radiusDp);
+        Scene s = accent();
+        return box(c, active ? Scene.alpha(s.key, 0.14f) : WELL, active ? Scene.alpha(s.key, 0.6f) : line(0.22f), radiusDp);
+    }
+
+    /** A card picture, drawn once whenever its size changes, in the light and look it was made in. */
+    static final class Card extends Drawable {
+        private final float radius, px;
+        private final int fill;
+        private final Scene scene = accent();
+        private Bitmap picture;
+
+        Card(float radius, float px, int fill) {
+            this.radius = radius;
+            this.px = px;
+            this.fill = fill;
+        }
+
+        @Override
+        protected void onBoundsChange(Rect b) {
+            picture = null;
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect b = getBounds();
+            if (b.width() <= 0 || b.height() <= 0) return;
+            if (picture == null) {
+                picture = Bitmap.createBitmap(b.width(), b.height(), Bitmap.Config.ARGB_8888);
+                Canvas c = new Canvas(picture);
+                RectF box = new RectF(0, 0, b.width(), b.height());
+                float[] radii = Stage.round(Math.min(radius, b.height() / 2f));
+                Stage.night(c, box, radii, scene, fill, 0f);
+                c.restore();
+                Stage.rim(c, box, radii, scene, px);
+            }
+            canvas.drawBitmap(picture, b.left, b.top, null);
+        }
+
+        @Override public void setAlpha(int alpha) { }
+        @Override public void setColorFilter(ColorFilter cf) { }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
     /**
@@ -145,21 +178,23 @@ final class Theme {
      * glow needs room, so the panel is drawn {@link Lit#INSET_DP} in from the view's edges.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
-        return new Lit(dp(c, radiusDp), dp(c, Lit.INSET_DP), dp(c, 1), pressed ? KEY_GLASS_HI : KEY_GLASS);
+        return new Lit(dp(c, radiusDp), dp(c, Lit.INSET_DP), dp(c, 1), accent(), pressed ? 0.24f : 0.14f);
     }
 
     /** The lit look, drawn once into a picture whenever its size changes (a blur can't be drawn live everywhere). */
     static final class Lit extends Drawable {
         static final float INSET_DP = 3;
         private final float radius, inset, line;
+        private final Scene scene;
         private final int fill;
         private Bitmap picture;
 
-        Lit(float radius, float inset, float line, int fill) {
+        Lit(float radius, float inset, float line, Scene scene, float fill) {
             this.radius = radius;
             this.inset = inset;
             this.line = line;
-            this.fill = fill;
+            this.scene = scene;
+            this.fill = Scene.alpha(scene.key, fill);
         }
 
         @Override
@@ -178,30 +213,34 @@ final class Theme {
                 Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
                 glow.setStyle(Paint.Style.STROKE);
                 glow.setStrokeWidth(inset);
-                glow.setColor(0x8CEB9438);
+                float bloom = Look.get().bloom;
+                glow.setColor(Scene.alpha(scene.deep, 0.55f * bloom));
                 glow.setMaskFilter(new BlurMaskFilter(inset * 0.9f, BlurMaskFilter.Blur.NORMAL));
                 c.drawRoundRect(r, radius, radius, glow);
                 glow.setStrokeWidth(line * 1.5f);
-                glow.setColor(0x99F0AE6A);
+                glow.setColor(Scene.alpha(scene.label, 0.6f * bloom));
                 glow.setMaskFilter(new BlurMaskFilter(line * 1.5f, BlurMaskFilter.Blur.NORMAL));
                 c.drawRoundRect(r, radius, radius, glow);
                 Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
                 p.setColor(BG);
                 p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
-                c.drawRoundRect(r, radius, radius, p); // the glow is only outside; inside is glass
+                c.drawRoundRect(r, radius, radius, p); // the glow is only outside; inside is the black
                 p.setXfermode(null);
+                p.setColor(Stage.NIGHT);
+                c.drawRoundRect(r, radius, radius, p);
                 p.setColor(fill);
                 c.drawRoundRect(r, radius, radius, p);
                 // the light bleeding into the glass along its edge
-                p.setColor(0x38EB9438);
+                p.setColor(Scene.alpha(scene.key, 0.22f));
                 p.setMaskFilter(new BlurMaskFilter(inset * 1.1f, BlurMaskFilter.Blur.INNER));
                 c.drawRoundRect(r, radius, radius, p);
                 p.setMaskFilter(null);
                 p.setStyle(Paint.Style.STROKE);
                 p.setStrokeWidth(line);
-                p.setColor(0xCCF0AE6A);
+                p.setColor(Scene.alpha(scene.label, 0.8f));
                 float h = line / 2;
                 c.drawRoundRect(new RectF(r.left + h, r.top + h, r.right - h, r.bottom - h), radius, radius, p);
+                picture = Lens.fringe(picture, line, 0.8f); // the lens's colour fringe on a lit thing
             }
             canvas.drawBitmap(picture, b.left, b.top, null);
         }

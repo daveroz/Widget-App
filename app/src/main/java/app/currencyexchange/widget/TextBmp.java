@@ -83,6 +83,35 @@ final class TextBmp {
     }
 
     /**
+     * As {@link #make} for one string, the letters blooming softly into the haze around them ({@code glow} strong, 0
+     * for plain) in {@code light}, as in the haze references: a short reach, so the letters themselves stay sharp. The
+     * picture is the same height as {@link #make}'s, so the text shows at the same size.
+     */
+    static Bitmap glowing(Typeface tf, float px, float fill, String s, int color, int light, float glow) {
+        if (glow <= 0f) return make(tf, px, fill, false, false, s, color);
+        if (s == null) s = "";
+        String key = "G|" + System.identityHashCode(tf) + "|" + px + "|" + fill + "|" + color + "|" + light + "|" + glow + "|" + s;
+        Bitmap hit = CACHE.get(key);
+        if (hit != null) return hit;
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+        p.setTypeface(tf);
+        p.setTextSize(px);
+        Paint.FontMetrics fm = p.getFontMetrics();
+        float line = fm.descent - fm.ascent;
+        int h = Math.max(2, Math.round(line / fill));
+        float reach = px * 0.1f, pad = px * 0.08f + reach * 0.5f;
+        int bw = Math.max(2, (int) Math.ceil(p.measureText(s) + 2 * pad));
+        Bitmap b = Bitmap.createBitmap(bw, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        float base = (h - line) / 2f - fm.ascent;
+        Glow.text(c, p, s, pad, base, color, light, glow, reach);
+        p.setColor(color);
+        c.drawText(s, pad, base, p);
+        CACHE.put(key, b);
+        return b;
+    }
+
+    /**
      * A tight text picture ({@link #tight}) for a number that ticks, whose size never changes with its digits: every
      * digit takes the width of the widest one, and the picture is as wide as {@code template} (the longest the
      * number can be, its digits as zeros, like "00:00"), the text at its right edge when {@code right}, else its left.

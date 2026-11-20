@@ -87,18 +87,14 @@ final class CurrencyView {
         // The text is plain, in its own colours (no glow, no tint).
         int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED;
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
-        // the weather strip's panel (just inside the clocks card's 1 dp border), and its icons in the light
+        // the weather strip's panel (just inside the clocks card's 1 dp padding): plain black, like the clocks below it
         rv.setImageViewBitmap(R.id.hdr_bg, Stage.panel(scene, rowW - 2, 30, 1.5f, Stage.roundTop(27),
-                0xF00A101B, Stage.NIGHT));
-        // the header's icons say what each value is, so they're in the line colour, like labels; it follows the music
-        for (int icon : new int[]{R.id.hdr_wx, R.id.ic0, R.id.ic1, R.id.ic2}) rv.setInt(icon, "setColorFilter", scene.line);
-        for (int sep : new int[]{R.id.sep0, R.id.sep1, R.id.sep2}) rv.setInt(sep, "setColorFilter", Scene.alpha(scene.line, 0.36f));
-        // the hairline frames too (Android 12 and up can recolour them; before that they stay gold)
-        if (android.os.Build.VERSION.SDK_INT >= 31) {
-            android.content.res.ColorStateList edge = android.content.res.ColorStateList.valueOf(scene.line);
-            rv.setColorStateList(R.id.clocks_card, "setForegroundTintList", edge);
-            for (int i = 0; i < k; i++) rv.setColorStateList(id(ctx, "row_" + i), "setBackgroundTintList", edge);
-        }
+                Stage.NIGHT, false, false));
+        // the clocks card's lit edge, over the card (116 dp tall: its 1 dp padding, the 30 dp strip, the 84 dp clocks)
+        rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(scene, Math.round(rowW * 1.5f), Math.round(116 * 1.5f),
+                Stage.round(28 * 1.5f), 1.5f));
+        // the strip's dividers in the song's line colour
+        for (int sep : new int[]{R.id.sep0, R.id.sep1, R.id.sep2}) rv.setInt(sep, "setColorFilter", scene.line);
 
         // header where you are, four equal slots: weather now (icon + temperature), chance of rain in the coming
         // hours, sunrise, sunset
@@ -112,7 +108,11 @@ final class CurrencyView {
             set = Util.hm(t[1]);
         }
         boolean day = SunCalc.isDay(ll[0], ll[1], ZoneId.systemDefault(), here);
-        rv.setImageViewResource(R.id.hdr_wx, weatherIcon(wx == null ? -1 : wx.code, day));
+        // The header's icons say what each value is, so they're in the song's line colour, glowing softly (Glow_Icon_Text).
+        rv.setImageViewBitmap(R.id.hdr_wx, icon(ctx, weatherIcon(wx == null ? -1 : wx.code, day), 16, scene));
+        rv.setImageViewBitmap(R.id.ic0, icon(ctx, R.drawable.ic_umbrella, 14, scene));
+        rv.setImageViewBitmap(R.id.ic1, icon(ctx, R.drawable.ic_sunrise, 14, scene));
+        rv.setImageViewBitmap(R.id.ic2, icon(ctx, R.drawable.ic_sunset, 14, scene));
         txt(ctx, rv, R.id.hdr_temp, (wx == null ? "--" : String.valueOf(Math.round(wx.temp))) + "\u00B0C",
                 reg, white, 12);
         int rain = wx == null ? -1 : wx.rainChance(System.currentTimeMillis(), RAIN_HOURS);
@@ -148,7 +148,9 @@ final class CurrencyView {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), pcs[0]);
             }
             txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, scene.quiet, 11);
-            txt(ctx, rv, id(ctx, "clk_time_" + i), now.format(timeF), bold, white, 22);
+            // the time is the hero: it blooms a little into the haze on the looks that ask for it
+            rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.glowing(bold, 22 * 2.5f, 0.8f, now.format(timeF),
+                    white, scene.deep, Look.get().textGlow));
             txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11);
         }
 
@@ -165,10 +167,10 @@ final class CurrencyView {
             rv.setImageViewBitmap(id(ctx, "fl_b_" + i), toFlag);
             txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, white, 15);
             double market = Store.rate(ctx, from, to);
-            // the row's panel in the shared light, with the last month as a soft area chart over it (the picture fills
-            // the row inside its 1 dp border)
+            // the row's panel in the shared light, with the last month as a soft area chart over it and the row's lit
+            // edge (the picture fills the row)
             double[][] trend = Trend.series(hist, from, market);
-            rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW - 2, ROW_DP - 2, scene, i % 2 == 0));
+            rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW, ROW_DP, scene, i % 2 == 0));
             rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), TextBmp.tight(reg, CITY_SP, "Market", scene.quiet));
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), TextBmp.tight(reg, HEADER_SP, Util.fmt0(market), white));
@@ -188,6 +190,45 @@ final class CurrencyView {
     }
 
     // ------------------------------------------------------------------ bitmaps
+
+    /**
+     * A small icon ({@code sizeDp} square) in the song's line colour, glowing softly into the haze around it as much as
+     * the look asks, with 3 dp of room round it for the glow (its view is 6 dp bigger, with -3 dp margins).
+     */
+    static Bitmap icon(Context ctx, int res, int sizeDp, Scene scene) {
+        String key = "i|" + res + "|" + sizeDp + "|" + scene.tag();
+        Bitmap hit = PICS.get(key);
+        if (hit != null) return hit;
+        float px = 3f;
+        int s = Math.round((sizeDp + 6) * px), in = Math.round(3 * px);
+        Bitmap shape = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
+        android.graphics.drawable.Drawable d = ctx.getDrawable(res).mutate();
+        d.setBounds(in, in, s - in, s - in);
+        d.setColorFilter(new android.graphics.PorterDuffColorFilter(scene.line, PorterDuff.Mode.SRC_IN));
+        d.draw(new Canvas(shape));
+        Bitmap out = glowShape(shape, scene, Look.get().iconGlow, px);
+        PICS.put(key, out);
+        return out;
+    }
+
+    /** {@code shape} with a soft glow of the light around it, {@code glow} strong (0: as it is). */
+    static Bitmap glowShape(Bitmap shape, Scene scene, float glow, float px) {
+        if (glow <= 0f) return shape;
+        Bitmap out = Bitmap.createBitmap(shape.getWidth(), shape.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(out);
+        Bitmap alpha = shape.extractAlpha();
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(2.2f * px, android.graphics.BlurMaskFilter.Blur.NORMAL));
+        p.setColor(Scene.alpha(scene.deep, Math.min(1f, 0.9f * glow)));
+        c.drawBitmap(alpha, 0, 0, p);
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(0.8f * px, android.graphics.BlurMaskFilter.Blur.NORMAL));
+        p.setColor(Scene.alpha(scene.hot, Math.min(1f, 0.55f * glow)));
+        c.drawBitmap(alpha, 0, 0, p);
+        p.setMaskFilter(null);
+        c.drawBitmap(shape, 0, 0, null);
+        alpha.recycle();
+        return out;
+    }
 
     /** Flag with rounded corners, or a grey tile with the code when the flag isn't downloaded yet. */
     static Bitmap flagOrLabel(Context ctx, String cc, String code) {
@@ -249,17 +290,13 @@ final class CurrencyView {
         return out;
     }
 
-    /**
-     * The sun-phase strip's own colours, whatever is playing: day, golden hour, blue hour, night. They're one family,
-     * evenly matched (about the same strength of colour, stepping down evenly in brightness from day to night), so
-     * four cities side by side read as one strip of the day rather than four unrelated colours.
-     */
+    /** The sun-phase strip's own colours, whatever is playing: day, golden hour, blue hour, night. */
     private static int phaseColor(int phase) {
         switch (phase) {
-            case SunCalc.DAY: return 0xFFE0A14E;     // day: a warm amber
-            case SunCalc.SUNSET: return 0xFFD96D4C;  // golden hour / sunset / sunrise: coral
-            case SunCalc.BLUE: return 0xFF5C7ECC;    // blue hour
-            default: return 0xFF495885;              // night: a deep slate blue
+            case SunCalc.DAY: return Theme.AMBER;
+            case SunCalc.SUNSET: return 0xFFE2553A;  // golden hour / sunset / sunrise
+            case SunCalc.BLUE: return 0xFF3F6FD8;    // blue hour
+            default: return Theme.NIGHT;
         }
     }
 
@@ -306,7 +343,7 @@ final class CurrencyView {
         return b;
     }
 
-    /** Flag faded into the night with the sun-phase band below (one exact boundary). */
+    /** Flag faded into the night with the sun-phase band of light below (one exact boundary). */
     private static Bitmap clockFull(Bitmap flag, int phase) {
         final int w = CW, h = CH;
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
