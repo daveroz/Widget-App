@@ -161,7 +161,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 white));
         rv.setInt(R.id.cal_div, "setColorFilter", scene.line);
         rv.setImageViewBitmap(R.id.btn_add, addButton(scene));
-        t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false);
+        t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)).toUpperCase(loc), white, 16, 0.82f, false);
         int week = today.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.SUNDAY, 1).weekOfYear());
         t(rv, tf, R.id.cal_sub, "Today, " + today.format(java.time.format.DateTimeFormatter.ofPattern("EEEE", loc))
                 + "  \u00B7  Week " + week, muted, 11, 0.8f, false);

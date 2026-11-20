@@ -85,7 +85,7 @@ final class CurrencyView {
 
     /** @param widthDp the widget's width as the launcher reports it (0 if unknown); sizes the trend charts */
     static RemoteViews build(Context ctx, int k, int widthDp) {
-        Typeface reg = Theme.uiMedium(ctx), bold = Theme.uiBold(ctx);
+        Typeface reg = Theme.uiMedium(ctx);
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
         // The light all the widgets share: the playing song's colour, or amber.
         Scene scene = Ambience.scene();
@@ -154,7 +154,7 @@ final class CurrencyView {
             }
             // the day, time and city in front of the flag stay white whatever is playing, with the lens's fringe
             txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11);
-            rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.fringed(bold, 22 * 2.5f, 0.8f, now.format(timeF),
+            rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.fringed(reg, 22 * 2.5f, 0.8f, now.format(timeF), // the calendar's weight, not bold
                     white));
             txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11);
         }

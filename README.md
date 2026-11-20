@@ -43,7 +43,7 @@ The status text at the bottom of the settings screen shows what worked and what 
 | **Music** | Just the controls for whatever is playing in any app, on the panel lit in its light: previous, play / pause (lit in the light; it doesn't repeat the song's progress, the line does), next, the time so far, the progress line and the length (the times' digits are all one width and both times as wide as the song's longest, so the line keeps its size as they tick). One row tall (it centres the controls when taller). A tap on the progress line jumps the song to that point (it's split into 24 zones, as widgets can't be dragged); a tap on the panel around them opens the playing app. It's still between changes, so taps get the home screen's full attention, and shows each tap at once. Small widgets leave out the times. Needs notification access |
 | **Calendar** | Agenda layout: big day number, week row (Sunday to Saturday, today on a solid tile in the song's colour covering its day name and number), then your upcoming events with colour bar, time range and "in N minutes"; "+" adds an event. Reads the device calendar (READ_CALENDAR), no account or key. A taller widget lists more events, a wider one gives titles more room |
 
-Live updates: world clocks and calendar run on exact per-minute alarms with no notification; only the moving SBB second hand and the Sound widget's lights use a small foreground service (SBB: "Smooth" about 10 pictures a second, "Every second", or "Minute only"; Sound: about 20 pictures a second while something plays, 12 while it plays its patterns). With the screen off it does nothing. Alarms stay as a backup. Location is always where you are (last known device location, refreshed whenever you open the app). Font: Futura 100 everywhere (Text Medium for text and numbers, Bold for titles and the big clock digits), since 1.85.
+Live updates: world clocks and calendar run on exact per-minute alarms with no notification; only the moving SBB second hand and the Sound widget's lights use a small foreground service (SBB: "Smooth" about 10 pictures a second, "Every second", or "Minute only"; Sound: about 20 pictures a second while something plays, 12 while it plays its patterns). With the screen off it does nothing. Alarms stay as a backup. Location is always where you are (last known device location, refreshed whenever you open the app). Font: Futura 100 everywhere (Text Medium for text and numbers, the world clocks' times included; Bold for titles), since 1.85.
 
 ## Data sources (all free, no key, no account)
 | Data | Source |
@@ -134,8 +134,9 @@ stays at Friday's close.
   - *Fringe*: none (see above).
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 
-The type is Futura 100 (`assets/fonts`): Text Medium, the cut made for small sizes, for text and numbers, and Bold
-for titles and the big clock digits. It replaced Carbon+ in 1.85; every size was tuned for Carbon+, so text is
+The type is Futura 100 (`assets/fonts`): Text Medium, the cut made for small sizes, for text and numbers (the world
+clocks' times too, in the calendar's weight), and Bold for titles. The app's name (WORLDLY) and the calendar's month
+are in capitals. It replaced Carbon+ in 1.85; every size was tuned for Carbon+, so text is
 drawn at Carbon+'s capital height (`Theme.FONT_SCALE`, and `TextBmp` lays text out by its capitals). Colours and the glass,
 well and lit looks live in `Theme.java`; the settings screen, the converter and the widgets all read
 from there, so one edit restyles everything.
