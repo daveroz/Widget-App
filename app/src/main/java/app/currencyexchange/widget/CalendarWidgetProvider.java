@@ -130,10 +130,14 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    /** Text as a picture in the original Carbon+ font; sizeDp is the intended font size. Plain: no glow, no tint. */
+    /**
+     * Text as a picture in the original Carbon+ font; sizeDp is the intended font size. In its own colour, hazed by its
+     * own light in the song's (Haze_Bloom_Text).
+     */
     private static void t(RemoteViews rv, android.graphics.Typeface tf, int viewId, String s, int color,
                           float sizeDp, float fill, boolean italic) {
-        rv.setImageViewBitmap(viewId, TextBmp.make(tf, sizeDp * 2.5f, fill, italic, false, s, color));
+        rv.setImageViewBitmap(viewId, TextBmp.glowing(tf, sizeDp * 2.5f, fill, italic, s, color, Ambience.scene().deep,
+                Look.get().textHaze));
     }
 
     private static int rid(Context ctx, String name) {
