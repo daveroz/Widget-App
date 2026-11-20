@@ -48,11 +48,15 @@ final class Stage {
 
     /**
      * A panel: its rounded shape ({@code radii}, 8 values in pixels) filled with {@code fill}, behind frosted smoky
-     * glass with the light far behind it, which swells with {@code bass} (0 to 1, the Sound widget's). {@code pattern}
-     * moves the lights about, so panels side by side (the currency rows) don't repeat. The canvas is left clipped to
-     * the shape for drawing more inside it (call {@code c.restore()} after).
+     * glass: the phone's wallpaper behind it, blurred ({@code behind}, see {@link Backdrop}; null or unreadable: lights
+     * in the song's colour and the wallpaper's), the song's light far behind it, which swells with {@code bass} (0 to 1,
+     * the Sound widget's), and the light of the bright things in front falling on the glass ({@code spills}, in pixels
+     * inside the box). {@code pattern} moves the song's lights about, so panels side
+     * by side (the currency rows) don't repeat. The canvas is left clipped to the shape for drawing more inside it (call
+     * {@code c.restore()} after).
      */
-    static void night(Canvas c, RectF box, float[] radii, Scene scene, int fill, float bass, int pattern) {
+    static void night(Canvas c, RectF box, float[] radii, Scene scene, int fill, float bass, int pattern,
+                      Backdrop.Behind behind, Spill[] spills) {
         Path shape = new Path();
         shape.addRoundRect(box, radii, Path.Direction.CW);
         c.save();
@@ -60,7 +64,7 @@ final class Stage {
         Paint p = new Paint(Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
         p.setColor(fill);
         c.drawRect(box, p);
-        c.drawBitmap(glass(scene, Math.round(box.width()), Math.round(box.height()), pattern), box.left, box.top, p);
+        c.drawBitmap(glass(scene, Math.round(box.width()), Math.round(box.height()), pattern, behind), box.left, box.top, p);
         if (bass > 0.01f) { // the light behind the glass swells with the bass
             float w = box.width(), h = box.height(), big = Math.max(w, h);
             p.setShader(new RadialGradient(box.left + w * 0.8f, box.top + h * 0.3f, big * 0.6f,
@@ -68,28 +72,76 @@ final class Stage {
             c.drawRect(box, p);
             p.setShader(null);
         }
+        spill(c, box.left, box.top, spills, 1f);
     }
 
-    static void night(Canvas c, RectF box, float[] radii, Scene scene, int fill, float bass) {
-        night(c, box, radii, scene, fill, bass, 0);
+    static void night(Canvas c, RectF box, float[] radii, Scene scene, int fill, float bass, Backdrop.Behind behind) {
+        night(c, box, radii, scene, fill, bass, 0, behind, null);
     }
 
     /**
-     * Frosted smoky glass, {@code w} × {@code h} pixels (clear where it lets the black through): the lights behind it,
-     * blurred out of focus, then the smoke over them, a milky veil warmed by the light, thicker towards the bottom left
+     * The light of a bright thing in front falling on the glass behind it, as on the cypher samples: a wide, soft glow
+     * round (x, y), reaching {@code r}, in {@code colour}, {@code strength} strong at its middle.
+     */
+    static final class Spill {
+        final float x, y, r, strength;
+        final int colour;
+
+        Spill(float x, float y, float r, int colour, float strength) {
+            this.x = x;
+            this.y = y;
+            this.r = r;
+            this.colour = colour;
+            this.strength = strength;
+        }
+
+        @Override
+        public String toString() {
+            return x + "," + y + "," + r + "," + colour + "," + strength;
+        }
+    }
+
+    /** Draws the light spills, their units {@code unit} pixels, from (x0, y0). */
+    static void spill(Canvas c, float x0, float y0, Spill[] spills, float unit) {
+        if (spills == null) return;
+        Paint p = new Paint(Paint.DITHER_FLAG);
+        for (Spill s : spills) {
+            float x = x0 + s.x * unit, y = y0 + s.y * unit, r = s.r * unit;
+            p.setShader(new RadialGradient(x, y, r, new int[]{Scene.alpha(s.colour, s.strength),
+                    Scene.alpha(s.colour, s.strength * 0.4f), s.colour & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f},
+                    Shader.TileMode.CLAMP));
+            c.drawCircle(x, y, r, p);
+        }
+        p.setShader(null);
+    }
+
+    /**
+     * Frosted smoky glass, {@code w} × {@code h} pixels: the wallpaper behind it, blurred and dimmed (more over a bright
+     * one, so what's on the glass reads), or without it, soft lights in the wallpaper's colours; the song's lights far
+     * behind, blurred out of focus; then the smoke, a milky veil warmed by the light, thicker towards the bottom left
      * where the light diffuses through it.
      */
-    private static Bitmap glass(Scene scene, int w, int h, int pattern) {
+    private static Bitmap glass(Scene scene, int w, int h, int pattern, Backdrop.Behind behind) {
         w = Math.max(2, w);
         h = Math.max(2, h);
-        String key = scene.tag() + "|" + w + "x" + h + "|" + pattern;
+        String key = scene.tag() + "|" + w + "x" + h + "|" + pattern + "|" + (behind == null ? "-" : behind.key);
         Bitmap hit = GLASS.get(key);
         if (hit != null) return hit;
         Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
-        float size = (float) Math.sqrt(w * (float) h) * 0.75f, strength = Look.get().pool;
-        int pale = Scene.mix(scene.key, 0xFFFFFFFF, 0.45f), warm = Scene.mix(scene.key, 0xFFE8D6BC, 0.6f);
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+        boolean wallpaper = behind != null && behind.blur != null;
+        if (wallpaper) { // the wallpaper behind the glass, blurred, in its place on the screen, and dimmed
+            android.graphics.Matrix m = new android.graphics.Matrix();
+            m.setRectToRect(behind.region, new RectF(0, 0, w, h), android.graphics.Matrix.ScaleToFit.FILL);
+            c.drawBitmap(behind.blur, m, p);
+            c.drawColor(Scene.alpha(0xFF000000, Math.min(0.82f, 0.36f + 0.46f * behind.shade)));
+        }
+        int[] wall = behind == null ? null : behind.colours;
+        float size = (float) Math.sqrt(w * (float) h) * 0.75f, strength = Look.get().pool * (wallpaper ? 0.5f : 1f);
+        int pale = Scene.mix(scene.key, 0xFFFFFFFF, 0.45f);
+        int warm = wall != null ? Scene.mix(wall[0], scene.key, 0.25f) : Scene.mix(scene.key, 0xFFE8D6BC, 0.6f);
+        if (wall != null) pale = Scene.mix(pale, wall[1], 0.4f);
         RectF r = new RectF();
         for (float[] l : LIGHTS) {
             float x = l[0], y = l[1];
@@ -104,9 +156,9 @@ final class Stage {
             c.drawRoundRect(r, corner, corner, p);
         }
         p.setMaskFilter(null);
-        // the smoke: a milky veil over the lights, warmed by them, thicker towards the bottom left
+        // the smoke: a milky veil over it all, warmed by the light, thicker towards the bottom left
         int smoke = Scene.mix(SMOKE, scene.key, 0.22f);
-        p.setColor(Scene.alpha(smoke, 0.1f));
+        p.setColor(Scene.alpha(smoke, wallpaper ? 0.07f : 0.1f));
         c.drawRect(0, 0, w, h, p);
         p.setShader(new android.graphics.LinearGradient(0, h, w * 0.7f, 0, Scene.alpha(smoke, 0.09f), smoke & 0x00FFFFFF,
                 Shader.TileMode.CLAMP));
@@ -199,13 +251,17 @@ final class Stage {
     }
 
     /**
-     * A panel picture, {@code wDp} × {@code hDp} at {@code px} pixels per dp: the black, its pool of the light (when
-     * {@code lit}) and its lit edge (when {@code edged}). Drawn once per light, look and size.
+     * A panel picture, {@code wDp} × {@code hDp} at {@code px} pixels per dp: its frosted glass over {@code behind} (see
+     * {@link #night}), the light of the bright things in front falling on it ({@code spillsDp}, in dp), and its lit
+     * edge (when {@code edged}). Drawn once per light, backdrop, look and size.
      */
-    static Bitmap panel(Scene scene, int wDp, int hDp, float px, float[] radiiDp, int fill, boolean lit, boolean edged) {
+    static Bitmap panel(Scene scene, int wDp, int hDp, float px, float[] radiiDp, int fill, Backdrop.Behind behind,
+                        Spill[] spillsDp, boolean edged) {
         StringBuilder k = new StringBuilder("p|").append(scene.tag()).append('|').append(wDp).append('x').append(hDp)
-                .append('|').append(px).append('|').append(fill).append('|').append(lit).append(edged);
+                .append('|').append(px).append('|').append(fill).append('|').append(edged).append('|')
+                .append(behind == null ? "-" : behind.key);
         for (float r : radiiDp) k.append(',').append(r);
+        if (spillsDp != null) for (Spill sp : spillsDp) k.append(';').append(sp);
         String key = k.toString();
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
@@ -215,15 +271,8 @@ final class Stage {
         for (int i = 0; i < 8; i++) radii[i] = radiiDp[i] * px;
         Canvas c = new Canvas(b);
         RectF box = new RectF(0, 0, w, h);
-        if (lit) {
-            night(c, box, radii, scene, fill, 0f);
-        } else {
-            Path shape = new Path();
-            shape.addRoundRect(box, radii, Path.Direction.CW);
-            c.save();
-            c.clipPath(shape);
-            c.drawColor(fill);
-        }
+        night(c, box, radii, scene, fill, 0f, 0, behind, null);
+        spill(c, 0, 0, spillsDp, px);
         c.restore();
         if (edged) rim(c, box, radii, scene, px);
         CACHE.put(key, b);

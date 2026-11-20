@@ -288,6 +288,7 @@ public class LiveService extends Service {
                 long now = System.currentTimeMillis();
                 ZoneId zone = ZoneId.systemDefault();
                 // the elastic swing of the minute hand is only shown in smooth mode; other modes keep it settled
+                SbbRenderer.behind(SbbWidgetProvider.behind(ctx));
                 buf = SbbRenderer.render(now, zone, SbbRenderer.SIZE, buf, smooth);
                 SbbWidgetProvider.pushFrame(ctx, ids, buf);
             } catch (Throwable ignored) { }

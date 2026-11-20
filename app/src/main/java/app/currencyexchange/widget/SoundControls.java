@@ -12,11 +12,10 @@ import android.util.LruCache;
 import java.util.Locale;
 
 /**
- * The pictures of the Music widget's controls, in the light's colours and lit like light sources in haze (see
- * {@link Glow}): play / pause lit like the launcher's chosen tab (a touch of the light on the glass, a glowing
- * edge, an LED-white symbol); previous and next as quiet symbols; and the progress line, a hairline with a tick at
- * each end, lit from the left in the light up to where the song is (the only place the song's progress shows). The
- * buttons are drawn once per light, look and state.
+ * The pictures of the Music widget's controls, in the light's colours: play / pause a solid button in the light's
+ * colour; previous and next round icon buttons, dark and solid, their symbols pale; and the progress line, a hairline
+ * with a tick at each end, lit from the left in the light up to where the song is (the only place the song's progress
+ * shows). The buttons are drawn once per light, look and state.
  */
 final class SoundControls {
     private SoundControls() {}
@@ -36,9 +35,8 @@ final class SoundControls {
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(12);
 
     /**
-     * The play / pause button, lit like a lamp: a touch of the light on the glass inside a ring of it, the ring
-     * blooming out into the haze (a wide, soft bloom and a tight bright halo), and the symbol for what a tap does
-     * LED-white, glowing. (It doesn't show the song's progress: the progress line does.)
+     * The play / pause button: a solid circle in the light's colour, a shade lighter to the right, as on the solid button
+     * reference (no bloom), the symbol for what a tap does in white (near black on a light colour).
      */
     static Bitmap playButton(Scene scene, boolean playing, int sizeDp) {
         String key = "p|" + scene.tag() + "|" + playing + "|" + sizeDp;
@@ -47,57 +45,38 @@ final class SoundControls {
         int s = Math.round(sizeDp * PX);
         Bitmap b = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
-        float cx = s / 2f, glowR = 3 * PX, r = cx - glowR - PX;
+        float cx = s / 2f, r = cx - 2 * PX;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        // the bloom just outside its edge, and a tight bright halo hugging it
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(glowR * 1.2f);
-        float bloom = Look.get().bloom;
-        p.setColor(Scene.alpha(scene.deep, 0.8f * bloom));
-        p.setMaskFilter(new BlurMaskFilter(glowR, BlurMaskFilter.Blur.NORMAL));
+        p.setShader(new LinearGradient(cx - r, 0, cx + r, 0, Scene.mix(scene.key, 0xFF000000, 0.1f),
+                Scene.mix(scene.key, 0xFFFFFFFF, 0.12f), Shader.TileMode.CLAMP));
         c.drawCircle(cx, cx, r, p);
-        p.setStrokeWidth(1.5f * PX);
-        p.setColor(Scene.alpha(scene.hot, 0.65f * bloom));
-        p.setMaskFilter(new BlurMaskFilter(PX, BlurMaskFilter.Blur.NORMAL));
-        c.drawCircle(cx, cx, r, p);
-        p.setMaskFilter(null);
-        // a touch of the light on the glass, and its edge
-        p.setStyle(Paint.Style.FILL);
-        p.setColor(Stage.NIGHT);
-        c.drawCircle(cx, cx, r, p);
-        p.setColor(Scene.alpha(scene.deep, 0.22f));
-        c.drawCircle(cx, cx, r, p);
-        // its edge, one bright ring of the light
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(PX);
-        p.setColor(Scene.alpha(Scene.mix(scene.key, scene.hot, 0.4f), 0.85f));
-        c.drawCircle(cx, cx, r - PX / 2, p);
-        // the symbol, LED-white, with its glow
-        float u = r * 0.36f;
+        p.setShader(null);
+        p.setColor(Scene.luminance(scene.key) > 0.55f ? 0xFF0B0A12 : 0xFFFFFFFF);
+        c.drawPath(symbol(cx, r * 0.36f, playing), p);
+        CACHE.put(key, b);
+        return b;
+    }
+
+    /** Pause (two bars) or play (a triangle, nudged right so it looks centred), {@code u} the half-height. */
+    private static Path symbol(float cx, float u, boolean pause) {
         Path symbol = new Path();
-        if (playing) { // pause: two bars
+        if (pause) {
             float bw = u * 0.55f;
             symbol.addRoundRect(cx - u * 0.75f - bw / 2, cx - u, cx - u * 0.75f + bw / 2, cx + u, bw / 3, bw / 3, Path.Direction.CW);
             symbol.addRoundRect(cx + u * 0.75f - bw / 2, cx - u, cx + u * 0.75f + bw / 2, cx + u, bw / 3, bw / 3, Path.Direction.CW);
-        } else { // play: a triangle, nudged right so it looks centred
+        } else {
             symbol.moveTo(cx - u * 0.7f, cx - u * 1.05f);
             symbol.lineTo(cx + u * 1.15f, cx);
             symbol.lineTo(cx - u * 0.7f, cx + u * 1.05f);
             symbol.close();
         }
-        p.setStyle(Paint.Style.FILL);
-        p.setColor(Scene.alpha(scene.hot, 0.8f));
-        p.setMaskFilter(new BlurMaskFilter(u * 0.35f, BlurMaskFilter.Blur.NORMAL));
-        c.drawPath(symbol, p);
-        p.setMaskFilter(null);
-        p.setColor(scene.led);
-        c.drawPath(symbol, p);
-        b = Lens.fringe(b, PX, 1f); // the colour fringe of a bright light through a lens
-        CACHE.put(key, b);
-        return b;
+        return symbol;
     }
 
-    /** Previous or next: a triangle and a bar, quiet, in the soft text colour, glowing faintly in the light. */
+    /**
+     * Previous or next: a round icon button, as on the icon reference: a dark solid circle (a deep, dark shade of the
+     * light) with the symbol (a triangle and a bar) in a pale shade of it.
+     */
     static Bitmap skip(Scene scene, boolean next, int sizeDp) {
         String key = "s|" + scene.tag() + "|" + next + "|" + sizeDp;
         Bitmap hit = CACHE.get(key);
@@ -106,7 +85,9 @@ final class SoundControls {
         Bitmap b = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        float cx = s / 2f, u = s * 0.18f;
+        float cx = s / 2f, u = s * 0.15f;
+        p.setColor(Theme.iconFill(scene));
+        c.drawCircle(cx, cx, cx - 3 * PX, p);
         float dir = next ? 1 : -1;
         Path symbol = new Path();
         symbol.moveTo(cx - dir * u * 0.9f, cx - u);
@@ -115,11 +96,7 @@ final class SoundControls {
         symbol.close();
         float bx = cx + dir * u * 0.95f, bw = u * 0.32f;
         symbol.addRoundRect(bx - bw / 2, cx - u, bx + bw / 2, cx + u, bw / 2, bw / 2, Path.Direction.CW);
-        p.setColor(Scene.alpha(scene.deep, 0.45f * Look.get().bloom));
-        p.setMaskFilter(new BlurMaskFilter(u * 0.45f, BlurMaskFilter.Blur.NORMAL));
-        c.drawPath(symbol, p);
-        p.setMaskFilter(null);
-        p.setColor(Glow.soft(scene));
+        p.setColor(Theme.iconGlyph(scene));
         c.drawPath(symbol, p);
         CACHE.put(key, b);
         return b;

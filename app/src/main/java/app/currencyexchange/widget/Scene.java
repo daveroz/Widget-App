@@ -93,7 +93,7 @@ final class Scene {
         return l >= least ? colour : mix(colour, Color.WHITE, (least - l) / (1 - l));
     }
 
-    private static float luminance(int colour) {
+    static float luminance(int colour) {
         return 0.2126f * linear(Color.red(colour)) + 0.7152f * linear(Color.green(colour)) + 0.0722f * linear(Color.blue(colour));
     }
 

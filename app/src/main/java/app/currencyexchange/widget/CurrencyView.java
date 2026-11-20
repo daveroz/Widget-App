@@ -43,6 +43,14 @@ final class CurrencyView {
                 Look.get().textHaze));
     }
 
+    /** The clocks' white: their day, time and city stay white, hazed in white, whatever is playing. */
+    private static final int CLOCK_HAZE = 0xFFE6ECF4;
+
+    /** Text as {@link #txt}, hazed in {@code light} instead of the song's light. */
+    private static void txt(RemoteViews rv, int viewId, String s, Typeface tf, int color, float sizeDp, int light) {
+        rv.setImageViewBitmap(viewId, TextBmp.glowing(tf, sizeDp * 2.5f, 0.8f, s, color, light, Look.get().textHaze));
+    }
+
     /** Tight text (see {@link TextBmp#tightHazy}), hazed like {@link #txt}: its view is {@link TextBmp#HAZE_ROOM} times as tall. */
     private static Bitmap tight(Typeface tf, float sizeDp, String s, int color) {
         return TextBmp.tightHazy(tf, sizeDp, s, color, Ambience.scene().deep, Look.get().textHaze);
@@ -96,7 +104,9 @@ final class CurrencyView {
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
         // the clocks card's frosted glass, behind the weather strip and the clocks (116 dp tall: its 1 dp padding, the
         // 30 dp strip, the 84 dp clocks); the flags fade into it
-        rv.setImageViewBitmap(R.id.clk_glass, Stage.panel(scene, rowW, 116, 1.5f, Stage.round(28), Stage.NIGHT, true, false));
+        int contentH = heightFor(k);
+        rv.setImageViewBitmap(R.id.clk_glass, Stage.panel(scene, rowW, 116, 1.5f, Stage.round(28), Stage.NIGHT,
+                Backdrop.behind(ctx, "currency", rowW, contentH, 0, 0, rowW, 116), null, false));
         // the clocks card's lit edge, over the card (116 dp tall: its 1 dp padding, the 30 dp strip, the 84 dp clocks)
         rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(scene, Math.round(rowW * 1.5f), Math.round(116 * 1.5f),
                 Stage.round(28 * 1.5f), 1.5f));
@@ -115,7 +125,7 @@ final class CurrencyView {
             set = Util.hm(t[1]);
         }
         boolean day = SunCalc.isDay(ll[0], ll[1], ZoneId.systemDefault(), here);
-        // The header's icons say what each value is, so they're in the song's line colour, glowing softly (Glow_Icon_Text).
+        // The header's icons say what each value is, so they're in the song's line colour, solid and a little darker.
         rv.setImageViewBitmap(R.id.hdr_wx, icon(ctx, weatherIcon(wx == null ? -1 : wx.code, day), 16, scene));
         rv.setImageViewBitmap(R.id.ic0, icon(ctx, R.drawable.ic_umbrella, 14, scene));
         rv.setImageViewBitmap(R.id.ic1, icon(ctx, R.drawable.ic_sunrise, 14, scene));
@@ -154,11 +164,11 @@ final class CurrencyView {
             } else {
                 rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), pcs[0]);
             }
-            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, scene.quiet, 11);
-            // the time is the hero: it blooms a little into the haze on the looks that ask for it
+            // the day, time and city in front of the flag stay white, hazed in white, whatever is playing
+            txt(rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11, CLOCK_HAZE);
             rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.glowing(bold, 22 * 2.5f, 0.8f, now.format(timeF),
-                    white, scene.deep, Look.get().textGlow));
-            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11);
+                    white, CLOCK_HAZE, Look.get().textGlow));
+            txt(rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11, CLOCK_HAZE);
         }
 
         // currency rows
@@ -177,7 +187,9 @@ final class CurrencyView {
             // the row's panel in the shared light, with the last month as a soft area chart over it and the row's lit
             // edge (the picture fills the row)
             double[][] trend = Trend.series(hist, from, market);
-            rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW, ROW_DP, scene, i % 2 == 0));
+            // row i sits under the 116 dp clocks card and a 7 dp gap, one row and gap below the last
+            Backdrop.Behind behind = Backdrop.behind(ctx, "currency", rowW, contentH, 0, 123 + 61 * i, rowW, ROW_DP);
+            rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW, ROW_DP, scene, i % 2 == 0, behind));
             rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), tight(reg, CITY_SP, "Market", scene.quiet));
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), tight(reg, HEADER_SP, Util.fmt0(market), white));
@@ -199,8 +211,8 @@ final class CurrencyView {
     // ------------------------------------------------------------------ bitmaps
 
     /**
-     * A small icon ({@code sizeDp} square) in the song's line colour, glowing softly into the haze around it as much as
-     * the look asks, with 3 dp of room round it for the glow (its view is 6 dp bigger, with -3 dp margins).
+     * A small icon ({@code sizeDp} square), solid, in a darker shade of the song's line colour, with no glow, as on the
+     * icon reference (its picture keeps 3 dp of room round it: its view is 6 dp bigger, with -3 dp margins).
      */
     static Bitmap icon(Context ctx, int res, int sizeDp, Scene scene) {
         String key = "i|" + res + "|" + sizeDp + "|" + scene.tag();
@@ -211,30 +223,11 @@ final class CurrencyView {
         Bitmap shape = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
         android.graphics.drawable.Drawable d = ctx.getDrawable(res).mutate();
         d.setBounds(in, in, s - in, s - in);
-        d.setColorFilter(new android.graphics.PorterDuffColorFilter(scene.line, PorterDuff.Mode.SRC_IN));
+        d.setColorFilter(new android.graphics.PorterDuffColorFilter(Scene.mix(scene.line, 0xFF000000, 0.18f),
+                PorterDuff.Mode.SRC_IN));
         d.draw(new Canvas(shape));
-        Bitmap out = glowShape(shape, scene, Look.get().iconGlow, px);
-        PICS.put(key, out);
-        return out;
-    }
-
-    /** {@code shape} with a soft glow of the light around it, {@code glow} strong (0: as it is). */
-    static Bitmap glowShape(Bitmap shape, Scene scene, float glow, float px) {
-        if (glow <= 0f) return shape;
-        Bitmap out = Bitmap.createBitmap(shape.getWidth(), shape.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(out);
-        Bitmap alpha = shape.extractAlpha();
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        p.setMaskFilter(new android.graphics.BlurMaskFilter(2.2f * px, android.graphics.BlurMaskFilter.Blur.NORMAL));
-        p.setColor(Scene.alpha(scene.deep, Math.min(1f, 0.9f * glow)));
-        c.drawBitmap(alpha, 0, 0, p);
-        p.setMaskFilter(new android.graphics.BlurMaskFilter(0.8f * px, android.graphics.BlurMaskFilter.Blur.NORMAL));
-        p.setColor(Scene.alpha(scene.hot, Math.min(1f, 0.55f * glow)));
-        c.drawBitmap(alpha, 0, 0, p);
-        p.setMaskFilter(null);
-        c.drawBitmap(shape, 0, 0, null);
-        alpha.recycle();
-        return out;
+        PICS.put(key, shape);
+        return shape;
     }
 
     /** Flag with rounded corners, or a grey tile with the code when the flag isn't downloaded yet. */

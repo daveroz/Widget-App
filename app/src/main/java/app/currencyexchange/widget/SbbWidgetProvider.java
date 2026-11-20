@@ -67,13 +67,19 @@ public class SbbWidgetProvider extends AppWidgetProvider {
     static void updateAll(Context ctx) {
         int[] ids = widgetIds(ctx);
         if (ids.length == 0) return;
+        SbbRenderer.behind(behind(ctx));
         Bitmap bmp = SbbRenderer.render(System.currentTimeMillis(), zone(ctx), SbbRenderer.SIZE, null, false);
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.widget_sbb);
         rv.setImageViewBitmap(R.id.img, bmp);
         PendingIntent open = PendingIntent.getActivity(ctx, 10, new Intent(ctx, MainActivity.class),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        rv.setOnClickPendingIntent(R.id.root, open);
+        rv.setOnClickPendingIntent(R.id.root, TapActivity.wrap(ctx, 12, "sbb", open));
         AppWidgetManager.getInstance(ctx).updateAppWidget(ids, rv);
+    }
+
+    /** What's behind the clock's panel: the wallpaper, blurred, where the widget is (its panel stands for ~150 dp). */
+    static Backdrop.Behind behind(Context ctx) {
+        return Backdrop.behind(ctx, "sbb", 150, 150, 0, 0, 150, 150);
     }
 
     /** Cheap picture-only update used by the live second hand. */

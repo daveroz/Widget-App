@@ -231,7 +231,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         } else {
             rv.setViewVisibility(R.id.cal_more, android.view.View.GONE);
         }
-        rv.setOnClickPendingIntent(R.id.panel, open);
+        rv.setOnClickPendingIntent(R.id.panel, TapActivity.wrap(ctx, 26, "calendar", open));
         rv.setOnClickPendingIntent(R.id.btn_add, add);
         return rv;
     }
@@ -270,23 +270,22 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return Lens.fringe(b, 2.5f, 1f); // the colour fringe of a bright light through a lens (2.5 px per dp)
     }
 
-    /** The "+": a faint ring in the song's line colour and a white plus, glowing as much as the look asks. */
+    /** The "+": a round icon button, as on the icon reference: a dark solid circle with a pale plus. */
     private static android.graphics.Bitmap addButton(Scene scene) {
         float px = 3f;
         int s = Math.round(44 * px);
         android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas c = new android.graphics.Canvas(b);
         android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        p.setColor(Theme.iconFill(scene));
+        c.drawCircle(s / 2f, s / 2f, 19 * px, p);
         p.setStyle(android.graphics.Paint.Style.STROKE);
-        p.setStrokeWidth(1.6f * px);
-        p.setColor(Scene.alpha(scene.line, 0.45f));
-        c.drawCircle(s / 2f, s / 2f, 20 * px, p);
-        p.setStrokeWidth(2.6f * px);
+        p.setStrokeWidth(2.2f * px);
         p.setStrokeCap(android.graphics.Paint.Cap.ROUND);
-        p.setColor(Theme.TEXT);
-        c.drawLine(13 * px, 22 * px, 31 * px, 22 * px, p);
-        c.drawLine(22 * px, 13 * px, 22 * px, 31 * px, p);
-        return CurrencyView.glowShape(b, scene, Look.get().iconGlow * 0.6f, px);
+        p.setColor(Theme.iconGlyph(scene));
+        c.drawLine(15 * px, 22 * px, 29 * px, 22 * px, p);
+        c.drawLine(22 * px, 15 * px, 22 * px, 29 * px, p);
+        return b;
     }
 
     /** The panel picture for a widget: the black panel lit by the shared light, with its lit edge, at its real size. */
@@ -298,7 +297,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int h = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
         if (w <= 0) w = 320;
         if (h <= 0) h = fallbackHeightDp;
-        return Stage.panel(Ambience.scene(), w, h, 1.25f, Stage.round(28), Stage.NIGHT, true, true);
+        // today's ring lights the glass behind it: in its column of the week row (20 dp side padding, seven columns),
+        // its middle 94 dp down (13 dp padding, the 48 dp header, 2 dp, the 14 dp day name, half the 34 dp ring)
+        Scene scene = Ambience.scene();
+        int col = LocalDate.now().getDayOfWeek().getValue() % 7;
+        Stage.Spill today = new Stage.Spill(20 + (col + 0.5f) * (w - 40) / 7f, 94, 34, scene.deep, 0.3f * Look.get().bloom);
+        return Stage.panel(scene, w, h, 1.25f, Stage.round(28), Stage.NIGHT,
+                Backdrop.behind(ctx, "calendar", w, h, 0, 0, w, h), new Stage.Spill[]{today}, true);
     }
 
     private static PendingIntent broadcast(Context ctx, String action, int code) {

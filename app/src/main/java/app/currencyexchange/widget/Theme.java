@@ -2,13 +2,10 @@ package app.currencyexchange.widget;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
@@ -167,14 +164,14 @@ final class Theme {
                 RectF box = new RectF(0, 0, w, h);
                 Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
                 // near black on the left, warming into the song's colour on the right
-                int dark = 0xFF0B0A0F, warm = Scene.mix(dark, scene.deep, 0.42f);
+                int dark = 0xFF0B0A0F, warm = Scene.mix(dark, scene.deep, 0.16f); // just a hint of the colour
                 p.setShader(new android.graphics.LinearGradient(0, 0, w, 0,
                         new int[]{Scene.alpha(dark, alpha), Scene.alpha(Scene.mix(dark, warm, 0.18f), alpha), Scene.alpha(warm, alpha)},
                         new float[]{0f, 0.45f, 1f}, android.graphics.Shader.TileMode.CLAMP));
                 c.drawRoundRect(box, r, r, p);
                 // a soft glow of the light on the right, strongest towards the top
                 p.setShader(new android.graphics.RadialGradient(w * 0.96f, h * 0.22f, Math.max(w, h) * 0.6f,
-                        Scene.alpha(scene.key, 0.14f), scene.key & 0x00FFFFFF, android.graphics.Shader.TileMode.CLAMP));
+                        Scene.alpha(scene.key, 0.05f), scene.key & 0x00FFFFFF, android.graphics.Shader.TileMode.CLAMP));
                 c.drawRoundRect(box, r, r, p);
                 // a faint sheen along the top
                 p.setShader(new android.graphics.LinearGradient(0, 0, 0, Math.min(h, 44 * px), 0x0FFFFFFF, 0x00FFFFFF,
@@ -199,81 +196,60 @@ final class Theme {
     }
 
     /**
-     * Something that's on, lit like a lamp: a touch of the key light on the glass, the light bleeding into the glass
-     * along its edge, a bright key edge, and outside it a wide, soft bloom with a tight halo hugging the edge. The
-     * glow needs room, so the panel is drawn {@link Lit#INSET_DP} in from the view's edges.
+     * Something that's on, or the main action: a solid button in the song's colour, a shade lighter towards the right,
+     * as on the solid button reference (no bloom). The same size and corners as everything else, on or off; give it
+     * {@link #lift} for the soft glow of its light on the card under it.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
-        return new Lit(dp(c, radiusDp), dp(c, Lit.INSET_DP), dp(c, 1), accent(), pressed ? 0.24f : 0.14f);
+        Scene s = accent();
+        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, pressed
+                ? new int[]{Scene.mix(s.key, 0xFF000000, 0.28f), Scene.mix(s.key, 0xFF000000, 0.14f)}
+                : new int[]{Scene.mix(s.key, 0xFF000000, 0.1f), Scene.mix(s.key, 0xFFFFFFFF, 0.12f)});
+        g.setCornerRadius(dp(c, radiusDp));
+        return g;
     }
 
-    /** The lit look, drawn once into a picture whenever its size changes (a blur can't be drawn live everywhere). */
-    static final class Lit extends Drawable {
-        static final float INSET_DP = 3;
-        private final float radius, inset, line;
-        private final Scene scene;
-        private final int fill;
-        private Bitmap picture;
+    /** Text on a solid button ({@link #lit}): white, or near black on a light colour, so it reads. */
+    static int onLit() {
+        return Scene.luminance(accent().key) > 0.55f ? 0xFF0B0A12 : 0xFFFFFFFF;
+    }
 
-        Lit(float radius, float inset, float line, Scene scene, float fill) {
-            this.radius = radius;
-            this.inset = inset;
-            this.line = line;
-            this.scene = scene;
-            this.fill = Scene.alpha(scene.key, fill);
-        }
+    /** A button that's off, or a quieter action: solid and dark, a deep shade of the song's colour (no outline). */
+    static Drawable dark(Context c, float radiusDp, boolean pressed) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(pressed ? Scene.mix(iconFill(accent()), 0xFFFFFFFF, 0.08f) : iconFill(accent()));
+        g.setCornerRadius(dp(c, radiusDp));
+        return g;
+    }
 
-        @Override
-        protected void onBoundsChange(Rect b) {
-            picture = null;
-        }
+    /** A round icon button, as on the icon reference: a dark solid circle (its glyph in {@link #iconGlyph}). */
+    static Drawable iconButton(boolean pressed) {
+        GradientDrawable g = new GradientDrawable();
+        g.setShape(GradientDrawable.OVAL);
+        g.setColor(pressed ? Scene.mix(iconFill(accent()), 0xFFFFFFFF, 0.1f) : iconFill(accent()));
+        return g;
+    }
 
-        @Override
-        public void draw(Canvas canvas) {
-            Rect b = getBounds();
-            if (b.width() <= 0 || b.height() <= 0) return;
-            if (picture == null) {
-                picture = Bitmap.createBitmap(b.width(), b.height(), Bitmap.Config.ARGB_8888);
-                Canvas c = new Canvas(picture);
-                RectF r = new RectF(inset, inset, b.width() - inset, b.height() - inset);
-                Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-                glow.setStyle(Paint.Style.STROKE);
-                glow.setStrokeWidth(inset);
-                float bloom = Look.get().bloom;
-                glow.setColor(Scene.alpha(scene.deep, 0.55f * bloom));
-                glow.setMaskFilter(new BlurMaskFilter(inset * 0.9f, BlurMaskFilter.Blur.NORMAL));
-                c.drawRoundRect(r, radius, radius, glow);
-                glow.setStrokeWidth(line * 1.5f);
-                glow.setColor(Scene.alpha(scene.label, 0.6f * bloom));
-                glow.setMaskFilter(new BlurMaskFilter(line * 1.5f, BlurMaskFilter.Blur.NORMAL));
-                c.drawRoundRect(r, radius, radius, glow);
-                Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-                p.setColor(BG);
-                p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
-                c.drawRoundRect(r, radius, radius, p); // the glow is only outside; inside is the black
-                p.setXfermode(null);
-                p.setColor(Stage.NIGHT);
-                c.drawRoundRect(r, radius, radius, p);
-                p.setColor(fill);
-                c.drawRoundRect(r, radius, radius, p);
-                // the light bleeding into the glass along its edge
-                p.setColor(Scene.alpha(scene.key, 0.22f));
-                p.setMaskFilter(new BlurMaskFilter(inset * 1.1f, BlurMaskFilter.Blur.INNER));
-                c.drawRoundRect(r, radius, radius, p);
-                p.setMaskFilter(null);
-                p.setStyle(Paint.Style.STROKE);
-                p.setStrokeWidth(line);
-                p.setColor(Scene.alpha(scene.label, 0.8f));
-                float h = line / 2;
-                c.drawRoundRect(new RectF(r.left + h, r.top + h, r.right - h, r.bottom - h), radius, radius, p);
-                picture = Lens.fringe(picture, line, 0.8f); // the lens's colour fringe on a lit thing
-            }
-            canvas.drawBitmap(picture, b.left, b.top, null);
-        }
+    /** An icon button's dark fill: the song's colour, deep and dark. */
+    static int iconFill(Scene s) {
+        return Scene.mix(s.key, 0xFF0B0A12, 0.8f);
+    }
 
-        @Override public void setAlpha(int alpha) { }
-        @Override public void setColorFilter(ColorFilter cf) { }
-        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    /** An icon button's glyph: the song's colour, pale. */
+    static int iconGlyph(Scene s) {
+        return Scene.mix(s.key, 0xFFFFFFFF, 0.72f);
+    }
+
+    /**
+     * The soft glow of a solid button's light on the card under it (the light of what's in front falling on what's
+     * behind): a shadow in the song's colour, on Android 9 and up.
+     */
+    static void lift(Context c, android.view.View v) {
+        if (android.os.Build.VERSION.SDK_INT < 28) return;
+        int key = accent().key;
+        v.setOutlineAmbientShadowColor(key);
+        v.setOutlineSpotShadowColor(key);
+        v.setElevation(dp(c, 8));
     }
 
     /** Text hazed by its own light, as on the widgets: a soft glow of the song's light round the letters. */

@@ -91,7 +91,33 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
             updateAll(ctx);
         } else if (ACTION_PLAY_PAUSE.equals(a) || ACTION_NEXT.equals(a) || ACTION_PREV.equals(a) || ACTION_SEEK.equals(a)) {
             control(ctx, a, intent.getFloatExtra(EXTRA_AT, -1f));
+            seen(ctx, a, intent.getSourceBounds());
+        } else if (ACTION_NONE.equals(a)) {
+            seen(ctx, a, intent.getSourceBounds());
         }
+    }
+
+    /**
+     * A control was tapped at {@code b} on the screen: where the widget is follows (its controls row is centred top to
+     * bottom, 10 dp in from the left: previous, play / pause, next), so its glass lines up with the wallpaper.
+     */
+    private static void seen(Context ctx, String action, android.graphics.Rect b) {
+        int[] ids = widgetIds(ctx);
+        if (b == null || ids.length == 0) return;
+        float d = ctx.getResources().getDisplayMetrics().density;
+        float[] s;
+        synchronized (PlayerWidgetProvider.class) {
+            s = size(ctx, ids[0]);
+        }
+        float wPx = s[0] / s[2] * d, hPx = s[1] / s[2] * d;
+        float left;
+        if (ACTION_PREV.equals(action)) left = b.left - 10 * d;
+        else if (ACTION_PLAY_PAUSE.equals(action)) left = b.left - (10 + 46) * d;
+        else if (ACTION_NEXT.equals(action)) left = b.left - (10 + 46 + 50) * d;
+        else if (ACTION_NONE.equals(action)) left = b.left - 10 * d; // the whole controls row
+        else return; // a zone of the line: too far from a known edge
+        int top = Math.round(b.exactCenterY() - hPx / 2);
+        Backdrop.saw(ctx, "music", new android.graphics.Rect(Math.round(left), top, Math.round(left + wPx), Math.round(top + hPx)));
     }
 
     static int[] widgetIds(Context ctx) {
@@ -272,7 +298,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
      */
     private static boolean controls(Context ctx, RemoteViews rv, int id, boolean full) {
         NowPlaying.Track t = track;
-        if (full) rv.setOnClickPendingIntent(R.id.root, tapIntent(ctx)); // the panel around the controls
+        if (full) rv.setOnClickPendingIntent(R.id.root, TapActivity.wrap(ctx, 66, "music", tapIntent(ctx))); // the panel
         float[] size = size(ctx, id);
         int wDp = Math.round(size[0] / size[2]);
         long at = t == null ? 0 : t.positionAt(NowPlaying.now());
