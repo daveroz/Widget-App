@@ -174,40 +174,82 @@ final class Theme {
     }
 
     /**
-     * Something that's on, or the main action: a solid button in the song's colour, a shade lighter towards the right,
-     * as on the solid button reference (no bloom), with a small light strike where its gloss catches the light. The same
-     * size and corners as everything else, on or off; give it {@link #lift} for the soft glow of its light on the card
-     * under it.
+     * Something that's on, or the main action, after the Justice store's gold button (without its glow): solid, in a
+     * deep shade of the song's colour, with a glass rim in a light shade of it ({@link #glassEdge}); white text. The
+     * same size and corners as everything else, on or off.
      */
     static Drawable lit(Context c, float radiusDp, boolean pressed) {
         Scene s = accent();
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, pressed
-                ? new int[]{Scene.mix(s.key, 0xFF000000, 0.28f), Scene.mix(s.key, 0xFF000000, 0.14f)}
-                : new int[]{Scene.mix(s.key, 0xFF000000, 0.1f), Scene.mix(s.key, 0xFFFFFFFF, 0.12f)});
-        g.setCornerRadius(dp(c, radiusDp));
-        if (pressed) return g;
-        // where its gloss catches the light, at the top left bend: a small light strike (the outline stays the button's)
-        return new android.graphics.drawable.LayerDrawable(new Drawable[]{g, new Glint(dp(c, radiusDp), dp(c, 1), s.hot)});
+        int fill = litFill(s);
+        return new GlassButton(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.1f) : fill, dp(c, radiusDp), dp(c, 1.2f),
+                Scene.mix(s.key, 0xFFFFF4E6, 0.55f), LIT_RIM, false);
     }
 
-    /** A small light strike ({@link Optics#star}) where a rounded button's top left bend catches the light. */
-    private static final class Glint extends Drawable {
-        private final float radius, px;
-        private final int colour;
+    /**
+     * How strong a glass rim is along its length ({@link #glassEdge}): a dark button's, measured off the Justice store's
+     * "Shop all" button (white over its near black), and a lit button's, fuller.
+     */
+    private static final float[] DARK_RIM = {0.27f, 0.2f, 0.06f, 0.03f, 0.06f, 0.13f, 0.15f};
+    private static final float[] LIT_RIM = {0.8f, 0.66f, 0.36f, 0.28f, 0.34f, 0.5f, 0.56f};
+    /** Where along the rim each strength is, from its top left (0) round to its bottom right (1). */
+    private static final float[] RIM_AT = {0f, 0.2f, 0.35f, 0.5f, 0.65f, 0.8f, 1f};
 
-        Glint(float radius, float px, int colour) {
+    /**
+     * A glass rim's colour along its length, after the Justice store's buttons: not a flat border but light caught by the
+     * glass's edge, brightest at the top left, fading almost to nothing across the top middle and the bottom left, and
+     * coming back, softer, at the bottom right where the light reflects inside the glass. A gradient at 45° across
+     * {@code box} (the way CSS draws "135deg"), in {@code colour}, {@code alphas} strong at {@link #RIM_AT}.
+     */
+    static android.graphics.Shader glassEdge(RectF box, int colour, float[] alphas) {
+        float cx = box.centerX(), cy = box.centerY(), q = (box.width() + box.height()) / 4f;
+        int[] colours = new int[alphas.length];
+        for (int i = 0; i < alphas.length; i++) colours[i] = Scene.alpha(colour, alphas[i]);
+        return new android.graphics.LinearGradient(cx - q, cy - q, cx + q, cy + q, colours, RIM_AT,
+                android.graphics.Shader.TileMode.CLAMP);
+    }
+
+    /** A button: a solid fill in its rounded shape (or round), with a glass rim ({@link #glassEdge}). */
+    private static final class GlassButton extends Drawable {
+        private final int fill, edge;
+        private final float radius, stroke;
+        private final float[] rim;
+        private final boolean round;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+        private final RectF box = new RectF();
+
+        GlassButton(int fill, float radius, float stroke, int edge, float[] rim, boolean round) {
+            this.fill = fill;
             this.radius = radius;
-            this.px = px;
-            this.colour = colour;
+            this.stroke = Math.max(1f, stroke);
+            this.edge = edge;
+            this.rim = rim;
+            this.round = round;
         }
 
         @Override
         public void draw(Canvas canvas) {
             Rect b = getBounds();
             if (b.width() <= 0 || b.height() <= 0) return;
-            float r = Math.min(radius, b.height() / 2f), g = r * (1 - 0.7071f) + 2.5f * px; // just inside the bend
-            float x = b.left + g, y = b.top + g;
-            Optics.star(canvas, x, y, Math.min(5 * px, (x - b.left) / 1.6f), px, colour, 0.45f); // inside the button
+            box.set(b);
+            float r = round ? Math.min(b.width(), b.height()) / 2f : Math.min(radius, b.height() / 2f);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setShader(null);
+            paint.setColor(fill);
+            canvas.drawRoundRect(box, r, r, paint);
+            float in = stroke / 2;
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(stroke);
+            paint.setShader(glassEdge(box, edge, rim));
+            box.inset(in, in);
+            canvas.drawRoundRect(box, r - in, r - in, paint);
+            paint.setShader(null);
+        }
+
+        @Override
+        public void getOutline(android.graphics.Outline outline) {
+            Rect b = getBounds();
+            float r = round ? Math.min(b.width(), b.height()) / 2f : Math.min(radius, b.height() / 2f);
+            outline.setRoundRect(b, r);
         }
 
         @Override public void setAlpha(int alpha) { }
@@ -215,9 +257,14 @@ final class Theme {
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
-    /** Text on a solid button ({@link #lit}): white, or near black on a light colour, so it reads. */
+    /** A lit button's fill: the song's colour, deep (amber becomes the Justice button's dark gold). */
+    static int litFill(Scene s) {
+        return Scene.mix(s.key, 0xFF000000, 0.45f);
+    }
+
+    /** Text on a lit button ({@link #lit}): near white, as its fill is a deep shade of the colour. */
     static int onLit() {
-        return onLit(accent().key);
+        return 0xFFF6F1EA;
     }
 
     /**
@@ -228,20 +275,24 @@ final class Theme {
         return Scene.luminance(colour) > 0.3f ? 0xFF0B0A12 : 0xFFFFFFFF;
     }
 
-    /** A button that's off, or a quieter action: solid and dark, a deep shade of the song's colour (no outline). */
+    /**
+     * A button that's off, or a quieter action, after the Justice store's dark buttons: near black (a breath of the
+     * song's colour) with a glass rim ({@link #glassEdge}) in a warm white.
+     */
     static Drawable dark(Context c, float radiusDp, boolean pressed) {
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(pressed ? Scene.mix(iconFill(accent()), 0xFFFFFFFF, 0.08f) : iconFill(accent()));
-        g.setCornerRadius(dp(c, radiusDp));
-        return g;
+        return darkButton(c, radiusDp, pressed, false);
     }
 
-    /** A round icon button, as on the icon reference: a dark solid circle (its glyph in {@link #iconGlyph}). */
-    static Drawable iconButton(boolean pressed) {
-        GradientDrawable g = new GradientDrawable();
-        g.setShape(GradientDrawable.OVAL);
-        g.setColor(pressed ? Scene.mix(iconFill(accent()), 0xFFFFFFFF, 0.1f) : iconFill(accent()));
-        return g;
+    /** A round icon button in the app (the converter's swap): a dark button ({@link #dark}), round. */
+    static Drawable iconButton(Context c, boolean pressed) {
+        return darkButton(c, 0, pressed, true);
+    }
+
+    private static Drawable darkButton(Context c, float radiusDp, boolean pressed, boolean round) {
+        Scene s = accent();
+        int fill = Scene.mix(0xFF17191A, s.key, 0.04f);
+        return new GlassButton(pressed ? Scene.mix(fill, 0xFFFFFFFF, 0.06f) : fill, dp(c, radiusDp), dp(c, 1.2f),
+                Scene.mix(0xFFF3ECE8, s.line, 0.15f), DARK_RIM, round);
     }
 
     /** An icon button's dark fill: the song's colour, deep and dark. */
@@ -252,18 +303,6 @@ final class Theme {
     /** An icon button's glyph: the song's colour, pale. */
     static int iconGlyph(Scene s) {
         return Scene.mix(s.key, 0xFFFFFFFF, 0.72f);
-    }
-
-    /**
-     * The soft glow of a solid button's light on the card under it (the light of what's in front falling on what's
-     * behind): a shadow in the song's colour, on Android 9 and up.
-     */
-    static void lift(Context c, android.view.View v) {
-        if (android.os.Build.VERSION.SDK_INT < 28) return;
-        int key = accent().key;
-        v.setOutlineAmbientShadowColor(key);
-        v.setOutlineSpotShadowColor(key);
-        v.setElevation(dp(c, 8));
     }
 
     /** A TextView with the subtle colour fringe all text has (see {@link Lens#text}), never a glow. */

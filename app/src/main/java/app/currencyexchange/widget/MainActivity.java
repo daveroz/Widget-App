@@ -78,19 +78,28 @@ public class MainActivity extends Activity {
         sv.setBackgroundColor(0);
         sv.setFillViewport(true);
         room.addView(sv, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        LinearLayout col = vbox();
-        col.setPadding(dp(16), dp(30), dp(16), dp(28));
+        final LinearLayout col = vbox();
+        col.setPadding(dp(16), dp(104), dp(16), dp(28)); // room at the top for the glass bar floating over it
         sv.addView(col, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        // ---- header: a lit badge + title ----
-        LinearLayout head = new LinearLayout(this);
+        // ---- header: a bar of frosted glass floating at the top, the cards scrolling under it, blurred ----
+        final GlassBar head = new GlassBar(this, room, 16);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
+        head.setPadding(dp(12), dp(12), dp(12), dp(12));
+        android.widget.FrameLayout.LayoutParams headAt = new android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
+        headAt.setMargins(dp(16), dp(12), dp(16), 0);
+        room.addView(head, headAt);
+        sv.setOnScrollChangeListener((v, x, y, ox, oy) -> head.refresh());
+        head.addOnLayoutChangeListener((v, l, t, r, bottom, ol, ot, or, ob) -> {
+            int want = bottom + dp(16); // the first card starts just under the bar
+            if (col.getPaddingTop() != want) col.setPadding(col.getPaddingLeft(), want, col.getPaddingRight(), col.getPaddingBottom());
+        });
         TextView badge = text("FX", 13, Theme.monoBold(this), Theme.onLit());
         badge.setGravity(Gravity.CENTER);
         badge.setLetterSpacing(0.12f);
         badge.setBackground(Theme.lit(this, 12, false));
-        Theme.lift(this, badge);
         head.addView(badge, new LinearLayout.LayoutParams(dp(48), dp(48)));
         LinearLayout titles = vbox();
         titles.setPadding(dp(12), 0, 0, 0);
@@ -103,7 +112,6 @@ public class MainActivity extends Activity {
         tagline.setTextColor(Theme.accent().line);
         titles.addView(tagline);
         head.addView(titles);
-        col.addView(head);
 
         // ---- world clocks: pick from a list ----
         LinearLayout clocks = card(col, "WORLD CLOCKS");
@@ -521,8 +529,7 @@ public class MainActivity extends Activity {
             boolean on = MODES[i].equals(sbbMode);
             modeBtn[i].setTextColor(on ? Theme.onLit() : Theme.TEXT_SOFT);
             modeBtn[i].setBackground(on ? Theme.lit(this, 12, false) : Theme.dark(this, 12, false)); // same size on or off
-            if (on) Theme.lift(this, modeBtn[i]);
-            else modeBtn[i].setElevation(0);
+            modeBtn[i].setElevation(0); // no glow under it
         }
     }
 
@@ -779,7 +786,7 @@ public class MainActivity extends Activity {
         row.addView(v, lp);
     }
 
-    /** The main action: a solid button in the song's colour, its light glowing softly on the card under it. */
+    /** The main action: a solid button in a deep shade of the song's colour, with a lighter edge of it. */
     private TextView primaryButton(String label, View.OnClickListener l) {
         TextView b = text(label, 15, Theme.uiBold(this), Theme.onLit());
         Theme.label(this, b);
@@ -788,13 +795,12 @@ public class MainActivity extends Activity {
         b.setGravity(Gravity.CENTER);
         b.setPadding(dp(16), dp(17), dp(16), dp(17));
         b.setBackground(Theme.pressable(Theme.lit(this, 12, false), Theme.lit(this, 12, true)));
-        Theme.lift(this, b);
         b.setClickable(true);
         b.setOnClickListener(l);
         return b;
     }
 
-    /** Other actions: a dark solid button, the same corners as every other control. */
+    /** Other actions: a near black button with a grey edge, the same corners as every other control. */
     private TextView secondaryButton(String label, View.OnClickListener l) {
         TextView b = text(label, 14, Theme.uiSemi(this), Theme.TEXT_SOFT);
         Theme.label(this, b);

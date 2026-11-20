@@ -145,7 +145,7 @@ public class ConverterActivity extends Activity {
         ImageView swap = new ImageView(this);
         swap.setImageResource(R.drawable.ic_swap);
         swap.setPadding(dp(8), dp(8), dp(8), dp(8));
-        swap.setBackground(Theme.pressable(Theme.iconButton(false), Theme.iconButton(true))); // a dark round icon button
+        swap.setBackground(Theme.pressable(Theme.iconButton(this, false), Theme.iconButton(this, true))); // a dark round icon button
         swap.setColorFilter(Theme.iconGlyph(Theme.accent()));
         swap.setContentDescription("Swap direction");
         swap.setClickable(true);
@@ -223,7 +223,6 @@ public class ConverterActivity extends Activity {
             boolean on = i == row;
             c.setPadding(dp(8), dp(6), dp(12), dp(6));
             c.setBackground(on ? Theme.lit(this, 12, false) : Theme.dark(this, 12, false));
-            if (on) Theme.lift(this, c);
             ImageView f = new ImageView(this);
             f.setImageBitmap(CurrencyView.flagOrLabel(this, Util.countryOfCurrency(code), code));
             c.addView(f, new LinearLayout.LayoutParams(dp(18), dp(18)));

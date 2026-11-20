@@ -80,13 +80,22 @@ stays at Friday's close.
   app's room behind its cards is near black, with two faint, slow washes of the light and no lighting rig (the old
   row of chasing lamps along the top is gone).
 - **Light falls on the cards.** As on the cypher samples, bright things light the card behind them: today's tile in
-  the calendar, the Music widget's play button and the trend lines spill a wide, soft glow of their light onto it; in
-  the app, solid buttons cast a soft glow of their colour on the card under them.
-- **Buttons and icons are solid**, after the solid button and icon references: the main action, what's on (the
-  chosen SBB mode, the chosen converter chip) and the Music widget's play / pause are solid in the song's colour, a
-  shade lighter to the right, with no bloom; other buttons are dark and solid; icon buttons (previous, next, the
-  Calendar's "+", the converter's swap) are dark solid circles with a pale symbol; the weather bar's icons are solid,
-  a little darker than the line colour. Every control has the same 12 dp corners, on or off.
+  the calendar, the Music widget's play button and the trend lines spill a wide, soft glow of their light onto it.
+- **Buttons and icons are solid.** On the widgets, after the solid button and icon references: the Music widget's
+  play / pause is solid in the song's colour, a shade lighter to the right, with no bloom; icon buttons (previous,
+  next, the Calendar's "+") are dark solid circles with a pale symbol; the weather bar's icons are solid, a little
+  darker than the line colour. In the app, after the Justice store's buttons (without their glow): the main action and
+  what's on (the chosen SBB mode, the converter's chosen chip, the FX badge) are a deep shade of the song's colour
+  (amber gives a dark gold) with white text; other buttons, and the converter's swap, are near black. Their edge is a
+  glass rim (`Theme.glassEdge`), not a flat border: light caught by the glass's edge, brightest at the top left,
+  fading almost to nothing across the top middle and the bottom left, and coming back, softer, at the bottom right
+  (measured off the store's "Shop all" button; fuller on the lit buttons). Every control has the same 12 dp corners,
+  on or off.
+- **The settings screen's header is a bar of frosted glass** (`GlassBar`), after the Justice store's header: it floats
+  at the top while the cards scroll under it, and they show through it heavily blurred, under a translucent dark grey
+  with a faint sheen and the same glass rim as the buttons, brighter all round. What's behind is drawn small, blurred and stretched back
+  up, again after every scroll and now and then for the room's drifting light. Only in the app; the widgets can't see
+  what's behind them.
 - **Hairline edges instead of borders.** No card has a solid outline: its edge is a hairline in a pale shade of the
   song's line colour, light at the top left and fading round the card (`Stage.rim`). The cards keep their
   rounded-square shape (28 dp on the widgets).
@@ -114,7 +123,7 @@ stays at Friday's close.
   - *Light strikes*: a cross-screen ("star") filter turns a point of light into thin spikes; here four, the
     horizontal pair a little longer and fading to blue, like a 2-point star or anamorphic streak. Only on true points
     of light: the Music widget's play button gloss and progress point, each trend line's high, the record's rim, the
-    SBB clock's face, the corner of every card, and the app's solid buttons.
+    SBB clock's face and the corner of every card (not the app's buttons).
   - *Glass reflections*: glass on black reads by what it reflects (white-line lighting; glass reflects most at grazing
     angles). Every card has a faint band of the room's light slanting across its top right, a second, fainter edge
     a little inside near the top left (the glass's other face, seen through its thickness), and its top left corner
@@ -147,7 +156,8 @@ light, and `SoundWidgetProvider` + `LiveService` send the frames. Music widget: 
 `PlayerWidgetProvider` (controls drawn by `SoundControls`), updated by `MediaListener`. `Words` writes what's playing
 for both; `Stage` the card every widget and the app sits on, `Look` how strong each
 effect is, `Ambience` the light they share, `Glow` the colours its text is drawn in, `Lens` the colour fringe on the
-brightest things, and `Optics` the light strikes, glass reflections and halation.
+brightest things, `Optics` the light strikes, glass reflections and halation, and `GlassBar` the settings screen's
+frosted header.
 Layout units are the 750-wide grid of the original preset.
 
 Layout note: the Calendar and Currency widgets are native views with weighted rows/columns (fonts bundled in res/font), so they follow the widget's real width and height; only flags, the Visa logo and clock backgrounds are small bitmaps.
