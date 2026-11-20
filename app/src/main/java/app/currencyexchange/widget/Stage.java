@@ -23,7 +23,7 @@ final class Stage {
     private Stage() {}
 
     /** How opaque the widgets' black is: mildly see-through, so the home screen shows faintly through it. */
-    static final float WIDGET = 0.62f;
+    static final float WIDGET = 0.72f;
     /** The cards' black (before its opacity), with a breath of violet so it isn't flat. */
     private static final int BLACK = 0xFF0B0A0F;
 

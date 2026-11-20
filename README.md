@@ -74,7 +74,7 @@ stays at Friday's close.
 ## Visual language: see-through cards, hazy text, the song's light
 - **Cards, the widgets and the app's alike** (`Stage`), after the glowing card reference: near black, with just a
   hint of the song's colour towards the right and a faint glow of it there, a faint sheen along the top, and a
-  hairline edge that's light at the top left and fades round. On the widgets the black is mildly see-through (62%),
+  hairline edge that's light at the top left and fades round. On the widgets the black is mildly see-through (72%),
   so the home screen shows faintly through it; the app's cards (settings, the pickers, the converter) are nearly
   opaque, and their titles have the lens's colour fringe. The world clocks' flags fade down into their card. No grain. The
   app's room behind its cards is near black, with two faint, slow washes of the light and no lighting rig (the old
