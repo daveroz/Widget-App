@@ -28,6 +28,15 @@ public class SoundWidgetProvider extends AppWidgetProvider {
     private static final float PIXELS = 150_000f, MOST_PIXELS = 420_000f;
     private static final float MIN_DP = 1.6f;
 
+    /**
+     * How sharp the frames are, as a share of the pixels per dp they'd have (1 = full). When the phone can't keep up,
+     * {@link LiveService} lowers it a step at a time, down to {@link #LOWEST}, so the lights keep moving smoothly in a
+     * slightly softer picture (the home screen scales it up to the widget's size), and raises it again once the
+     * frames come comfortably on time.
+     */
+    static final float LOWEST = 0.6f;
+    private static volatile float quality = 1f;
+
     private static final Map<Integer, SoundPicture> PICTURES = new HashMap<>();
     private static final Map<Integer, Bitmap> BUFFERS = new HashMap<>();
     /** Each widget's picture size, worked out when it's placed or resized, not on every frame. */
@@ -140,8 +149,21 @@ public class SoundWidgetProvider extends AppWidgetProvider {
         int hDp = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
         if (wDp <= 0) wDp = 320;
         if (hDp <= 0) hDp = 150;
-        float dp = scale(wDp, hDp);
+        float dp = Math.max(1f, scale(wDp, hDp) * quality); // softer while the phone can't keep up
         return new float[]{Math.max(2, Math.round(wDp * dp)), Math.max(2, Math.round(hDp * dp)), dp};
+    }
+
+    /** How sharp the frames are now ({@link #LOWEST} to 1). */
+    static float quality() {
+        return quality;
+    }
+
+    /** Sets how sharp the frames are; each widget's picture is sized again for its next frame. */
+    static synchronized void setQuality(float q) {
+        q = Math.max(LOWEST, Math.min(1f, q));
+        if (Math.abs(q - quality) < 0.01f) return;
+        quality = q;
+        SIZES.clear();
     }
 
     /** Pixels per dp for a picture of this size in dp. */
