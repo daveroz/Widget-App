@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Tinted with the song's line colour at this strength (CalendarWidgetProvider). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#33D2A867" />
+    <solid android:color="#33FFFFFF" />
 </shape>

@@ -72,7 +72,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             R.layout.cal_k4, R.layout.cal_k5, R.layout.cal_k6, R.layout.cal_k7, R.layout.cal_k8};
 
     /** Height (dp) from which the variant with k event rows fits. */
-    private static int heightFor(int k) { return k == 0 ? 110 : 132 + 42 * k; }
+    private static int heightFor(int k) { return k == 0 ? 114 : 136 + 42 * k; }
+
+    /**
+     * The week row's day numbers fill this share of their picture's height: the pictures show in 34 dp boxes, so the
+     * numbers stay the size they were in the old 26 dp boxes, and today's ring has room around its number.
+     */
+    private static final float NUMBER_FILL = 0.58f * 26f / 34f;
 
     static void updateAll(Context ctx) {
         AppWidgetManager awm = AppWidgetManager.getInstance(ctx);
@@ -145,10 +151,14 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         long now = System.currentTimeMillis();
         java.util.Locale loc = java.util.Locale.getDefault();
 
-        // The text is plain, in its own colours (no glow, no tint); only today and "in 5 minutes" are in the light.
-        // Labels (what something is, when it is) are in the line colour.
-        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.LABEL, label = scene.label;
-        t(rv, tf, R.id.cal_day, String.valueOf(today.getDayOfMonth()), white, 32, 0.82f, false);
+        // The text is plain, in its own colours; only today and "in 5 minutes" are in the light, and the big day number
+        // blooms a little on the looks that ask for it. Labels (what something is, when it is) are in the quiet colour,
+        // tinted by the song; the divider and the "+" are in its line colour.
+        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = scene.quiet, label = scene.label;
+        rv.setImageViewBitmap(R.id.cal_day, TextBmp.glowing(tf, 32 * 2.5f, 0.82f, String.valueOf(today.getDayOfMonth()),
+                white, scene.deep, Look.get().textGlow));
+        rv.setInt(R.id.cal_div, "setColorFilter", scene.line);
+        rv.setImageViewBitmap(R.id.btn_add, addButton(scene));
         t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)), white, 16, 0.82f, false);
         int week = today.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.SUNDAY, 1).weekOfYear());
         t(rv, tf, R.id.cal_sub, "Today, " + today.format(java.time.format.DateTimeFormatter.ofPattern("EEEE", loc))
@@ -163,10 +173,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             t(rv, tf, lab, d.format(java.time.format.DateTimeFormatter.ofPattern("EEE", loc)).toUpperCase(loc),
                     isToday ? label : muted, 9.5f, 0.8f, false);
             if (isToday) { // lit in the light: a touch of it inside a glowing ring of it, the number white on top
-                rv.setImageViewBitmap(num, lit(scene, TextBmp.make(tf, 13 * 2.5f, 0.58f, false, false,
+                rv.setImageViewBitmap(num, lit(scene, TextBmp.make(tf, 13 * 2.5f, NUMBER_FILL, false, false,
                         String.valueOf(d.getDayOfMonth()), 0xFFFFFFFF)));
             } else {
-                t(rv, tf, num, String.valueOf(d.getDayOfMonth()), soft, 13, 0.58f, false);
+                t(rv, tf, num, String.valueOf(d.getDayOfMonth()), soft, 13, NUMBER_FILL, false);
             }
         }
 
@@ -224,22 +234,24 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
     /**
      * Today's number, lit like a lamp: a touch of the light inside a ring of it, the ring glowing out into the haze
-     * (a wide bloom and a tight halo), the number white on top (plain, like the rest of the text).
+     * (a wide bloom and a tight halo), the number white on top (plain, like the rest of the text). The ring is a little
+     * under three times the digits' height across, so even a two-digit date has room to breathe inside it.
      */
     private static android.graphics.Bitmap lit(Scene scene, android.graphics.Bitmap number) {
         int s = Math.max(number.getWidth(), number.getHeight());
         android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas c = new android.graphics.Canvas(b);
         android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        float ring = s * 0.05f, bloom = s * 0.085f, r = s / 2f - ring - bloom; // room for the bloom round the ring
+        float ring = s * 0.034f, bloom = s * 0.075f, r = s / 2f - ring - bloom; // room for the bloom round the ring
         float m = s / 2f;
+        float strength = Look.get().bloom;
         p.setStyle(android.graphics.Paint.Style.STROKE);
         p.setStrokeWidth(ring * 2.4f);
-        p.setColor(Scene.alpha(scene.deep, 0.8f));
+        p.setColor(Scene.alpha(scene.deep, 0.8f * strength));
         p.setMaskFilter(new android.graphics.BlurMaskFilter(bloom, android.graphics.BlurMaskFilter.Blur.NORMAL));
         c.drawCircle(m, m, r, p);
         p.setStrokeWidth(ring);
-        p.setColor(Scene.alpha(scene.hot, 0.7f));
+        p.setColor(Scene.alpha(scene.hot, 0.7f * strength));
         p.setMaskFilter(new android.graphics.BlurMaskFilter(ring, android.graphics.BlurMaskFilter.Blur.NORMAL));
         c.drawCircle(m, m, r, p);
         p.setMaskFilter(null);
@@ -251,10 +263,29 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         p.setColor(Scene.mix(scene.key, scene.hot, 0.5f));
         c.drawCircle(m, m, r, p);
         c.drawBitmap(number, (s - number.getWidth()) / 2f, (s - number.getHeight()) / 2f, null);
-        return Lens.fringe(b, s * 0.012f, 0.45f); // the faint colour fringe of a bright light through a lens
+        return Lens.fringe(b, 2.5f, 1f); // the colour fringe of a bright light through a lens (2.5 px per dp)
     }
 
-    /** The panel picture for a widget: night glass lit by the shared light, at the widget's size on the home screen. */
+    /** The "+": a faint ring in the song's line colour and a white plus, glowing as much as the look asks. */
+    private static android.graphics.Bitmap addButton(Scene scene) {
+        float px = 3f;
+        int s = Math.round(44 * px);
+        android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas c = new android.graphics.Canvas(b);
+        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(android.graphics.Paint.Style.STROKE);
+        p.setStrokeWidth(1.6f * px);
+        p.setColor(Scene.alpha(scene.line, 0.45f));
+        c.drawCircle(s / 2f, s / 2f, 20 * px, p);
+        p.setStrokeWidth(2.6f * px);
+        p.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+        p.setColor(Theme.TEXT);
+        c.drawLine(13 * px, 22 * px, 31 * px, 22 * px, p);
+        c.drawLine(22 * px, 13 * px, 22 * px, 31 * px, p);
+        return CurrencyView.glowShape(b, scene, Look.get().iconGlow * 0.6f, px);
+    }
+
+    /** The panel picture for a widget: the black panel lit by the shared light, with its lit edge, at its real size. */
     private static android.graphics.Bitmap background(Context ctx, AppWidgetManager awm, int id, int fallbackHeightDp) {
         Bundle o = awm.getAppWidgetOptions(id);
         boolean land = ctx.getResources().getConfiguration().orientation
@@ -263,7 +294,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int h = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
         if (w <= 0) w = 320;
         if (h <= 0) h = fallbackHeightDp;
-        return Stage.panel(Ambience.scene(), w, h, 1.25f, Stage.round(28), 0xF00C1322, Stage.NIGHT);
+        return Stage.panel(Ambience.scene(), w, h, 1.25f, Stage.round(28), Stage.NIGHT, true, true);
     }
 
     private static PendingIntent broadcast(Context ctx, String action, int code) {

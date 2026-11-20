@@ -14,9 +14,9 @@ import java.util.Locale;
 /**
  * The pictures of the Music widget's controls, in the light's colours and lit like light sources in haze (see
  * {@link Glow}): play / pause lit like the launcher's chosen tab (a touch of the light on the glass, a glowing
- * edge, an LED-white symbol), its edge a ring of segments that light up as the song plays, like a gauge on
- * Foundation's screens; previous and next as quiet symbols; and the progress line, a hairline with a tick at each
- * end, lit from the left in the light up to where the song is. The buttons are drawn once per light and state.
+ * edge, an LED-white symbol); previous and next as quiet symbols; and the progress line, a hairline with a tick at
+ * each end, lit from the left in the light up to where the song is (the only place the song's progress shows). The
+ * buttons are drawn once per light, look and state.
  */
 final class SoundControls {
     private SoundControls() {}
@@ -35,18 +35,13 @@ final class SoundControls {
 
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(12);
 
-    /** Segments in the play button's ring. */
-    private static final int RING = 24;
-
     /**
      * The play / pause button, lit like a lamp: a touch of the light on the glass inside a ring of it, the ring
      * blooming out into the haze (a wide, soft bloom and a tight bright halo), and the symbol for what a tap does
-     * LED-white, glowing. The ring is in segments: lit up to {@code fraction} of the song (0 to 1), fainter after it;
-     * below 0, all lit.
+     * LED-white, glowing. (It doesn't show the song's progress: the progress line does.)
      */
-    static Bitmap playButton(Scene scene, boolean playing, int sizeDp, float fraction) {
-        int lit = fraction < 0 ? RING : Math.round(Math.max(0f, Math.min(1f, fraction)) * RING);
-        String key = "p|" + scene.key + "|" + playing + "|" + sizeDp + "|" + lit;
+    static Bitmap playButton(Scene scene, boolean playing, int sizeDp) {
+        String key = "p|" + scene.tag() + "|" + playing + "|" + sizeDp;
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
         int s = Math.round(sizeDp * PX);
@@ -57,29 +52,26 @@ final class SoundControls {
         // the bloom just outside its edge, and a tight bright halo hugging it
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(glowR * 1.2f);
-        p.setColor(Scene.alpha(scene.deep, 0.8f));
+        float bloom = Look.get().bloom;
+        p.setColor(Scene.alpha(scene.deep, 0.8f * bloom));
         p.setMaskFilter(new BlurMaskFilter(glowR, BlurMaskFilter.Blur.NORMAL));
         c.drawCircle(cx, cx, r, p);
         p.setStrokeWidth(1.5f * PX);
-        p.setColor(Scene.alpha(scene.hot, 0.65f));
+        p.setColor(Scene.alpha(scene.hot, 0.65f * bloom));
         p.setMaskFilter(new BlurMaskFilter(PX, BlurMaskFilter.Blur.NORMAL));
         c.drawCircle(cx, cx, r, p);
         p.setMaskFilter(null);
         // a touch of the light on the glass, and its edge
         p.setStyle(Paint.Style.FILL);
-        p.setColor(0xF00B1220);
+        p.setColor(Stage.NIGHT);
         c.drawCircle(cx, cx, r, p);
         p.setColor(Scene.alpha(scene.deep, 0.22f));
         c.drawCircle(cx, cx, r, p);
-        // its edge: a ring of segments, lit up to where the song is
+        // its edge, one bright ring of the light
         p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(1.6f * PX);
-        float ringR = r - 0.8f * PX, step = 360f / RING, gap = 4f;
-        android.graphics.RectF oval = new android.graphics.RectF(cx - ringR, cx - ringR, cx + ringR, cx + ringR);
-        for (int i = 0; i < RING; i++) {
-            p.setColor(i < lit ? Scene.alpha(Scene.mix(scene.key, scene.hot, 0.4f), 0.95f) : Scene.alpha(scene.key, 0.3f));
-            c.drawArc(oval, -90 + i * step + gap / 2, step - gap, false, p);
-        }
+        p.setStrokeWidth(PX);
+        p.setColor(Scene.alpha(Scene.mix(scene.key, scene.hot, 0.4f), 0.85f));
+        c.drawCircle(cx, cx, r - PX / 2, p);
         // the symbol, LED-white, with its glow
         float u = r * 0.36f;
         Path symbol = new Path();
@@ -100,14 +92,14 @@ final class SoundControls {
         p.setMaskFilter(null);
         p.setColor(scene.led);
         c.drawPath(symbol, p);
-        b = Lens.fringe(b, 0.9f * PX, 0.45f); // the faint colour fringe of a bright light through a lens
+        b = Lens.fringe(b, PX, 1f); // the colour fringe of a bright light through a lens
         CACHE.put(key, b);
         return b;
     }
 
     /** Previous or next: a triangle and a bar, quiet, in the soft text colour, glowing faintly in the light. */
     static Bitmap skip(Scene scene, boolean next, int sizeDp) {
-        String key = "s|" + scene.key + "|" + next + "|" + sizeDp;
+        String key = "s|" + scene.tag() + "|" + next + "|" + sizeDp;
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
         int s = Math.round(sizeDp * PX);
@@ -123,7 +115,7 @@ final class SoundControls {
         symbol.close();
         float bx = cx + dir * u * 0.95f, bw = u * 0.32f;
         symbol.addRoundRect(bx - bw / 2, cx - u, bx + bw / 2, cx + u, bw / 2, bw / 2, Path.Direction.CW);
-        p.setColor(Scene.alpha(scene.deep, 0.45f));
+        p.setColor(Scene.alpha(scene.deep, 0.45f * Look.get().bloom));
         p.setMaskFilter(new BlurMaskFilter(u * 0.45f, BlurMaskFilter.Blur.NORMAL));
         c.drawPath(symbol, p);
         p.setMaskFilter(null);
@@ -146,7 +138,7 @@ final class SoundControls {
         float head = x0 + (x1 - x0) * Math.max(0f, Math.min(1f, fraction));
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         line.setStrokeCap(Paint.Cap.ROUND);
-        line.setColor(Theme.BORDER_STRONG);
+        line.setColor(Scene.alpha(scene.line, 0.4f));
         line.setStrokeWidth(Math.max(1f, 1.4f * px));
         c.drawLine(x0, y, x1, y, line);
         // a tick at each end, so the line reads as a scale from the start of the song to its end
@@ -154,8 +146,9 @@ final class SoundControls {
         c.drawLine(x0, y - 4 * px, x0, y + 4 * px, line);
         c.drawLine(x1, y - 4 * px, x1, y + 4 * px, line);
         line.setStrokeWidth(Math.max(1f, 1.4f * px));
+        float bloom = Look.get().bloom;
         if (head > x0) {
-            line.setColor(Scene.alpha(scene.deep, 0.5f));
+            line.setColor(Scene.alpha(scene.deep, 0.5f * bloom));
             line.setStrokeWidth(5 * px);
             line.setMaskFilter(new BlurMaskFilter(3.5f * px, BlurMaskFilter.Blur.NORMAL));
             c.drawLine(x0, y, head, y, line); // its bloom
@@ -167,7 +160,7 @@ final class SoundControls {
             line.setShader(null);
         }
         // where the song is: a big LED-white point in a glowing ring of the light, which a tap on the line moves
-        line.setColor(Scene.alpha(scene.deep, 0.55f));
+        line.setColor(Scene.alpha(scene.deep, 0.55f * bloom));
         line.setMaskFilter(new BlurMaskFilter(4f * px, BlurMaskFilter.Blur.NORMAL));
         c.drawCircle(head, y, 8f * px, line);
         line.setMaskFilter(null);
@@ -182,7 +175,7 @@ final class SoundControls {
         line.setMaskFilter(null);
         line.setColor(scene.led);
         c.drawCircle(head, y, 5f * px, line);
-        return Lens.fringe(b, 0.8f * px, 0.4f); // the faint colour fringe of a bright light through a lens
+        return Lens.fringe(b, px, 0.9f); // the colour fringe of a bright light through a lens
     }
 
     static String clock(long ms) {

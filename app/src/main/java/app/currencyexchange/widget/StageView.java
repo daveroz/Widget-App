@@ -15,26 +15,23 @@ import android.view.animation.AnimationUtils;
 
 
 /**
- * The room behind the settings screen, as on the Deco launcher: a dark stage in haze, lit in amber. Two washes
- * of the key light drift slowly, a strong one high on the right and a fainter one low on the left; fog banks
- * drift through, and a row of small lamps along the top runs a slow chase, like a lighting rig seen through haze.
+ * The room behind the settings screen: near black, as the minimal references are, lit only by two slow, faint washes
+ * of the playing song's light (amber when nothing plays), a strong one high on the right and a fainter one low on the
+ * left, with a breath of fog drifting through. There's no lighting rig any more: nothing along the top, nothing that
+ * chases.
  *
- * Every light has two parts: a soft glow, drawn at 1/8 of the screen's size and stretched so it spreads like
- * light in fog (the rig's lamps add a tighter bloom), and a sharp core drawn at full detail. No grain: the room is
- * seen through clean, frosted glass.
+ * The washes are drawn at 1/8 of the screen's size and stretched, so they spread like light in fog. No grain.
  */
 final class StageView extends View {
     private static final int SOFT = 8;
-    private static final long FRAME_MS = 33;
+    private static final long FRAME_MS = 50;
     private static final int FOG = 0xFFB4C8E1;
 
     private final Paint softPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
     private final Paint glowPaint = new Paint(Paint.DITHER_FLAG);
-    private final Paint corePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Matrix matrix = new Matrix();
     private final Rect screen = new Rect();
-    private final Shader key = unit(Theme.AMBER);
-    private final Shader led = unit(Theme.LED);
+    private final Shader key = unit(Theme.accent().deep);
     private final Shader fog = unit(FOG);
     private Bitmap soft;
     private Canvas softCanvas;
@@ -74,37 +71,18 @@ final class StageView extends View {
         if (soft == null) return;
 
         float big = Math.max(w, h);
-        int rig = w > h ? 9 : 7;
-        float dp = getResources().getDisplayMetrics().density;
         soft.eraseColor(0);
-        glow(key, w * (0.82f + 0.03f * (float) Math.sin(air * 0.07)), h * (0.15f + 0.02f * (float) Math.cos(air * 0.05)),
-                big * 0.42f, big * 0.42f, 0.16f);
-        glow(key, w * (0.16f + 0.05f * (float) Math.sin(air * 0.06 + 1)), h * 0.9f, big * 0.4f, big * 0.4f, 0.075f);
-        for (int i = 0; i < rig; i++) {
-            glow(i % 2 == 1 ? led : key, w * (i + 0.5f) / rig, 12 * dp, 44 * dp, 44 * dp, brightness(i, rig) * 0.3f);
-            glow(led, w * (i + 0.5f) / rig, 5 * dp, 16 * dp, 12 * dp, brightness(i, rig) * 0.35f); // its bloom
-        }
+        glow(key, w * (0.82f + 0.03f * (float) Math.sin(air * 0.07)), h * (0.12f + 0.02f * (float) Math.cos(air * 0.05)),
+                big * 0.42f, big * 0.42f, 0.085f);
+        glow(key, w * (0.16f + 0.05f * (float) Math.sin(air * 0.06 + 1)), h * 0.92f, big * 0.4f, big * 0.4f, 0.04f);
         for (int i = 0; i < 2; i++) {
             float x = ((air * (7 + i * 4) / 1280f + i * 0.6f) % 1.6f - 0.3f) * w;
-            glow(fog, x, h * (0.36f + i * 0.28f), w * 0.95f, h * 0.13f, 0.05f);
+            glow(fog, x, h * (0.36f + i * 0.28f), w * 0.95f, h * 0.13f, 0.025f);
         }
-
         screen.set(0, 0, w, h);
         canvas.drawBitmap(soft, null, screen, softPaint);
-        for (int i = 0; i < rig; i++) {
-            int tone = i % 2 == 1 ? Theme.LED : mix(Theme.AMBER, Theme.LED, 0.6f);
-            corePaint.setColor(alpha(tone, Math.min(1f, brightness(i, rig) + 0.2f)));
-            float x = w * (i + 0.5f) / rig;
-            canvas.drawRect(x - 3 * dp, 4 * dp, x + 3 * dp, 5.5f * dp, corePaint);
-        }
 
         if (running) postInvalidateDelayed(FRAME_MS);
-    }
-
-    /** A rig lamp's brightness: a slow chase runs along the row. */
-    private float brightness(int i, int count) {
-        float chase = (float) Math.pow(Math.max(0, Math.cos(Math.PI * 2 * (i / (float) count - air / 7))), 4);
-        return 0.22f + 0.5f * chase;
     }
 
     /** A soft glow on the small canvas, in screen pixels: centre, radii and strength. */
@@ -121,16 +99,5 @@ final class StageView extends View {
     /** A round glow of radius 1 around the origin, from the colour to nothing. */
     private static Shader unit(int colour) {
         return new RadialGradient(0, 0, 1, colour | 0xFF000000, colour & 0x00FFFFFF, Shader.TileMode.CLAMP);
-    }
-
-    private static int alpha(int colour, float a) {
-        return (Math.round(Math.max(0, Math.min(1, a)) * 255) << 24) | (colour & 0x00FFFFFF);
-    }
-
-    private static int mix(int a, int b, float t) {
-        int r = Math.round(((a >> 16) & 0xFF) + (((b >> 16) & 0xFF) - ((a >> 16) & 0xFF)) * t);
-        int g = Math.round(((a >> 8) & 0xFF) + (((b >> 8) & 0xFF) - ((a >> 8) & 0xFF)) * t);
-        int bl = Math.round((a & 0xFF) + ((b & 0xFF) - (a & 0xFF)) * t);
-        return 0xFF000000 | (r << 16) | (g << 8) | bl;
     }
 }

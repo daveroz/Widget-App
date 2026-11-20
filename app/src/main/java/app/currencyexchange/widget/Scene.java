@@ -24,6 +24,13 @@ final class Scene {
     final int deep;
     /** The key, a little lighter, for text: labels stay easy to read on the night background. */
     final int label;
+    /**
+     * The line colour, for structure (card edges, rules, ticks, the header's icons, section titles): the key paled
+     * towards a warm white, so it follows the song (for amber it's the old gold) and still reads on black.
+     */
+    final int line;
+    /** Quiet labels (what a value is, not the value: day names, "Market", a song's length): soft text, tinted by the key. */
+    final int quiet;
 
     Scene(int key) {
         this.key = key | 0xFF000000;
@@ -35,6 +42,8 @@ final class Scene {
         hsv[2] *= 0.92f;
         this.deep = Color.HSVToColor(hsv);
         this.label = mix(key, Color.WHITE, 0.25f);
+        this.line = readable(mix(this.key, 0xFFF4EFE6, 0.3f), 0.42f);
+        this.quiet = readable(mix(this.key, Theme.TEXT_SOFT, 0.62f), 0.5f);
     }
 
     /** Worldly's own amber: the light while nothing plays. */
@@ -60,6 +69,11 @@ final class Scene {
 
     boolean sameAs(Scene other) {
         return other != null && key == other.key;
+    }
+
+    /** What a cached picture drawn in this light depends on: its colour and the chosen look. */
+    String tag() {
+        return Integer.toHexString(key) + "/" + Look.id();
     }
 
     static int alpha(int colour, float a) {

@@ -88,6 +88,12 @@ final class Ambience {
         show(ctx, lightFor(ctx, now));
     }
 
+    /** Draws every widget again (the look changed), the Sound widget included. */
+    static void redrawAll(Context app) {
+        redrawOthers(app);
+        try { SoundWidgetProvider.updateAll(app); } catch (Throwable ignored) { }
+    }
+
     private static void redrawOthers(Context app) {
         Handler h;
         synchronized (Ambience.class) {

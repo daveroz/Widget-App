@@ -37,11 +37,11 @@ The status text at the bottom of the settings screen shows what worked and what 
 
 | Widget | What it is |
 |---|---|
-| **Currency Exchange** | World clocks, market + Visa rates (the original KWGT widget). The top bar shows, for where you are: the weather now (condition icon and temperature), the chance of rain over the next 12 hours, sunrise and sunset, in four equal sections. Tap a currency row to open the converter over the home screen: type an amount (say 30) and it shows the market and Visa value, fetching the live market rate as it opens; the swap button converts the other way and the chips switch currency. Behind each conversion row, the last 30 days of the market rate (one point a day) as a faint amber area chart (only the shape, no axis or numbers), dimming towards the row's end so the numbers there stay clear |
+| **Currency Exchange** | World clocks, market + Visa rates (the original KWGT widget). The top bar shows, for where you are: the weather now (condition icon and temperature), the chance of rain over the next 12 hours, sunrise and sunset, in four equal sections. Tap a currency row to open the converter over the home screen: type an amount (say 30) and it shows the market and Visa value, fetching the live market rate as it opens; the swap button converts the other way and the chips switch currency. Behind each conversion row, the last 30 days of the market rate (one point a day) as a faint area chart in the song's light (only the shape, no axis or numbers), dimming towards the row's end so the numbers there stay clear. Under each world clock, a band in the colour of that city's sun phase: day, golden hour, blue hour or night |
 | **SBB Clock** | Swiss railway station clock. Second hand: one lap in 58.5 s, then waits at 12; on the minute impulse the minute hand (and the hour hand with it) moves one minute with SBB's elastic swing, exactly when the second hand starts its next lap. Geometry and motion follow SBB's own digital clock (sbbUhr 1.3, dark-background face without frame) |
-| **Sound** | The Deco launcher's sound light show on the home screen. A wall of square lamps from margin to margin, in strips three wide, lit in one colour: the album cover's primary colour for music, the app's own colour for videos and apps without a cover. On top: "Now playing · app", the title and the artist on the left and, for music, the cover as a vinyl LP on the right, the record sliding out and spinning at 33⅓ rpm, slowing to a stop on pause. Below, the wall of lamps across the whole widget, its top a little behind the LP: while something plays the lamp columns follow its sound, bass on the left and treble on the right, filling up from the bottom; paused or nothing playing, an airstream with turbulence crosses the wall: two streams of air flowing in from the left on a slowly gusting wind, bent and rolled by large eddies, lighting the lamps they pass (each as bright as when the music kicks in) and leaving trails that fade over about two seconds, in Worldly's amber when nothing plays. It was tuned in the Sound Wall Simulator, an interactive copy of the wall. It's lit as light in a dark, hazy room rather than a brighter picture: the lamps have warm cores (white-hot only at their brightest) with soft edges, their light blooming into the gaps between them, scattering in a haze over each lit strip and in a faint fog over the whole widget; "Now playing" and the title glow; the record is luminous coloured vinyl with warm light caught in its grooves and a soft halo of light round its edge; and the light comes from inside the sleeve rather than from behind it: a dark cover's bright parts shine as if lit from within, taking on a little of the light's colour (the art keeps its own colours), with a thin halo hugging them (a bright cover is left as it is), on the sleeve and on the record's label alike, a line of light runs along the sleeve's mouth and falls on the record and its label as it comes out, brightest nearest the sleeve, and around the sleeve there's only a soft glow; there's no grain. Any size works: the wall always runs from a full strip at one margin to a full strip at the other, with as many strips and rows as fit (the lamps stay about the same size), and the LP grows with a taller widget. A tap opens the playing app. It has no controls (nor a progress line), so it animates smoothly; the Music widget has them. Needs **notification access** (to see what's playing; nothing is read from notifications) and, to follow the real sound, **sound levels** (Android's "record audio" permission: it reads the phone's own sound through the audio visualizer, never the microphone). Without sound levels, or on phones that keep their sound to themselves, the lights move with the music on their own |
-| **Music** | Just the controls for whatever is playing in any app, on the panel lit in its light: previous, play / pause (lit in the light), next, the time so far, the progress line and the length (the times' digits are all one width and both times as wide as the song's longest, so the line keeps its size as they tick). One row tall (it centres the controls when taller). A tap on the progress line jumps the song to that point (it's split into 24 zones, as widgets can't be dragged); a tap on the panel around them opens the playing app. It's still between changes, so taps get the home screen's full attention, and shows each tap at once. Small widgets leave out the times. Needs notification access |
-| **Calendar** | Agenda layout: big day number, week row (Sunday to Saturday, today lit in amber), then your upcoming events with colour bar, time range and "in N minutes"; "+" adds an event. Reads the device calendar (READ_CALENDAR), no account or key. A taller widget lists more events, a wider one gives titles more room |
+| **Sound** | The Deco launcher's sound light show on the home screen. A wall of square lamps from margin to margin, in strips three wide, lit in one colour: the album cover's primary colour for music, the app's own colour for videos and apps without a cover. On top: "Now playing · app", the title and the artist on the left and, for music, the cover as a vinyl LP on the right, the record sliding out and spinning at 33⅓ rpm, slowing to a stop on pause. Below, the wall of lamps across the whole widget, its top a little behind the LP: while something plays the lamp columns follow its sound, bass on the left and treble on the right, filling up from the bottom; paused or nothing playing, an airstream with turbulence crosses the wall: two streams of air flowing in from the left on a slowly gusting wind, bent and rolled by large eddies, lighting the lamps they pass (each as bright as when the music kicks in) and leaving trails that fade over about two seconds, in Worldly's amber when nothing plays. It was tuned in the Sound Wall Simulator, an interactive copy of the wall. It's lit as light in a dark, hazy room rather than a brighter picture: the lamps have warm cores (white-hot only at their brightest) with soft edges, their light blooming into the gaps between them, scattering in a haze over each lit strip and in a faint fog over the whole widget; "Now playing" and the title glow; the record is luminous coloured vinyl with warm light caught in its grooves and a soft halo of light round its edge; and the light comes from inside the sleeve: a line of light runs along the sleeve's mouth and falls on the record as it comes out, brightest nearest the sleeve, and around the sleeve there's only a soft glow. The album art itself is left almost exactly as it is, in its own colours and saturation (a dark cover's bright parts shine only a touch). The lit lamps, the record's rim and the line at the mouth have a restrained colour fringe, like a bright light through a lens; there's no grain. Any size works: the wall always runs from a full strip at one margin to a full strip at the other, with as many strips and rows as fit (the lamps stay about the same size), and the LP grows with a taller widget. A tap opens the playing app. It has no controls (nor a progress line), so it animates smoothly; the Music widget has them. Needs **notification access** (to see what's playing; nothing is read from notifications) and, to follow the real sound, **sound levels** (Android's "record audio" permission: it reads the phone's own sound through the audio visualizer, never the microphone). Without sound levels, or on phones that keep their sound to themselves, the lights move with the music on their own |
+| **Music** | Just the controls for whatever is playing in any app, on the panel lit in its light: previous, play / pause (lit in the light; it doesn't repeat the song's progress, the line does), next, the time so far, the progress line and the length (the times' digits are all one width and both times as wide as the song's longest, so the line keeps its size as they tick). One row tall (it centres the controls when taller). A tap on the progress line jumps the song to that point (it's split into 24 zones, as widgets can't be dragged); a tap on the panel around them opens the playing app. It's still between changes, so taps get the home screen's full attention, and shows each tap at once. Small widgets leave out the times. Needs notification access |
+| **Calendar** | Agenda layout: big day number, week row (Sunday to Saturday, today in a large ring lit in the song's light), then your upcoming events with colour bar, time range and "in N minutes"; "+" adds an event. Reads the device calendar (READ_CALENDAR), no account or key. A taller widget lists more events, a wider one gives titles more room |
 
 Live updates: world clocks and calendar run on exact per-minute alarms with no notification; only the moving SBB second hand and the Sound widget's lights use a small foreground service (SBB: "Smooth" about 10 pictures a second, "Every second", or "Minute only"; Sound: about 20 pictures a second while something plays, 12 while it plays its patterns). With the screen off it does nothing. Alarms stay as a backup. Location is always where you are (last known device location, refreshed whenever you open the app). Fonts: Carbon+ (Currency) and Carbon+ (all widgets), both from the original KWGT presets.
 
@@ -71,53 +71,39 @@ trading session within 0.08 % of Colombia's official TRM. The daily snapshots us
 off on average, up to 1.2 % on days the market moved. On weekends the market is closed and the rate
 stays at Friday's close.
 
-## Visual language: frosted glass in haze, with Foundation's line work
-- **A night stage in haze.** The settings screen sits on a dark stage (`#05070b`): two slow washes of
-  amber light, fog banks drifting through, a row of small lamps along the top running a slow chase
-  (each blooming in the haze), with no grain (`StageView`); its cards have a soft gloss towards the top.
-- **Frosted glass.** Every widget panel but the Sound widget's is frosted glass (`Stage.glass`), after the glass
-  references: warm lights far behind it, out of focus (a few soft, wide blobs of the light, one paler, one deeper),
-  seen through a milky, smoky frost, with a soft gloss towards the top where the glass catches the room's light. It
-  keeps the panels as dark as before, and there's no grain anywhere, the Sound widget included.
-- **A faint colour fringe** (`Lens`): the brightest things (today in the calendar, the Music widget's play button
-  and progress point, the 30-day trend lines) have the faint red and blue edge a real lens gives a bright light
-  (chromatic aberration). Never on text. App cards are the night at 72% (`#0a0f16`); inputs and
-  pickers are darker wells inside the glass.
-- **Gold line work, after Territory Studio's screens for Foundation.** Structure is drawn in a warm gold line
-  colour (`#d2a867`): hairline frames and dividers, the header's icons, section titles, and small labels (what a
-  value is, not the value: day names, "Market", event times, a song's length) in a quieter cream gold. Values stay
-  white, and the key light is kept for what matters right now. The data reads like an instrument: each world
-  clock has a 24-hour sun scale along its foot (every hour of that city's day in its day, golden-hour, blue-hour
-  or night colour, the hour it is now at full strength and standing taller, so you see where each city is in its
-  day and how long until its sun sets or rises); the Music widget's play button has a ring of segments that
-  light up as the song plays, and its progress line has a tick at each end; the 30-day trend lines sit on a
-  faint baseline at the month's low.
-- **One key light: amber `#eb9438`.** Something that's on (the save button, the chosen SBB mode, the
-  converter's amount and chip) is *lit*: a touch of amber on the glass, the light bleeding into the glass
-  along a bright amber edge, and outside it a soft bloom with a tight halo, not a solid block. Lines drawn
-  in the light (the 30-day trend) glow; today in the calendar is lit.
-- **Light sources in a hazy room** (first worked out on the Sound widget, now everywhere). Whatever gives
-  light is drawn as a light source in a dark, hazy room, never as a brighter picture or a colour filter:
-  *bloom* (light bleeding softly around anything bright), *volumetric haze* (the light scattered in the
-  air of every panel, warming the night and lying in two soft banks of fog), *light diffusion* (soft
-  edges). On the Sound and Music widgets text glows (`Glow`): what's drawn in the light
-  glows most, the main text is a warm white glowing softly, quiet text barely; the Currency and Calendar
-  widgets keep their text plain, in its own colours. Today in the calendar, the
-  Music widget's play button and progress line, and the 30-day trend lines glow like lamps (a warm core,
-  a tight halo, a wide bloom); the clocks' sun scales are plain, with no bloom; the SBB
-  clock's face is lit from within. On the settings screen and the converter the text is plain; lit
-  controls bloom.
+## Visual language: OLED black, lit edges, the song's light, in three looks
+- **OLED black.** Every widget panel, the settings screen's cards and the converter sit on near-total black
+  (`#010203`), lit by one restrained pool of the light, after the minimal references (`Stage`). No frost, no gloss,
+  no grain; the app's room behind its cards is near black too, with two faint, slow washes of the light and no
+  lighting rig (the old row of chasing lamps along the top is gone).
+- **Lit edges instead of borders.** No card has a solid outline any more: its edge is a hairline in the song's line
+  colour, strong where the light falls on it and fading away from there, with a soft glow inside the card where it's
+  brightest (`Stage.rim`), as on the glowing cards reference. The cards keep their rounded-square shape (28 dp).
+- **Three looks to choose between** (Settings → Look, `Look`), each a reading of the references:
+  - *Haze* (Glow_Cards, Haze_Bloom_Text): light falling from above through haze. A pool of the light under each
+    card's top edge, the edge a luminous line brightest along the top, the big numbers and the header's icons
+    blooming softly, a faint colour fringe.
+  - *Optic* (Chromatic, Chromatic_2, Background_Minimalism): a lens on an instrument. Flat black, a faint hairline
+    whose four corners catch the light, a clear red and blue fringe there and on everything lit, crisp text.
+  - *Glass* (the cypher samples, Glow_Icon_Text): dark smoked glass with the light far behind it, out of focus, the
+    edge a fine line swept in from the top left corner from a small glowing node, lit things blooming like the
+    cypher's nodes.
+- **Everything follows the song.** The light is the colour of what's playing (`Ambience`): the album cover's primary
+  colour, or the playing app's own, or Worldly's amber when nothing plays. Nothing decorative is fixed any more: the
+  line colour (edges, rules, the weather bar's icons and dividers, section titles) is the song's colour paled towards
+  a warm white (for amber it's the old gold), labels (day names, "Market", event times, a song's length) are soft text
+  tinted by it, and the settings screen and the converter are drawn in it too (redrawn when the song changed while
+  they were away). Only the clocks' sun bands keep their own day, golden-hour, blue-hour and night colours, and
+  amber still means "needs attention" on the settings screen.
+- **A colour fringe on the brightest things** (`Lens`): today in the calendar, the Music widget's play button and
+  progress point, the trend lines, the lit edges, the Sound widget's lit lamps, its record's rim and the line of light
+  at the sleeve's mouth have the red and blue edge a real lens gives a bright light (chromatic aberration), as strong
+  as the look asks. Never on text, never on the album art.
+- **Light sources in a hazy room.** What gives light is drawn as light in a dark, hazy room, not as a brighter
+  picture: bloom, a tight halo, soft edges. The Sound and Music widgets' text glows (`Glow`); on the Currency and
+  Calendar widgets only the big numbers (the clock times, the day number) bloom, and only on the looks that ask for
+  it; the rest of their text is plain. Today in the calendar sits in a large lit ring with room round its number.
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
-- **One light for every widget.** All four widgets sit on the same panel (`Stage`): night glass lit by
-  two washes of the light (top right and low left) and a hairline edge. The light
-  is the colour of what's playing (`Ambience`): the album cover's primary colour, or the playing app's
-  own for videos, or Worldly's amber when nothing plays. When the song changes, every widget takes on its
-  colour: the panels' haze and the lights behind their glass, the Currency arrows and trend lines (the clocks'
-  sun scales keep their own day, golden-hour, blue-hour and night colours), the Calendar's
-  today and accents, and the glow around the SBB clock's face (the clock keeps SBB's black, white and
-  red), and the Music widget's panel and controls. It follows the music through notification access, with or
-  without a Sound widget; between songs it holds the colour for a moment, and when nothing plays any more every
-  widget goes back to amber within about three seconds.
 
 The type stays the original Carbon+ font from the KWGT preset (`assets/fonts`). Colours and the glass,
 well and lit looks live in `Theme.java`; the settings screen, the converter and the widgets all read
@@ -140,8 +126,9 @@ Sound widget: `NowPlaying` reads the playing media session (through `MediaListen
 wall of lamps (`Airstream` its motion when nothing plays), `SoundRecord` the LP, `SoundPicture` lays out one widget's picture, `Scene` and `Colours` give its
 light, and `SoundWidgetProvider` + `LiveService` send the frames. Music widget: `PlayerPicture` and
 `PlayerWidgetProvider` (controls drawn by `SoundControls`), updated by `MediaListener`. `Words` writes what's playing
-for both; `Stage` is the panel every widget sits on (with its haze and frosted glass), `Ambience` the light they
-share, `Glow` how text and lit things glow in it, and `Lens` the faint colour fringe on the brightest things.
+for both; `Stage` is the panel every widget sits on (its black, its pool of light and its lit edge), `Look` the three
+looks, `Ambience` the light they share, `Glow` how text and lit things glow in it, and `Lens` the colour fringe on the
+brightest things.
 Layout units are the 750-wide grid of the original preset.
 
 Layout note: the Calendar and Currency widgets are native views with weighted rows/columns (fonts bundled in res/font), so they follow the widget's real width and height; only flags, the Visa logo and clock backgrounds are small bitmaps.

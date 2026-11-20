@@ -105,11 +105,11 @@ final class SoundPicture {
         Canvas c = new Canvas(out);
         float bass = lights.bass();
 
-        // Its stage: night glass lit by washes of the light (swelling with the bass), with no grain.
+        // Its stage: the black panel lit by the look's pool of the light (swelling with the bass), with no grain.
         float radius = Math.min(28 * dp, h / 2f);
         box.set(0, 0, w, h);
         float[] corners = Stage.round(radius);
-        Stage.paint(c, box, corners, scene, bass, Stage.NIGHT, Stage.NIGHT, 0f, true);
+        Stage.night(c, box, corners, scene, Stage.NIGHT, bass);
 
         // Zones: on top, the cover with its LP on the right and the words on the left; below, the wall of lamps from
         // margin to margin, its top a little behind the LP, down to the bottom margin.
@@ -130,7 +130,7 @@ final class SoundPicture {
         record.draw(c, sleeve, dp, scene);
         c.drawBitmap(words(ctx, w, h, pad, wall.top - pad, textRight - pad, dp), 0, 0, null);
         c.restore();
-        Stage.edge(c, box, corners, Math.max(1f, dp));
+        c.drawBitmap(Stage.edge(scene, w, h, corners, dp), 0, 0, null); // its lit edge, drawn once per light and size
         return out;
     }
 
@@ -139,7 +139,7 @@ final class SoundPicture {
         String[] say = Words.of(track, access, "Sound", "Music from any app lights this up");
         int lw = Math.max(1, Math.min(w, (int) Math.ceil(pad + width + 14 * dp)));
         int lh = Math.max(1, Math.min(h, (int) Math.ceil(pad + band + 14 * dp)));
-        String key = Arrays.toString(say) + '|' + scene.key + '|' + lw + 'x' + lh + '|' + band + '|' + width + '|' + dp;
+        String key = Arrays.toString(say) + '|' + scene.tag() + '|' + lw + 'x' + lh + '|' + band + '|' + width + '|' + dp;
         if (words == null || !key.equals(wordsKey)) {
             wordsKey = key;
             words = Bitmap.createBitmap(lw, lh, Bitmap.Config.ARGB_8888);

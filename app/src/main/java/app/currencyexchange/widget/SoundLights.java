@@ -29,6 +29,10 @@ import android.graphics.Shader;
  * whole widget, and lit panels throw soft beams down into it. Dark lamps keep a faint ember, caught by the light of the lamps
  * next to them, so the panels still read. Lamps behind text can be dimmer, so it stays easy to read. The lamps are
  * about the same size on every widget: a short wall has fewer rows, a tall one more.
+ *
+ * Lit lamps have the colour fringe of a bright light seen through a lens (chromatic aberration, as in the chromatic
+ * references): a faint red edge on their left and a blue one on their right, stronger the brighter the lamp, as
+ * strong as the chosen {@link Look} asks. Dark lamps have none.
  */
 final class SoundLights {
     /**
@@ -271,6 +275,8 @@ final class SoundLights {
         // softened by a faint skirt of its light. Dark: a faint ember, catching the light of the lamps around it.
         int ember = Scene.mix(scene.deep, 0xFF000000, 0.3f);
         float round = cell * 0.18f, skirt = cell * 0.16f;
+        Look look = Look.get();
+        float apart = Math.min(cell * 0.14f, look.fringeDp * dp * 0.9f), fringe = look.fringe * 0.55f;
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < columns; c++) {
                 if (gap(c)) continue; // the dark column between strips
@@ -280,6 +286,15 @@ final class SoundLights {
                     emberPaint.setColor(Scene.alpha(ember, 0.03f + 0.2f * spill(r, c)));
                     canvas.drawRect(x, y, x + cell, y + cell, emberPaint);
                     continue;
+                }
+                if (fringe > 0f && v > 0.25f) { // the lens's fringe: red pulled left, blue pulled right
+                    float f = fringe * (v - 0.25f) / 0.75f;
+                    lamp.setColor(Scene.alpha(Lens.RED, f));
+                    rect.set(x - apart, y, x + cell - apart, y + cell);
+                    canvas.drawRoundRect(rect, round, round, lamp);
+                    lamp.setColor(Scene.alpha(Lens.BLUE, f));
+                    rect.set(x + apart, y, x + cell + apart, y + cell);
+                    canvas.drawRoundRect(rect, round, round, lamp);
                 }
                 lamp.setColor(Scene.alpha(scene.deep, 0.35f * v));
                 rect.set(x - skirt, y - skirt, x + cell + skirt, y + cell + skirt);

@@ -256,7 +256,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
     /** What the picture shows (the panel in the light, or "Nothing playing"): it's drawn again only when this changes. */
     private static String pictureKey(int id) {
         float[] s = SIZES.get(id);
-        return (track == null ? "none" : "track") + "|" + scene.key + "|" + access + "|" + (s == null ? "" : s[0] + "x" + s[1]);
+        return (track == null ? "none" : "track") + "|" + scene.tag() + "|" + access + "|" + (s == null ? "" : s[0] + "x" + s[1]);
     }
 
     private static Bitmap picture(Context ctx, int id) {
@@ -276,7 +276,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
         float[] size = size(ctx, id);
         int wDp = Math.round(size[0] / size[2]);
         long at = t == null ? 0 : t.positionAt(NowPlaying.now());
-        String key = t == null ? "none" : t.playing + "|" + scene.key + "|" + at / 1000 + "|" + t.duration + "|" + wDp;
+        String key = t == null ? "none" : t.playing + "|" + scene.tag() + "|" + at / 1000 + "|" + t.duration + "|" + wDp;
         if (!full && key.equals(SHOWN.get(id))) return false;
         SHOWN.put(id, key);
         if (t == null) {
@@ -295,7 +295,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
             String longest = SoundControls.clock(Math.max(t.duration, at)).replaceAll("\\d", "0");
             // how far in is a live value; the song's length is a label
             done = TextBmp.tightFixed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(at), longest, Theme.TEXT_SOFT, true);
-            all = TextBmp.tightFixed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), longest, Theme.LABEL, false);
+            all = TextBmp.tightFixed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), longest, scene.quiet, false);
             used += 8 + (done.getWidth() + all.getWidth()) / 2.5f; // the time pictures are 2.5 px per dp
         }
         int barDp = Math.max(40, Math.round(wDp - used));
@@ -313,8 +313,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
                 rv.setOnClickPendingIntent(SEEK_ZONES[i], action(ctx, ACTION_SEEK, 200 + i, SoundControls.fractionAt(middle, barDp)));
             }
         }
-        rv.setImageViewBitmap(R.id.btn_play, SoundControls.playButton(scene, t.playing, 50,
-                timed ? at / (float) t.duration : -1f));
+        rv.setImageViewBitmap(R.id.btn_play, SoundControls.playButton(scene, t.playing, 50));
         rv.setViewVisibility(R.id.seek, timed ? View.VISIBLE : View.INVISIBLE);
         rv.setViewVisibility(R.id.t_elapsed, times ? View.VISIBLE : View.GONE);
         rv.setViewVisibility(R.id.t_total, times ? View.VISIBLE : View.GONE);

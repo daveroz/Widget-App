@@ -41,7 +41,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-/** Settings screen in the Deco look: glass cards over a stage in amber haze. Cities and currencies are picked from lists. */
+/**
+ * Settings screen: black cards with lit edges over a dark stage, in the playing song's light and the chosen look (it's
+ * drawn again when either changes). Cities and currencies are picked from lists.
+ */
 public class MainActivity extends Activity {
     private TextView batStatus, batButton;
     private final TextView[] cityBtn = new TextView[4];
@@ -57,12 +60,17 @@ public class MainActivity extends Activity {
     private LinearLayout statusBox;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private StageView stage;
+    /** The light and look the screen was drawn in: when either has changed by the time it's back in front, it's redrawn. */
+    private String drawnIn;
+    private final TextView[] lookBtn = new TextView[3];
 
     private static final int REQ_ALL = 1;
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        Look.load(this);
+        drawnIn = Theme.accent().tag();
 
         // The stage stays put behind the cards while they scroll over it.
         android.widget.FrameLayout room = new android.widget.FrameLayout(this);
@@ -92,10 +100,41 @@ public class MainActivity extends Activity {
         Theme.label(this, tagline);
         tagline.setTextSize(10);
         tagline.setLetterSpacing(0.14f);
-        tagline.setTextColor(Theme.LINE);
+        tagline.setTextColor(Theme.accent().line);
         titles.addView(tagline);
         head.addView(titles);
         col.addView(head);
+
+        // ---- the look: three variations to try on the widgets (and this screen) before one is chosen ----
+        LinearLayout looks = card(col, "LOOK");
+        LinearLayout lookRow = hbox();
+        for (int i = 0; i < 3; i++) {
+            final int id = i;
+            lookBtn[i] = text(Look.NAMES[i], 13, Theme.uiSemi(this), Theme.TEXT_SOFT);
+            Theme.label(this, lookBtn[i]);
+            lookBtn[i].setLetterSpacing(0.12f);
+            lookBtn[i].setGravity(Gravity.CENTER);
+            lookBtn[i].setPadding(dp(6), dp(14), dp(6), dp(14));
+            lookBtn[i].setMinHeight(dp(48));
+            lookBtn[i].setClickable(true);
+            lookBtn[i].setContentDescription("Look: " + Look.NAMES[i]);
+            lookBtn[i].setOnClickListener(v -> {
+                if (Look.id() == id) return;
+                Look.set(this, id); // every widget is drawn again in it
+                recreate(); // and so is this screen
+            });
+            addWeighted(lookRow, lookBtn[i], i == 0 ? 0 : 8);
+        }
+        looks.addView(lookRow, matchWrap(0));
+        for (int i = 0; i < 3; i++) {
+            boolean on = Look.id() == i;
+            lookBtn[i].setTextColor(on ? 0xFFFFFFFF : Theme.MUTED);
+            lookBtn[i].setBackground(on ? Theme.lit(this, 14, false) : Theme.well(this, 14, false));
+        }
+        TextView lookHint = text(Look.NOTES[Look.id()] + " Every widget follows the song's colour in all three.",
+                12, Theme.uiMedium(this), Theme.DIM);
+        lookHint.setPadding(dp(2), dp(10), 0, 0);
+        looks.addView(lookHint);
 
         // ---- world clocks: pick from a list ----
         LinearLayout clocks = card(col, "WORLD CLOCKS");
@@ -308,6 +347,10 @@ public class MainActivity extends Activity {
         WidgetProvider.kick(app); // (re)start the per-minute clock alarms
         statusTicker.run();
         stage.setRunning(true);
+        // The song (or the look) changed while the screen was away: draw it again in the new light.
+        ui.post(() -> {
+            if (!isFinishing() && !Theme.accent().tag().equals(drawnIn)) recreate();
+        });
     }
 
     @Override
@@ -572,8 +615,8 @@ public class MainActivity extends Activity {
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout root = vbox();
         root.setPadding(dp(14), dp(14), dp(14), dp(10));
-        root.setBackground(Theme.box(this, 0xF20A0F16, Theme.BORDER_STRONG, 18));
-        TextView t = text(title, 11, Theme.uiBold(this), Theme.LINE);
+        root.setBackground(Theme.card(this, 18, 0xFA010203));
+        TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().line);
         Theme.label(this, t);
         t.setPadding(dp(2), 0, 0, dp(8));
         root.addView(t);
@@ -728,12 +771,12 @@ public class MainActivity extends Activity {
         return t;
     }
 
-    /** A glass panel over the stage, with its title in spaced capitals in the key light. */
+    /** A black card over the stage with its lit edge, its title in spaced capitals in the song's line colour. */
     private LinearLayout card(LinearLayout parent, String title) {
         LinearLayout c = vbox();
-        c.setBackground(Theme.glass(this, 16));
-        c.setPadding(dp(14), dp(14), dp(14), dp(14));
-        TextView t = text(title, 11, Theme.uiBold(this), Theme.LINE);
+        c.setBackground(Theme.card(this, 16));
+        c.setPadding(dp(16), dp(16), dp(16), dp(16));
+        TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().line);
         Theme.label(this, t);
         t.setPadding(dp(2), 0, 0, dp(10));
         c.addView(t);
@@ -752,7 +795,7 @@ public class MainActivity extends Activity {
         e.setTypeface(mono ? Theme.monoMedium(this) : Theme.uiMedium(this));
         e.setTextColor(Theme.TEXT);
         e.setHintTextColor(Theme.DIM);
-        e.setHighlightColor(0x55EB9438);
+        e.setHighlightColor(Scene.alpha(Theme.accent().key, 0.33f));
         e.setPadding(dp(12), dp(11), dp(12), dp(11));
         e.setBackground(Theme.well(this, 12, false));
         e.setOnFocusChangeListener((v, focused) -> e.setBackground(Theme.well(this, 12, focused)));
@@ -787,7 +830,7 @@ public class MainActivity extends Activity {
         b.setLetterSpacing(0.14f);
         b.setGravity(Gravity.CENTER);
         b.setPadding(dp(16), dp(14), dp(16), dp(14));
-        b.setBackground(Theme.pressable(Theme.box(this, Theme.GLASS, Theme.BORDER_STRONG, 16), Theme.well(this, 16, true)));
+        b.setBackground(Theme.pressable(Theme.box(this, Theme.WELL, Theme.line(0.4f), 16), Theme.well(this, 16, true)));
         b.setClickable(true);
         b.setOnClickListener(l);
         return b;

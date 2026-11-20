@@ -10,8 +10,8 @@ import android.text.TextPaint;
 import java.util.Locale;
 
 /**
- * The Music widget's picture: frosted glass like the other widgets ({@link Stage#glassPanel}), lit by the light of
- * what's playing, in its haze. The controls are real views laid over it ({@link PlayerWidgetProvider}). With nothing
+ * The Music widget's picture: the black panel every widget shares ({@link Stage#night}), lit by the light of what's
+ * playing, with its lit edge ({@link Stage#rim}). The controls are real views laid over it ({@link PlayerWidgetProvider}). With nothing
  * playing (or no media access) it says so, quietly, in the middle, the words glowing in the light.
  */
 final class PlayerPicture {
@@ -23,7 +23,7 @@ final class PlayerPicture {
         float radius = Math.min(28 * dp, h / 2f);
         RectF box = new RectF(0, 0, w, h);
         float[] corners = Stage.round(radius);
-        Stage.glassPanel(c, box, corners, scene, Stage.NIGHT, Stage.NIGHT);
+        Stage.night(c, box, corners, scene, Stage.NIGHT, 0f);
         if (!access || track == null) {
             String say = (!access ? "Media access needed  ·  tap to turn it on" : "Nothing playing").toUpperCase(Locale.getDefault());
             TextPaint text = Words.paint();
@@ -33,12 +33,12 @@ final class PlayerPicture {
             text.setTextAlign(Paint.Align.CENTER);
             int colour = Glow.label(scene);
             float y = h / 2f + Words.LABEL_DP * dp * 0.36f;
-            Glow.text(c, text, say, w / 2f, y, colour, scene.deep, Glow.LABEL, 12 * dp);
+            Glow.text(c, text, say, w / 2f, y, colour, scene.deep, Glow.LABEL * Look.get().bloom, 12 * dp);
             text.setColor(colour);
             c.drawText(say, w / 2f, y, text);
         }
         c.restore();
-        Stage.edge(c, box, corners, Math.max(1f, dp), Theme.BORDER);
+        Stage.rim(c, box, corners, scene, dp);
         return out;
     }
 }

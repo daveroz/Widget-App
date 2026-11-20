@@ -47,8 +47,8 @@ final class Trend {
     private static final float FADE_FROM = 0.46f, FADE_TO = 0.66f, FADE_END = 0.15f;
     /** Moves smaller than this share of the rate are drawn flatter, so a pegged currency doesn't look volatile. */
     private static final double MIN_SPAN = 0.004;
-    /** Radius just inside a row's 1 dp border (res/values/dimens.xml widget_radius_inner). */
-    private static final float INNER_RADIUS_DP = 27f;
+    /** A row's corner radius (res/values/dimens.xml widget_radius). */
+    private static final float RADIUS_DP = 28f;
     private static final float PXDP = 2f;
 
     private static final LruCache<String, Bitmap> CACHE = new LruCache<String, Bitmap>(4 * 1024 * 1024) {
@@ -75,14 +75,13 @@ final class Trend {
         return pts.size() < 3 ? null : pts.toArray(new double[0][]);
     }
 
-    /** The chart for an area of wDp x hDp (a row inside its 1 dp border), with the row's round ends cut out. */
     /**
-     * The row's picture, {@code wDp} × {@code hDp} (the row inside its 1 dp border): its panel, lit by the light that
-     * all the widgets share, with the chart over it in that light ({@code pts} null: no chart yet). Rows take turns
-     * a touch lighter and darker ({@code light}).
+     * The row's picture, {@code wDp} × {@code hDp} (the whole row): its black panel, lit by the light that all the
+     * widgets share, with the chart over it in that light ({@code pts} null: no chart yet) and the row's lit edge.
+     * Rows take turns a breath lighter and darker ({@code light}).
      */
     static Bitmap bitmap(double[][] pts, int wDp, int hDp, Scene scene, boolean light) {
-        StringBuilder k = new StringBuilder().append(wDp).append('x').append(hDp).append('|').append(scene.key)
+        StringBuilder k = new StringBuilder().append(wDp).append('x').append(hDp).append('|').append(scene.tag())
                 .append('|').append(light);
         if (pts != null) for (double[] p : pts) k.append('|').append(p[0]).append(':').append(p[1]);
         String key = k.toString();
@@ -97,11 +96,10 @@ final class Trend {
         int w = Math.round(wDp * PXDP), h = Math.round(hDp * PXDP);
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
-        // The row's panel, its round ends just inside the row's 1 dp border.
-        float r = Math.min(INNER_RADIUS_DP * PXDP, h / 2f);
+        // The row's panel, its round ends following the row's.
+        float r = Math.min(RADIUS_DP * PXDP, h / 2f);
         RectF box = new RectF(0, 0, w, h);
-        Stage.glassPanel(c, box, Stage.round(r), scene,
-                light ? 0xF0101A2B : 0xF00B1220, light ? 0xF00B1220 : Stage.NIGHT);
+        Stage.night(c, box, Stage.round(r), scene, light ? 0xFF04060A : Stage.NIGHT, 0f);
         if (pts != null) {
             // The chart on a layer of its own, dimmed towards the end of the row where the numbers sit.
             c.saveLayer(box, null);
@@ -115,6 +113,7 @@ final class Trend {
             c.restore();
         }
         c.restore();
+        Stage.rim(c, box, Stage.round(r), scene, PXDP);
         return out;
     }
 
@@ -150,7 +149,7 @@ final class Trend {
 
         // A hairline at the month's low, so the line reads against a level.
         Paint rule = new Paint();
-        rule.setColor(Theme.BORDER);
+        rule.setColor(Scene.alpha(scene.line, 0.22f));
         c.drawRect(0, bottom, w, bottom + Math.max(1f, PXDP * 0.5f), rule);
 
         // The line is a thread of light in the haze: a wide, faint bloom, a tight glow, and a warm core.
@@ -159,11 +158,11 @@ final class Trend {
         glow.setStrokeCap(Paint.Cap.ROUND);
         glow.setStrokeJoin(Paint.Join.ROUND);
         glow.setStrokeWidth(LINE_DP * PXDP * 5f);
-        glow.setColor(alpha(scene.deep, Math.round(LINE_ALPHA * 0.5f)));
+        glow.setColor(alpha(scene.deep, Math.round(LINE_ALPHA * 0.5f * Look.get().bloom)));
         glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 5f, BlurMaskFilter.Blur.NORMAL));
         c.drawPath(curve, glow);
         glow.setStrokeWidth(LINE_DP * PXDP * 2f);
-        glow.setColor(alpha(scene.deep, Math.round(LINE_ALPHA * 0.9f)));
+        glow.setColor(alpha(scene.deep, Math.round(LINE_ALPHA * 0.9f * Look.get().bloom)));
         glow.setMaskFilter(new BlurMaskFilter(LINE_DP * PXDP * 1.5f, BlurMaskFilter.Blur.NORMAL));
         c.drawPath(curve, glow);
 
@@ -173,13 +172,14 @@ final class Trend {
         line.setStrokeCap(Paint.Cap.ROUND);
         line.setStrokeJoin(Paint.Join.ROUND);
         // the faint colour fringe of a bright light through a lens: a red copy a touch to the left, a blue one right
-        float shift = 0.8f * PXDP;
+        Look look = Look.get();
+        float shift = look.fringeDp * PXDP;
         c.save();
         c.translate(-shift, 0);
-        line.setColor(0x4DFF4A3A);
+        line.setColor(Scene.alpha(Lens.RED, look.fringe * 0.6f));
         c.drawPath(curve, line);
         c.translate(2 * shift, 0);
-        line.setColor(0x4D3AA8FF);
+        line.setColor(Scene.alpha(Lens.BLUE, look.fringe * 0.6f));
         c.drawPath(curve, line);
         c.restore();
         line.setColor(alpha(scene.hot, Math.round(LINE_ALPHA * 1.4f)));

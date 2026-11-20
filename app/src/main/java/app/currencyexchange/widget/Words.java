@@ -66,20 +66,21 @@ final class Words {
         int detailColour = Glow.muted(scene);
 
         // Then twice: first the glow of every line (so no glow lies over another line's letters), then the letters.
+        float bloom = Look.get().bloom;
         for (int pass = 0; pass < 2; pass++) {
             boolean glow = pass == 0;
             text.setTypeface(bold);
             text.setTextSize(LABEL_DP * dp);
             text.setLetterSpacing(0.22f);
-            line(c, text, head, x, y, labelColour, scene.deep, glow ? 1f : -1f, dp);
+            line(c, text, head, x, y, labelColour, scene.deep, glow ? bloom : -1f, dp);
             if (tail != null && !glow) line(c, text, tail, x + used, y, Theme.DIM, 0, -1f, dp);
             text.setLetterSpacing(0f);
             text.setTextSize(TITLE_DP * dp);
-            line(c, text, name, x, titleY, titleColour, scene.deep, glow ? 1f : -1f, dp);
+            line(c, text, name, x, titleY, titleColour, scene.deep, glow ? bloom : -1f, dp);
             if (more != null) {
                 text.setTypeface(regular);
                 text.setTextSize(DETAIL_DP * dp);
-                line(c, text, more, x, detailY, detailColour, scene.deep, glow ? 0.3f : -1f, dp);
+                line(c, text, more, x, detailY, detailColour, scene.deep, glow ? 0.3f * bloom : -1f, dp);
             }
         }
     }
