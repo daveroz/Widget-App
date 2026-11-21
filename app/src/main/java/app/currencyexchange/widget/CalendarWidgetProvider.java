@@ -73,11 +73,11 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
     /** Height (dp) from which the variant with k event rows fits. */
     /**
-     * Height (dp) from which the variant with k event rows fits: the panel's paddings (13 + 14), the 51 dp header, the
-     * week row (9.6 + 54) and, with events, their card (10 dp above it, its 4 dp paddings, k rows of 44 and the lines
-     * between them).
+     * Height (dp) from which the variant with k event rows fits: the panel's paddings (13 + 20, the bottom one as its
+     * sides, since the events card fills down to it), the 51 dp header, the week row (9.1 + 54) and, with events, their
+     * card (10 dp above it, its 4 dp paddings, k rows of 44 and the lines between them).
      */
-    private static int heightFor(int k) { return k == 0 ? 142 : 159 + 45 * k; }
+    private static int heightFor(int k) { return k == 0 ? 148 : 165 + 45 * k; }
 
     /**
      * The week row's day numbers fill this share of their picture's height (they show in 34 dp boxes since 1.98, a

@@ -108,17 +108,10 @@ final class CurrencyView {
                 el = 50 * Math.cos((hr - 12) / 12 * Math.PI) - 5;
             }
             int[] weather = Store.sky(ctx, city);
-            Bitmap[] pcs = skyPieces(el, weather == null ? -1 : weather[0], weather == null ? -1 : weather[1],
-                    city.hashCode(), i == 0 ? 1 : (i == 3 ? 2 : 0));
-            if (i == 0) {
-                rv.setImageViewBitmap(id(ctx, "clk_bg_0a"), pcs[0]);
-                rv.setImageViewBitmap(id(ctx, "clk_bg_0"), pcs[1]);
-            } else if (i == 3) {
-                rv.setImageViewBitmap(id(ctx, "clk_bg_3"), pcs[0]);
-                rv.setImageViewBitmap(id(ctx, "clk_bg_3a"), pcs[1]);
-            } else {
-                rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), pcs[0]);
-            }
+            // one picture per clock, at the cell's real width (a quarter of the card inside its 1 dp padding), so nothing
+            // is stretched and there's no seam; the outer cells have the card's round corners baked in
+            rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), skyCell(el, weather == null ? -1 : weather[0],
+                    weather == null ? -1 : weather[1], city.hashCode(), i == 0 ? 1 : (i == 3 ? 2 : 0), (rowW - 2) / 4f));
             // the day, time and city in front of the sky stay white whatever is playing
             txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11);
             rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.fringed(reg, 22 * 2.5f, 0.8f, now.format(timeF), // the calendar's weight, not bold
@@ -129,6 +122,7 @@ final class CurrencyView {
         // currency rows
         String to = Store.to(ctx).trim().toUpperCase(Locale.ROOT);
         Bitmap visaLogo = visaLogo(ctx);
+        Bitmap marketLbl = marketLabel(reg, scene.quiet);
         Bitmap toFlag = flagOrLabel(ctx, Util.countryOfCurrency(to), to);
         JSONObject hist = Store.hist(ctx, to);
         // their one card (its 4 dp paddings, the rows and the lines between them), with its edge
@@ -145,7 +139,7 @@ final class CurrencyView {
             double[][] trend = Trend.series(hist, from, market);
             rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW, ROW_DP, scene, true));
             rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
-            rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), tight(reg, CITY_SP, "Market", scene.quiet));
+            rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), marketLbl);
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), tight(reg, HEADER_SP, Util.fmt0(market), white));
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
             double visa = Util.alignToMarket(Store.visa(ctx, from, to), market);
@@ -194,6 +188,29 @@ final class CurrencyView {
         return out;
     }
 
+    /**
+     * "Market", its ink ending at its picture's right edge (no clear margin there), so drawn to the right of its slot it
+     * ends where the Visa badge and the line between the rows end.
+     */
+    private static Bitmap marketLabel(Typeface tf, int colour) {
+        String key = "m|" + Look.get().tag() + "|" + System.identityHashCode(tf) + "|" + colour;
+        Bitmap hit = PICS.get(key);
+        if (hit != null) return hit;
+        Bitmap b = tight(tf, CITY_SP, "Market", colour);
+        int w = b.getWidth(), h = b.getHeight(), end = w;
+        int[] col = new int[h];
+        while (end > 1) {
+            b.getPixels(col, 0, 1, end - 1, 0, 1, h);
+            boolean ink = false;
+            for (int v : col) if ((v >>> 24) > 8) { ink = true; break; }
+            if (ink) break;
+            end--;
+        }
+        Bitmap made = end == w ? b : Bitmap.createBitmap(b, 0, 0, end, h);
+        PICS.put(key, made);
+        return made;
+    }
+
     static Bitmap visaLogo(Context ctx) {
         String key = "v|" + (Flags.visa(ctx) != null);
         Bitmap hit = PICS.get(key);
@@ -224,36 +241,26 @@ final class CurrencyView {
         return out;
     }
 
-    // Clock cell pictures are drawn for a typical 90 x 92 dp cell at 1.5 px per dp. The outer corners are separate 28 dp
-    // wide slices shown at a fixed width, so their curve always matches the card exactly.
+    // Clock cell pictures are drawn at 1.5 px per dp, 92 dp tall, at each cell's real width.
     private static final float PXDP = 1.5f;
-    private static final int CW = Math.round(90 * PXDP), CH = Math.round(92 * PXDP), SLICE = Math.round(28 * PXDP);
+    private static final int CH = Math.round(92 * PXDP);
     private static final float INNER_R = 27 * PXDP; // card radius just inside its 1 dp border
 
     /**
-     * A clock's sky ({@link Sky}): side 0, a middle cell {whole}; 1, the left cell {its corners, the rest}; 2, the right
-     * cell {the rest, its corners}. The sun's height is taken to the nearest half degree, so a sky is drawn again only
-     * when it has visibly changed.
+     * A clock's sky ({@link Sky}), {@code cellDp} wide: side 0, a middle cell; 1, the left cell (the card's round corners
+     * on its left); 2, the right cell (on its right). The sun's height is taken to the nearest half degree, so a sky is
+     * drawn again only when it has visibly changed.
      */
-    private static Bitmap[] skyPieces(double elevation, int cloud, int code, long seed, int side) {
+    private static Bitmap skyCell(double elevation, int cloud, int code, long seed, int side, float cellDp) {
         float el = Math.round(elevation * 2) / 2f;
-        String key = "s|" + el + "|" + (cloud < 0 ? -1 : cloud / 5) + "|" + code + "|" + seed + "|" + side;
-        Bitmap a = PICS.get(key + "|0"), b = PICS.get(key + "|1");
-        if (a != null && (side == 0 || b != null)) return side == 0 ? new Bitmap[]{a} : new Bitmap[]{a, b};
-        Bitmap full = Sky.draw(CW, CH, PXDP, el, cloud, code, seed);
-        Bitmap[] out;
-        if (side == 0) {
-            out = new Bitmap[]{full};
-        } else if (side == 1) {
-            out = new Bitmap[]{corner(Bitmap.createBitmap(full, 0, 0, SLICE, CH), true),
-                    Bitmap.createBitmap(full, SLICE, 0, CW - SLICE, CH)};
-        } else {
-            out = new Bitmap[]{Bitmap.createBitmap(full, 0, 0, CW - SLICE, CH),
-                    corner(Bitmap.createBitmap(full, CW - SLICE, 0, SLICE, CH), false)};
-        }
-        PICS.put(key + "|0", out[0]);
-        if (out.length > 1) PICS.put(key + "|1", out[1]);
-        return out;
+        int w = Math.max(8, Math.round(cellDp * PXDP));
+        String key = "s|" + el + "|" + (cloud < 0 ? -1 : cloud / 5) + "|" + code + "|" + seed + "|" + side + "|" + w;
+        Bitmap hit = PICS.get(key);
+        if (hit != null) return hit;
+        Bitmap b = Sky.draw(w, CH, PXDP, el, cloud, code, seed);
+        if (side != 0) b = corner(b, side == 1);
+        PICS.put(key, b);
+        return b;
     }
 
     /** Clears the outside of the card's round corners, top and bottom (on the left if left, else on the right). */

@@ -24,7 +24,7 @@
         android:paddingStart="20dp"
         android:paddingTop="13dp"
         android:paddingEnd="20dp"
-        android:paddingBottom="14dp">
+        android:paddingBottom="20dp">
 
         <!-- header: the number, the month and the "+" all top-aligned on the month's capitals (6.6 dp down) -->
         <LinearLayout

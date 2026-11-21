@@ -34,22 +34,11 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1">
-                <LinearLayout
+                <ImageView
+                    android:id="@+id/clk_bg_0"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:orientation="horizontal">
-                    <ImageView
-                        android:id="@+id/clk_bg_0a"
-                        android:layout_width="28dp"
-                        android:layout_height="match_parent"
-                        android:scaleType="fitXY" />
-                    <ImageView
-                        android:id="@+id/clk_bg_0"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:scaleType="fitXY" />
-                </LinearLayout>
+                    android:scaleType="fitXY" />
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -147,22 +136,11 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1">
-                <LinearLayout
+                <ImageView
+                    android:id="@+id/clk_bg_3"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:orientation="horizontal">
-                    <ImageView
-                        android:id="@+id/clk_bg_3"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:scaleType="fitXY" />
-                    <ImageView
-                        android:id="@+id/clk_bg_3a"
-                        android:layout_width="28dp"
-                        android:layout_height="match_parent"
-                        android:scaleType="fitXY" />
-                </LinearLayout>
+                    android:scaleType="fitXY" />
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -243,11 +221,11 @@
                             android:layout_width="30dp"
                             android:layout_height="30dp"
                             android:scaleType="fitCenter" />
+                        <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_0"
-                            android:layout_width="wrap_content"
+                            android:layout_width="40dp"
                             android:layout_height="22dp"
-                            android:adjustViewBounds="true"
                             android:layout_marginStart="6dp"
                             android:scaleType="fitStart" />
                         <ImageView
@@ -275,6 +253,8 @@
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1" />
+                    <!-- the labels sit in one fixed slot, drawn to its right edge: "Market" and the Visa badge end
+                         where the line between the rows ends, and the numbers keep one right edge -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -292,10 +272,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/mkt_lbl_0"
-                                android:layout_width="46dp"
+                                android:layout_width="38dp"
                                 android:layout_height="14.3dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -310,10 +290,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/visa_logo_0"
-                                android:layout_width="42dp"
+                                android:layout_width="38dp"
                                 android:layout_height="16dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
@@ -322,8 +302,8 @@
                 android:id="@+id/div_1"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="24dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY"
                 android:src="@drawable/cur_div" />
@@ -355,11 +335,11 @@
                             android:layout_width="30dp"
                             android:layout_height="30dp"
                             android:scaleType="fitCenter" />
+                        <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_1"
-                            android:layout_width="wrap_content"
+                            android:layout_width="40dp"
                             android:layout_height="22dp"
-                            android:adjustViewBounds="true"
                             android:layout_marginStart="6dp"
                             android:scaleType="fitStart" />
                         <ImageView
@@ -387,6 +367,8 @@
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1" />
+                    <!-- the labels sit in one fixed slot, drawn to its right edge: "Market" and the Visa badge end
+                         where the line between the rows ends, and the numbers keep one right edge -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -404,10 +386,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/mkt_lbl_1"
-                                android:layout_width="46dp"
+                                android:layout_width="38dp"
                                 android:layout_height="14.3dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -422,10 +404,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/visa_logo_1"
-                                android:layout_width="42dp"
+                                android:layout_width="38dp"
                                 android:layout_height="16dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
@@ -434,8 +416,8 @@
                 android:id="@+id/div_2"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="24dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY"
                 android:src="@drawable/cur_div" />
@@ -467,11 +449,11 @@
                             android:layout_width="30dp"
                             android:layout_height="30dp"
                             android:scaleType="fitCenter" />
+                        <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_2"
-                            android:layout_width="wrap_content"
+                            android:layout_width="40dp"
                             android:layout_height="22dp"
-                            android:adjustViewBounds="true"
                             android:layout_marginStart="6dp"
                             android:scaleType="fitStart" />
                         <ImageView
@@ -499,6 +481,8 @@
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1" />
+                    <!-- the labels sit in one fixed slot, drawn to its right edge: "Market" and the Visa badge end
+                         where the line between the rows ends, and the numbers keep one right edge -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -516,10 +500,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/mkt_lbl_2"
-                                android:layout_width="46dp"
+                                android:layout_width="38dp"
                                 android:layout_height="14.3dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -534,10 +518,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/visa_logo_2"
-                                android:layout_width="42dp"
+                                android:layout_width="38dp"
                                 android:layout_height="16dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
@@ -546,8 +530,8 @@
                 android:id="@+id/div_3"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="24dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY"
                 android:src="@drawable/cur_div" />
@@ -579,11 +563,11 @@
                             android:layout_width="30dp"
                             android:layout_height="30dp"
                             android:scaleType="fitCenter" />
+                        <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_3"
-                            android:layout_width="wrap_content"
+                            android:layout_width="40dp"
                             android:layout_height="22dp"
-                            android:adjustViewBounds="true"
                             android:layout_marginStart="6dp"
                             android:scaleType="fitStart" />
                         <ImageView
@@ -611,6 +595,8 @@
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1" />
+                    <!-- the labels sit in one fixed slot, drawn to its right edge: "Market" and the Visa badge end
+                         where the line between the rows ends, and the numbers keep one right edge -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -628,10 +614,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/mkt_lbl_3"
-                                android:layout_width="46dp"
+                                android:layout_width="38dp"
                                 android:layout_height="14.3dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -646,10 +632,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/visa_logo_3"
-                                android:layout_width="42dp"
+                                android:layout_width="38dp"
                                 android:layout_height="16dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
@@ -658,8 +644,8 @@
                 android:id="@+id/div_4"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="24dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY"
                 android:src="@drawable/cur_div" />
@@ -691,11 +677,11 @@
                             android:layout_width="30dp"
                             android:layout_height="30dp"
                             android:scaleType="fitCenter" />
+                        <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_4"
-                            android:layout_width="wrap_content"
+                            android:layout_width="40dp"
                             android:layout_height="22dp"
-                            android:adjustViewBounds="true"
                             android:layout_marginStart="6dp"
                             android:scaleType="fitStart" />
                         <ImageView
@@ -723,6 +709,8 @@
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1" />
+                    <!-- the labels sit in one fixed slot, drawn to its right edge: "Market" and the Visa badge end
+                         where the line between the rows ends, and the numbers keep one right edge -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -740,10 +728,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/mkt_lbl_4"
-                                android:layout_width="46dp"
+                                android:layout_width="38dp"
                                 android:layout_height="14.3dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -758,10 +746,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/visa_logo_4"
-                                android:layout_width="42dp"
+                                android:layout_width="38dp"
                                 android:layout_height="16dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
@@ -770,8 +758,8 @@
                 android:id="@+id/div_5"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="24dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY"
                 android:src="@drawable/cur_div" />
@@ -803,11 +791,11 @@
                             android:layout_width="30dp"
                             android:layout_height="30dp"
                             android:scaleType="fitCenter" />
+                        <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_5"
-                            android:layout_width="wrap_content"
+                            android:layout_width="40dp"
                             android:layout_height="22dp"
-                            android:adjustViewBounds="true"
                             android:layout_marginStart="6dp"
                             android:scaleType="fitStart" />
                         <ImageView
@@ -835,6 +823,8 @@
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1" />
+                    <!-- the labels sit in one fixed slot, drawn to its right edge: "Market" and the Visa badge end
+                         where the line between the rows ends, and the numbers keep one right edge -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -852,10 +842,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/mkt_lbl_5"
-                                android:layout_width="46dp"
+                                android:layout_width="38dp"
                                 android:layout_height="14.3dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -870,10 +860,10 @@
                                 android:scaleType="fitEnd" />
                             <ImageView
                                 android:id="@+id/visa_logo_5"
-                                android:layout_width="42dp"
+                                android:layout_width="38dp"
                                 android:layout_height="16dp"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
+                                android:layout_marginStart="6dp"
+                                android:scaleType="fitEnd" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
