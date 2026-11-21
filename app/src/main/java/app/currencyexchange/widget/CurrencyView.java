@@ -52,10 +52,10 @@ final class CurrencyView {
             R.layout.widget_k4, R.layout.widget_k5, R.layout.widget_k6};
 
     /**
-     * Widget height (dp) from which the variant with k rows fits: the clocks card (94), 7 dp, and the rates card (its
+     * Widget height (dp) from which the variant with k rows fits: the clocks card (94), the 12 dp gap, and the rates card (its
      * 4 dp paddings, k rows of 54 and the k - 1 lines between them).
      */
-    static int heightFor(int k) { return 108 + 55 * k; }
+    static int heightFor(int k) { return 113 + 55 * k; }
 
     private static final android.util.LruCache<String, Bitmap> PICS = new android.util.LruCache<>(60);
 
@@ -73,7 +73,7 @@ final class CurrencyView {
     /** Height of a currency row in the layouts (dp). */
     private static final int ROW_DP = 54;
 
-    /** @param widthDp the widget's width as the launcher reports it (0 if unknown); sizes the trend charts */
+    /** @param widthDp the widget's width as the launcher reports it (0 if unknown); sizes the cards' pictures */
     static RemoteViews build(Context ctx, int k, int widthDp) {
         Typeface reg = Theme.uiMedium(ctx);
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
@@ -124,7 +124,6 @@ final class CurrencyView {
         Bitmap visaLogo = visaLogo(ctx);
         Bitmap marketLbl = marketLabel(reg, scene.quiet);
         Bitmap toFlag = flagOrLabel(ctx, Util.countryOfCurrency(to), to);
-        JSONObject hist = Store.hist(ctx, to);
         // their one card (its 4 dp paddings, the rows and the lines between them), with its edge
         rv.setImageViewBitmap(R.id.rates_bg, Stage.panel(scene, rowW, 8 + ROW_DP * k + (k - 1), 1.5f, Stage.round(28), null, true));
         for (int i = 0; i < k; i++) {
@@ -135,9 +134,6 @@ final class CurrencyView {
             rv.setImageViewBitmap(id(ctx, "fl_b_" + i), toFlag);
             txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, white, 15);
             double market = Store.rate(ctx, from, to);
-            // the last month as a thread of light across the row, on the rows' shared card
-            double[][] trend = Trend.series(hist, from, market);
-            rv.setImageViewBitmap(id(ctx, "trend_" + i), Trend.bitmap(trend, rowW, ROW_DP, scene, true));
             rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), marketLbl);
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), tight(reg, HEADER_SP, Util.fmt0(market), white));

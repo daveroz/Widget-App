@@ -178,7 +178,7 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="7dp">
+            android:layout_marginTop="12dp">
             <ImageView
                 android:id="@+id/rates_bg"
                 android:layout_width="match_parent"
@@ -198,12 +198,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
                 android:foreground="?android:attr/selectableItemBackground">
-                <!-- the last month's rate, a thread of light across the row (Trend) -->
-                <ImageView
-                    android:id="@+id/trend_0"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -312,12 +306,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
                 android:foreground="?android:attr/selectableItemBackground">
-                <!-- the last month's rate, a thread of light across the row (Trend) -->
-                <ImageView
-                    android:id="@+id/trend_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -426,12 +414,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
                 android:foreground="?android:attr/selectableItemBackground">
-                <!-- the last month's rate, a thread of light across the row (Trend) -->
-                <ImageView
-                    android:id="@+id/trend_2"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -540,12 +522,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
                 android:foreground="?android:attr/selectableItemBackground">
-                <!-- the last month's rate, a thread of light across the row (Trend) -->
-                <ImageView
-                    android:id="@+id/trend_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
