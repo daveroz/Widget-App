@@ -32,10 +32,13 @@
             android:layout_height="48dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
+        <!-- the day's number, from the top of the month's capitals to the bottom of the line under it -->
         <ImageView
             android:id="@+id/cal_day"
             android:layout_width="wrap_content"
-            android:layout_height="47dp"
+            android:layout_height="32.05dp"
+            android:layout_gravity="top"
+            android:layout_marginTop="7.6dp"
             android:adjustViewBounds="true"
             android:scaleType="fitStart" />
 

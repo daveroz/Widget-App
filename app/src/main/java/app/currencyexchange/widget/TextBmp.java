@@ -227,6 +227,27 @@ final class TextBmp {
         return b;
     }
 
+    /**
+     * Text cropped exactly to its ink, top to bottom (the Calendar's big day number, sized to span the lines beside
+     * it): the picture's top is the top of the letters and its bottom their bottom, so the view's height is theirs.
+     */
+    static Bitmap ink(Typeface tf, float px, String s, int color) {
+        if (s == null || s.isEmpty()) s = " ";
+        String key = "I|" + System.identityHashCode(tf) + "|" + px + "|" + color + "|" + s;
+        Bitmap hit = CACHE.get(key);
+        if (hit != null) return hit;
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+        p.setTypeface(tf);
+        p.setTextSize(px);
+        p.setColor(color);
+        android.graphics.Rect r = new android.graphics.Rect();
+        p.getTextBounds(s, 0, s.length(), r);
+        Bitmap b = Bitmap.createBitmap(Math.max(2, r.width() + 2), Math.max(2, r.height()), Bitmap.Config.ARGB_8888);
+        new Canvas(b).drawText(s, 1 - r.left, -r.top, p);
+        CACHE.put(key, b);
+        return b;
+    }
+
     /** How wide {@code s} is with every digit {@code digit} wide. */
     private static float fixedWidth(Paint p, String s, float digit) {
         float w = 0f;
