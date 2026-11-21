@@ -37,7 +37,7 @@ The status text at the bottom of the settings screen shows what worked and what 
 
 | Widget | What it is |
 |---|---|
-| **Currency Exchange** | World clocks and market + Visa rates (the original KWGT widget). Each world clock sits on its city's sky right now (1.98, `Sky`): its colours follow the sun's height there (the blue of the day, golden hour, the purple and orange of sunset, the blue hour, the night), with clouds as many as the city's cloud cover lit by the same light, stars on a clear night, and a veil for overcast, rain, snow or fog. Each city's cloud cover and weather come from Open-Meteo for the four cities at once, about every 15 minutes (free, no key). The day, time and city in front stay white. Below, the currency rows share one card, thin lines between them: each row has its flags, its codes, the market and Visa rates and the last month as a thread of light across it; a tap opens the converter. Since 2.00 each clock's sky is one picture at its cell's real width (no seam), the rows line up (every row's arrow and second flag in the same place, the lines between rows running from the flags' left edge to where "Market" and the Visa badge end, both drawn to that same right edge). No weather bar and no flags behind the clocks any more |
+| **Currency Exchange** | World clocks and market + Visa rates (the original KWGT widget). Each world clock sits on its city's sky right now (1.98, `Sky`): its colours follow the sun's height there (the blue of the day, golden hour, the purple and orange of sunset, the blue hour, the night), with clouds as many as the city's cloud cover lit by the same light, stars on a clear night, and a veil for overcast, rain, snow or fog. Each city's cloud cover and weather come from Open-Meteo for the four cities at once, about every 15 minutes (free, no key). The day, time and city in front stay white. Below, the currency rows share one card, thin lines between them: each row has its flags, its codes, and the market and Visa rates; a tap opens the converter. Since 2.00 each clock's sky is one picture at its cell's real width (no seam), the rows line up (every row's arrow and second flag in the same place, the lines between rows running from the flags' left edge to where "Market" and the Visa badge end, both drawn to that same right edge). Since 2.01 the cards are 12 dp apart and the rows have no trend lines. No weather bar and no flags behind the clocks any more |
 | **SBB Clock** | Swiss railway station clock. Second hand: one lap in 58.5 s, then waits at 12; on the minute impulse the minute hand (and the hour hand with it) moves one minute with SBB's elastic swing, exactly when the second hand starts its next lap. Geometry and motion follow SBB's own digital clock (sbbUhr 1.3, dark-background face without frame) |
 | **Sound** | The Deco launcher's sound light show on the home screen. A wall of square lamps from margin to margin, in strips three wide, lit in one colour: the album cover's primary colour for music, the app's own colour for videos and apps without a cover. On top: "Now playing · app", the title and the artist on the left and, for music, the cover as a vinyl LP on the right, the record sliding out and spinning at 33⅓ rpm, slowing to a stop on pause. Below, the wall of lamps across the whole widget, its top a little behind the LP: while something plays the lamp columns follow its sound, bass on the left and treble on the right, filling up from the bottom; paused or nothing playing, an airstream with turbulence crosses the wall: two streams of air flowing in from the left on a slowly gusting wind, bent and rolled by large eddies, lighting the lamps they pass (each as bright as when the music kicks in) and leaving trails that fade over about two seconds, in Worldly's own orange when nothing plays. It was tuned in the Sound Wall Simulator, an interactive copy of the wall. It's lit as light in a dark, hazy room rather than a brighter picture: the lamps have warm cores (white-hot only at their brightest) with soft edges, their light blooming into the gaps between them, scattering in a haze over each lit strip and in a faint fog over the whole widget; "Now playing" and the title have the lens's colour fringe (no text glows); the record is luminous coloured vinyl with warm light caught in its grooves and a soft halo of light round its edge; and the light comes from inside the sleeve: a line of light runs along the sleeve's mouth and falls on the record as it comes out, brightest nearest the sleeve, and around the sleeve there's only a soft glow. The album art itself is left almost exactly as it is, in its own colours and saturation (a dark cover's bright parts shine only a touch). The lit lamps, the record's rim and the line at the mouth have a restrained colour fringe, like a bright light through a lens; there's no grain. Any size works: the wall always runs from a full strip at one margin to a full strip at the other, with as many strips and rows as fit (the lamps stay about the same size), and the LP grows with a taller widget. A tap opens the playing app. It has no controls (nor a progress line), so it animates smoothly; the Music widget has them. Needs **notification access** (to see what's playing; nothing is read from notifications) and, to follow the real sound, **sound levels** (Android's "record audio" permission: it reads the phone's own sound through the audio visualizer, never the microphone). Without sound levels, or on phones that keep their sound to themselves, the lights move with the music on their own |
 | **Music** | Just the controls for whatever is playing in any app, on the panel lit in its light: previous, play / pause (lit in the light; it doesn't repeat the song's progress, the line does), next, the time so far, the progress line and the length (the times' digits are all one width and both times as wide as the song's longest, so the line keeps its size as they tick). One row tall (it centres the controls when taller). A tap on the progress line jumps the song to that point (it's split into 24 zones, as widgets can't be dragged); a tap on the panel around them opens the playing app. It's still between changes, so taps get the home screen's full attention, and shows each tap at once. Small widgets leave out the times. Needs notification access |
@@ -55,7 +55,7 @@ Live updates: world clocks and calendar run on exact per-minute alarms with no n
 | Market rate Wise doesn't quote (crypto, metals) or when it doesn't answer | fawazahmed0 currency-api (CDN + mirror), fallback open.er-api.com: a daily rate |
 | Visa rate | Visa's public FX endpoint, same call as the original preset (fee=2, date MM/dd/yyyy) |
 | Visa rate if Visa refuses | Estimate = market rate + your fee, shown with a `~` |
-| 30-day trend behind each row | Wise, in the same request as the rate (one point a day at 00:00 UTC, plus the rate now); fawazahmed0 currency-api dated files for rows Wise doesn't quote |
+| 30-day rate history per row (kept, not shown since 2.01) | Wise, in the same request as the rate (one point a day at 00:00 UTC, plus the rate now); fawazahmed0 currency-api dated files for rows Wise doesn't quote |
 | Flags | google/region-flags on GitHub, fallback flagcdn.com (downloaded once, then offline) |
 
 Rates and weather inherently need an online source; these are the free ones that need no key.
@@ -80,7 +80,7 @@ stays at Friday's close.
   app's room behind its cards is near black, with two faint, slow washes of the light and no lighting rig (the old
   row of chasing lamps along the top is gone).
 - **Light falls on the cards.** As on the cypher samples, bright things light the card behind them: today's tile in
-  the calendar, the Music widget's play button and the trend lines spill a wide, soft glow of their light onto it.
+  the calendar and the Music widget's play button spill a wide, soft glow of their light onto it.
 - **Buttons are solid, with a glass rim**, after the Justice store's buttons (without their glow), in the app and on
   the widgets alike: the main action and what's on (the Music widget's play / pause, the chosen SBB mode, the
   converter's chosen chip, the FX badge) are a deep shade of the song's colour (the light's main colour, the middle of its three, with near-black text on a bright colour) with white
@@ -115,9 +115,9 @@ stays at Friday's close.
   they were away). Only the clocks' sun bands keep their own day, golden-hour, blue-hour and night colours, and
   amber still means "needs attention" on the settings screen.
 - **No colour fringe** (since 1.83, picked in the light lab). The code for it stays (`Lens`, set in `Look`): the
-  red and blue edge a real lens gives a bright light (chromatic aberration) on the progress point, the trend lines,
+  red and blue edge a real lens gives a bright light (chromatic aberration) on the progress point,
   the lit lamps, the record's rim and the line at the sleeve's mouth, straight lines getting only a trace of it.
-- **Light sources in a hazy room.** What gives light (the lamps, the record, the trend lines, the SBB clock's face,
+- **Light sources in a hazy room.** What gives light (the lamps, the record, the SBB clock's face,
   the world clocks' sun bands) is drawn as light in a dark, hazy room, not as a brighter picture: bloom, a tight
   halo, soft edges. The sun bands (day, golden hour, blue hour, night) have a brighter core, their light rising off
   them into the glass, and a faint red-orange halation above it.
@@ -138,7 +138,7 @@ stays at Friday's close.
   - *Haze, bloom and halation*: each strike has a soft, pearly core, the glow a Black Pro-Mist filter scatters round
     a highlight, and a faint red-orange ring just outside it, the halation film gets round bright points. Since 1.83
     the glow round lit things is a little stronger (bloom 1.4) and every lit thing (the lamps, the record's rim, the
-    progress line and point, the trend lines, the SBB face, the sun bands) has a faint halation (1.2).
+    progress line and point, the SBB face, the sun bands) has a faint halation (1.2).
   - *Fringe*: none (see above).
 - **Labels** are small bold capitals, spaced out, like markings on a piece of equipment.
 
@@ -153,12 +153,12 @@ from there, so one edit restyles everything.
 - Clocks and day/night: redrawn every minute with an exact alarm.
 - Rates / weather: refreshed about every 15 minutes, the shortest period Android allows (weather at most every
   10 minutes). Visa publishes once a day, so it's asked at most every 30 minutes (Save & refresh always asks).
-- Market rates and their 30-day trend: one request per currency row (Wise), with every refresh and each time the
-  converter opens (at most once a minute). Rows Wise doesn't quote fill their trend from dated files once
+- Market rates and their 30-day history: one request per currency row (Wise), with every refresh and each time the
+  converter opens (at most once a minute). Rows Wise doesn't quote fill their history from dated files once
   (about 30 small requests), then one new day a day, after the rates so they never wait for it.
 
 ## Code map (`app/src/main/java/app/currencyexchange/widget/`)
-`Renderer` draws everything onto one bitmap; `Trend` draws the rate chart behind each currency row; `Fetcher` does all network calls; `Store` holds settings
+`Renderer` draws everything onto one bitmap; `Trend` sets the rate history's window (no longer drawn since 2.01); `Fetcher` does all network calls; `Store` holds settings
 and cache; `SunCalc` offline sun times; `WidgetProvider` + `RefreshJobService` handle updates;
 `MainActivity` is the settings screen; `Util`, `Net`, `Flags` are helpers.
 Sound widget: `NowPlaying` reads the playing media session (through `MediaListener`, the notification listener),
