@@ -131,6 +131,22 @@ final class Store {
         }
     }
 
+    /** A clock city's sky as last fetched: {cloud cover %, WMO weather code}; null if never fetched. */
+    static int[] sky(Context c, String city) {
+        String s = sp(c).getString("sky|" + city, null);
+        if (s == null) return null;
+        try {
+            JSONObject o = new JSONObject(s);
+            return new int[]{o.optInt("cover", -1), o.optInt("code", -1)};
+        } catch (Exception e) { return null; }
+    }
+
+    static void putSky(Context c, String city, int cover, int code) {
+        try {
+            sp(c).edit().putString("sky|" + city, new JSONObject().put("cover", cover).put("code", code).toString()).apply();
+        } catch (Exception ignored) { }
+    }
+
     /** Null until the first fetch (and for the older humidity-only cache, so it is fetched again). */
     static Weather weather(Context c) {
         String s = sp(c).getString("wx", null);

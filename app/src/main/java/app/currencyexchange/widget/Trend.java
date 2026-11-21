@@ -80,24 +80,30 @@ final class Trend {
      * in the light all the widgets share ({@code pts} null: no chart yet) and the card's edge.
      */
     static Bitmap bitmap(double[][] pts, int wDp, int hDp, Scene scene) {
-        StringBuilder k = new StringBuilder().append(wDp).append('x').append(hDp).append('|').append(scene.tag());
+        return bitmap(pts, wDp, hDp, scene, false);
+    }
+
+    /** As {@link #bitmap}, or with {@code bare} just the chart on a clear picture (the rows share one card, 1.98). */
+    static Bitmap bitmap(double[][] pts, int wDp, int hDp, Scene scene, boolean bare) {
+        StringBuilder k = new StringBuilder().append(bare ? "b" : "").append(wDp).append('x').append(hDp).append('|').append(scene.tag());
         if (pts != null) for (double[] p : pts) k.append('|').append(p[0]).append(':').append(p[1]);
         String key = k.toString();
         Bitmap hit = CACHE.get(key);
         if (hit != null) return hit;
-        Bitmap made = draw(pts, wDp, hDp, scene);
+        Bitmap made = draw(pts, wDp, hDp, scene, bare);
         CACHE.put(key, made);
         return made;
     }
 
-    private static Bitmap draw(double[][] pts, int wDp, int hDp, Scene scene) {
+    private static Bitmap draw(double[][] pts, int wDp, int hDp, Scene scene, boolean bare) {
         int w = Math.round(wDp * PXDP), h = Math.round(hDp * PXDP);
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
         // The row's panel, its round ends following the row's.
         float r = Math.min(RADIUS_DP * PXDP, h / 2f);
         RectF box = new RectF(0, 0, w, h);
-        Stage.fill(c, box, Stage.round(r), scene, PXDP, 0f, null);
+        if (bare) c.save(); // just the chart: the card is the rows' shared one
+        else Stage.fill(c, box, Stage.round(r), scene, PXDP, 0f, null);
         if (pts != null) {
             // The chart on a layer of its own, dimmed towards the end of the row where the numbers sit.
             c.saveLayer(box, null);
@@ -111,7 +117,7 @@ final class Trend {
             c.restore();
         }
         c.restore();
-        Stage.rim(c, box, Stage.round(r), PXDP);
+        if (!bare) Stage.rim(c, box, Stage.round(r), PXDP);
         return out;
     }
 

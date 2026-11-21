@@ -95,7 +95,43 @@ final class Fetcher {
             Store.sp(ctx).edit().putString("wxErr", e.getMessage() == null ? e.toString() : e.getMessage()).apply();
         }
 
+        // The clock cities' skies (their cloud cover and weather), for the world clocks' backgrounds
+        try {
+            if (force || System.currentTimeMillis() - Store.sp(ctx).getLong("skyTs", 0L) >= WEATHER_MIN_GAP_MS) {
+                Store.sp(ctx).edit().putLong("skyTs", System.currentTimeMillis()).apply();
+                skies(ctx);
+                any = true;
+            }
+        } catch (Exception ignored) { }
+
         if (any) Store.setLastFetch(ctx);
+    }
+
+    /**
+     * Open-Meteo for the four clock cities at once (free, no key): each one's cloud cover and weather code now, for
+     * its sky behind the clock.
+     */
+    private static void skies(Context ctx) throws Exception {
+        StringBuilder la = new StringBuilder(), lo = new StringBuilder();
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            String city = Store.city(ctx, i);
+            JSONObject g = Store.geo(ctx, city);
+            double lat = g == null ? Double.NaN : g.optDouble("lat", Double.NaN), lon = g == null ? Double.NaN : g.optDouble("lon", Double.NaN);
+            if (Double.isNaN(lat) || Double.isNaN(lon) || names.contains(city)) continue;
+            if (!names.isEmpty()) { la.append(','); lo.append(','); }
+            la.append(String.format(Locale.US, "%.4f", lat));
+            lo.append(String.format(Locale.US, "%.4f", lon));
+            names.add(city);
+        }
+        if (names.isEmpty()) return;
+        String body = Net.get("https://api.open-meteo.com/v1/forecast?latitude=" + la + "&longitude=" + lo
+                + "&current=cloud_cover,weather_code&timezone=auto").trim();
+        org.json.JSONArray all = body.startsWith("[") ? new org.json.JSONArray(body) : new org.json.JSONArray().put(new JSONObject(body));
+        for (int i = 0; i < Math.min(all.length(), names.size()); i++) {
+            JSONObject cur = all.getJSONObject(i).optJSONObject("current");
+            if (cur != null) Store.putSky(ctx, names.get(i), cur.optInt("cloud_cover", -1), cur.optInt("weather_code", -1));
+        }
     }
 
     /** Open-Meteo geocoding: free, no key. Gives coordinates, IANA timezone and country code in one call. */
