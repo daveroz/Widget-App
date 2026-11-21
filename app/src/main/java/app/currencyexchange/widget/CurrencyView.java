@@ -82,8 +82,7 @@ final class CurrencyView {
         // The text is plain, in its own colours (no glow, no tint).
         int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED;
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
-        // the clocks card's fill and edge (94 dp tall: its 1 dp padding round the 92 dp clocks)
-        rv.setImageViewBitmap(R.id.clk_glass, Stage.panel(scene, rowW, 94, 1.5f, Stage.round(28), null, false));
+        // the clocks card's edge (94 dp tall), over the skies, which fill it to its edge
         rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(Math.round(rowW * 1.5f), Math.round(94 * 1.5f),
                 Stage.round(28 * 1.5f), 1.5f));
 
@@ -111,7 +110,7 @@ final class CurrencyView {
             // one picture per clock, at the cell's real width (a quarter of the card inside its 1 dp padding), so nothing
             // is stretched and there's no seam; the outer cells have the card's round corners baked in
             rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), skyCell(el, weather == null ? -1 : weather[0],
-                    weather == null ? -1 : weather[1], city.hashCode(), i == 0 ? 1 : (i == 3 ? 2 : 0), (rowW - 2) / 4f));
+                    weather == null ? -1 : weather[1], city.hashCode(), i == 0 ? 1 : (i == 3 ? 2 : 0), rowW / 4f));
             // the day, time and city in front of the sky stay white whatever is playing
             txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11);
             rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.fringed(reg, 22 * 2.5f, 0.8f, now.format(timeF), // the calendar's weight, not bold
@@ -237,10 +236,10 @@ final class CurrencyView {
         return out;
     }
 
-    // Clock cell pictures are drawn at 1.5 px per dp, 92 dp tall, at each cell's real width.
+    // Clock cell pictures are drawn at 1.5 px per dp, the card's full 94 dp tall, at each cell's real width.
     private static final float PXDP = 1.5f;
-    private static final int CH = Math.round(92 * PXDP);
-    private static final float INNER_R = 27 * PXDP; // card radius just inside its 1 dp border
+    private static final int CH = Math.round(94 * PXDP);
+    private static final float INNER_R = 28 * PXDP; // the card's own corners: the skies fill it to its edge
 
     /**
      * A clock's sky ({@link Sky}), {@code cellDp} wide: side 0, a middle cell; 1, the left cell (the card's round corners
