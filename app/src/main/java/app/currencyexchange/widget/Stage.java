@@ -5,8 +5,6 @@ import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -117,9 +115,9 @@ final class Stage {
 
     /**
      * A card's edge, just inside {@code box}, as glass on black shows it: a hairline ({@code px} pixels per dp) in a
-     * fixed warm white ({@link #EDGE}), light at the top left and fading round the card, laid on a solid dark base so
-     * nothing under it (the fill's warm side, a song's glow, a clock's sky) tints it: the same colour on every side
-     * whatever is playing; a fainter line a little inside
+     * fixed warm white ({@link #EDGE}), light at the top left and fading round the card to almost nothing on the far
+     * side, as a pane of clear glass shows its edge only where it catches the light (2.02: never a line in the song's
+     * colour there, only the card itself); a fainter line a little inside
      * it near the top left, the glass's other face seen through its thickness; and the corner there catching the light,
      * with a flare where it's brightest ({@link Optics#catchlight}): the only flares there are.
      */
@@ -131,13 +129,8 @@ final class Stage {
         int edge = EDGE;
         float reach = Math.max(box.width(), box.height());
         Path path = inset(box, radii, in);
-        // the base: the line's own dark, replacing whatever is under it (2.00)
-        p.setColor(BLACK);
-        p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
-        c.drawPath(path, p);
-        p.setXfermode(null);
         p.setShader(new RadialGradient(box.left, box.top, reach * 0.95f,
-                new int[]{Scene.alpha(edge, 0.42f), Scene.alpha(edge, 0.26f), Scene.alpha(edge, 0.2f)},
+                new int[]{Scene.alpha(edge, 0.42f), Scene.alpha(edge, 0.13f), Scene.alpha(edge, 0.03f)},
                 new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(path, p);
         // the glass's other face, seen through its thickness: a fainter line inside, only near the light

@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The Calendar's events card: dark, with the glass rim every button has (light caught by its edge, brightest at the
-     top left, faint across the middle, softer again at the bottom right); a 1 dp ring of a 45° gradient round the
-     fill, in solid colours (the warm white mixed into the cards' dark), so the panel's tinted side never shows through
-     and the edge is the same colour all round whatever is playing. Its rows are divided by thin lines (cur_div). -->
+     top left, fading into the card's own dark towards the bottom right, where it all but disappears, as clear glass);
+     a 1 dp ring of a 45° gradient round the fill, in solid colours, so the panel's tinted side never shows through:
+     the same whatever is playing. Its rows are divided by thin lines (cur_div). -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
             <corners android:radius="18dp" />
             <gradient
                 android:angle="315"
-                android:centerColor="#FF121116"
-                android:endColor="#FF2E2C2F"
+                android:centerColor="#FF1E1F23"
+                android:endColor="#FF1C1D21"
                 android:startColor="#FF4A474A" />
         </shape>
     </item>
