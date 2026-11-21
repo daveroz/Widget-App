@@ -79,8 +79,8 @@ stays at Friday's close.
   opaque, and their titles have the lens's colour fringe. The world clocks' flags fade down into their card. No grain. The
   app's room behind its cards is near black, with two faint, slow washes of the light and no lighting rig (the old
   row of chasing lamps along the top is gone).
-- **Light falls on the cards.** As on the cypher samples, bright things light the card behind them: today's tile in
-  the calendar and the Music widget's play button spill a wide, soft glow of their light onto it.
+- **Light falls on the cards.** As on the cypher samples, bright things light the card behind them: the Music widget's
+  play button spills a wide, soft glow of its light onto it. The Calendar's today tile sits flat, with no glow (2.03).
 - **Buttons are solid, with a glass rim**, after the Justice store's buttons (without their glow), in the app and on
   the widgets alike: the main action and what's on (the Music widget's play / pause, the chosen SBB mode, the
   converter's chosen chip, the FX badge) are a deep shade of the song's colour (the light's main colour, the middle of its three, with near-black text on a bright colour) with white
