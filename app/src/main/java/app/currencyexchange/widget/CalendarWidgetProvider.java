@@ -72,7 +72,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             R.layout.cal_k4, R.layout.cal_k5, R.layout.cal_k6, R.layout.cal_k7, R.layout.cal_k8};
 
     /** Height (dp) from which the variant with k event rows fits. */
-    private static int heightFor(int k) { return k == 0 ? 114 : 136 + 42 * k; }
+    private static int heightFor(int k) { return k == 0 ? 114 : 136 + 45 * k; }
 
     /**
      * The week row's day numbers fill this share of their picture's height: the pictures show in 30 dp boxes, so the
@@ -189,22 +189,52 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             }
         }
 
-        // events
-        int shown = Math.min(k, Math.max(events.size(), (k > 0 && (events.isEmpty() || !allowed)) ? 1 : 0));
+        // events, laid out as on the reference: each day's events on tiles, the day (its weekday over its number)
+        // beside its first one; and when nothing is on today, a tile of its own saying so, the day on it too
         java.time.format.DateTimeFormatter tfmt = java.time.format.DateTimeFormatter.ofLocalizedTime(java.time.format.FormatStyle.SHORT);
+        java.util.List<Object> lines = new java.util.ArrayList<>(); // a CalendarData.Event, or a String[] {title, detail}
+        if (!allowed) {
+            lines.add(new String[]{"Calendar access needed", "Tap to open settings"});
+        } else {
+            boolean todayHasEvents = !events.isEmpty() && events.get(0).date.equals(today);
+            if (!todayHasEvents) lines.add(new String[]{"Nothing scheduled today", events.isEmpty() ? "Nothing in the next 120 days" : ""});
+            lines.addAll(events);
+        }
+        LocalDate shownDay = null;
         for (int i = 0; i < k; i++) {
-            int row = rid(ctx, "cal_row_" + i), bar = rid(ctx, "cal_bar_" + i), time = rid(ctx, "cal_time_" + i),
-                    hint = rid(ctx, "cal_hint_" + i), title = rid(ctx, "cal_title_" + i);
-            if (i >= shown) { rv.setViewVisibility(row, android.view.View.GONE); continue; }
+            int row = rid(ctx, "cal_row_" + i), line = rid(ctx, "cal_line_" + i), dayCol = rid(ctx, "cal_day_" + i),
+                    dname = rid(ctx, "cal_dname_" + i), dnum = rid(ctx, "cal_dnum_" + i), tile = rid(ctx, "cal_tile_" + i),
+                    bar = rid(ctx, "cal_bar_" + i), title = rid(ctx, "cal_title_" + i), time = rid(ctx, "cal_time_" + i),
+                    hint = rid(ctx, "cal_hint_" + i);
+            if (i >= lines.size()) { rv.setViewVisibility(row, android.view.View.GONE); continue; }
             rv.setViewVisibility(row, android.view.View.VISIBLE);
-            if (!allowed || events.isEmpty()) {
-                rv.setViewVisibility(bar, android.view.View.INVISIBLE);
-                t(rv, tf, title, allowed ? "No upcoming events" : "Calendar access needed", white, 15, 0.8f, false);
-                t(rv, tf, time, allowed ? "Nothing in the next 120 days" : "Tap to open settings", muted, 11, 0.8f, false);
+            Object item = lines.get(i);
+            LocalDate day = item instanceof CalendarData.Event ? ((CalendarData.Event) item).date : today;
+            // the day, beside its first line only; today's weekday in the light
+            if (!day.equals(shownDay)) {
+                shownDay = day;
+                rv.setViewVisibility(dayCol, android.view.View.VISIBLE);
+                boolean isToday = day.equals(today);
+                t(rv, tf, dname, day.format(java.time.format.DateTimeFormatter.ofPattern("EEE", loc)).toUpperCase(loc),
+                        isToday ? label : muted, 9.5f, 0.8f, false);
+                t(rv, tf, dnum, String.valueOf(day.getDayOfMonth()), isToday ? white : soft, 15, 0.8f, false);
+            } else {
+                rv.setViewVisibility(dayCol, android.view.View.INVISIBLE);
+            }
+            if (item instanceof String[]) { // a day with nothing on (or no access): one tile, the day on it too
+                String[] say = (String[]) item;
+                rv.setInt(line, "setBackgroundResource", R.drawable.cal_event);
+                rv.setInt(tile, "setBackgroundResource", 0);
+                rv.setViewVisibility(bar, android.view.View.GONE);
+                t(rv, tf, title, say[0], white, 15, 0.8f, false);
+                t(rv, tf, time, say[1], muted, 11, 0.8f, false);
                 t(rv, tf, hint, "", muted, 11, 0.8f, false);
+                int under = say[1].isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE; // one line: centred
+                rv.setViewVisibility(time, under);
+                rv.setViewVisibility(hint, under);
                 continue;
             }
-            CalendarData.Event ev = events.get(i);
+            CalendarData.Event ev = (CalendarData.Event) item;
             rv.setViewVisibility(bar, android.view.View.VISIBLE);
             rv.setInt(bar, "setColorFilter", ev.color != 0 ? (0xFF000000 | ev.color) : scene.key);
             String tm;
@@ -214,9 +244,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 tm = java.time.Instant.ofEpochMilli(ev.begin).atZone(z).format(tfmt) + " - "
                         + java.time.Instant.ofEpochMilli(ev.end).atZone(z).format(tfmt);
             }
-            if (!ev.date.equals(today)) {
-                tm = ev.date.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", loc)) + "  \u00B7  " + tm;
-            }
+            t(rv, tf, title, Util.ellipsize(Util.capWords(ev.title), 30), white, 15, 0.8f, false);
             t(rv, tf, time, tm, muted, 11, 0.8f, false);
             String h = "";
             if (!ev.allDay && ev.date.equals(today)) {
@@ -227,9 +255,8 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 }
             }
             t(rv, tf, hint, h, label, 11, 0.8f, true);
-            t(rv, tf, title, Util.ellipsize(Util.capWords(ev.title), 30), white, 15, 0.8f, false);
         }
-        int hidden = allowed ? events.size() - k : 0;
+        int hidden = allowed ? lines.size() - k : 0; // events that didn't fit
         if (k > 0 && hidden > 0) {
             rv.setViewVisibility(R.id.cal_more, android.view.View.VISIBLE);
             t(rv, tf, R.id.cal_more, "+" + hidden + " more", muted, 9.5f, 0.8f, false);
