@@ -73,11 +73,11 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
     /** Height (dp) from which the variant with k event rows fits. */
     /**
-     * Height (dp) from which the variant with k event rows fits: the panel's paddings (13 + 14), the 48 dp header, the
-     * week row (8 + 54) and, with events, their card (8 dp above it, its 4 dp paddings, k rows of 44 and the lines
+     * Height (dp) from which the variant with k event rows fits: the panel's paddings (13 + 14), the 51 dp header, the
+     * week row (9.6 + 54) and, with events, their card (10 dp above it, its 4 dp paddings, k rows of 44 and the lines
      * between them).
      */
-    private static int heightFor(int k) { return k == 0 ? 137 : 152 + 45 * k; }
+    private static int heightFor(int k) { return k == 0 ? 142 : 159 + 45 * k; }
 
     /**
      * The week row's day numbers fill this share of their picture's height (they show in 34 dp boxes since 1.98, a
@@ -272,8 +272,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int s = Math.round(44 * px);
         android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas c = new android.graphics.Canvas(b);
-        // as the app's dark buttons: near black with a glass rim
-        Theme.glassCircle(c, s / 2f, s / 2f, 19 * px, 1.2f * px, Theme.darkFill(scene), Theme.darkEdge(scene), Theme.DARK_RIM);
+        // as the app's dark buttons: near black with a glass rim; the circle fills its box, so its edges line up with the
+        // day number's top and the week row's and the card's right edge
+        Theme.glassCircle(c, s / 2f, s / 2f, s / 2f - 0.5f, 1.2f * px, Theme.darkFill(scene), Theme.darkEdge(scene), Theme.DARK_RIM);
         android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         p.setStyle(android.graphics.Paint.Style.STROKE);
         p.setStrokeWidth(2.2f * px);
