@@ -294,12 +294,8 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int h = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
         if (w <= 0) w = 320;
         if (h <= 0) h = fallbackHeightDp;
-        // today's tile lights the glass round it: in its column of the week row (20 dp side padding, seven columns),
-        // its middle 87 dp down (13 dp padding, the 48 dp header, 2 dp, half the 48 dp week row)
-        Scene scene = Ambience.scene();
-        int col = LocalDate.now().getDayOfWeek().getValue() % 7;
-        Stage.Spill today = new Stage.Spill(20 + (col + 0.5f) * (w - 40) / 7f, 87, 40, scene.key, 0.26f * Look.get().bloom);
-        return Stage.panel(scene, w, h, 1.25f, Stage.round(28), new Stage.Spill[]{today}, true);
+        // today's tile sits flat on the glass: no glow of its light round it (2.03)
+        return Stage.panel(Ambience.scene(), w, h, 1.25f, Stage.round(28), null, true);
     }
 
     private static PendingIntent broadcast(Context ctx, String action, int code) {
