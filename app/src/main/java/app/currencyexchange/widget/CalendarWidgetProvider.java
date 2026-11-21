@@ -157,8 +157,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         // The text is in its own colours, with the lens's colour fringe; only today and "in 5 minutes" are in the light. Labels (what something is, when it is) are in the quiet colour,
         // tinted by the song; the divider and the "+" are in its line colour.
         int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = scene.quiet, label = scene.label;
-        rv.setImageViewBitmap(R.id.cal_day, TextBmp.fringed(tf, 32 * 2.5f, 0.82f, String.valueOf(today.getDayOfMonth()),
-                white));
+        // the day's number, cropped to its digits, its view as tall as from the top of the month's capitals to the
+        // bottom of the line under it (the layouts place it there)
+        rv.setImageViewBitmap(R.id.cal_day, TextBmp.ink(tf, 48 * 2.5f, String.valueOf(today.getDayOfMonth()), white));
         rv.setInt(R.id.cal_div, "setColorFilter", scene.line);
         rv.setImageViewBitmap(R.id.btn_add, addButton(scene));
         t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)).toUpperCase(loc), white, 16, 0.82f, false);
