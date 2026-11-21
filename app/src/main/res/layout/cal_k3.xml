@@ -26,19 +26,19 @@
         android:paddingEnd="20dp"
         android:paddingBottom="14dp">
 
-        <!-- header -->
+        <!-- header: the number, the month and the "+" all top-aligned on the month's capitals (6.6 dp down) -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:gravity="center_vertical"
+            android:layout_height="51dp"
+            android:gravity="top"
             android:orientation="horizontal">
         <!-- the day's number, from the top of the month's capitals to the bottom of the line under it -->
         <ImageView
             android:id="@+id/cal_day"
             android:layout_width="wrap_content"
-            android:layout_height="32.05dp"
+            android:layout_height="33.4dp"
             android:layout_gravity="top"
-            android:layout_marginTop="7.6dp"
+            android:layout_marginTop="6.6dp"
             android:adjustViewBounds="true"
             android:scaleType="fitStart" />
 
@@ -46,6 +46,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
+                android:layout_marginTop="2.5dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
                 <ImageView
@@ -57,7 +58,7 @@
                 <ImageView
                     android:id="@+id/cal_sub"
                     android:layout_width="match_parent"
-                    android:layout_height="16dp"
+                    android:layout_height="18dp"
                     android:adjustViewBounds="true"
                     android:layout_marginTop="2dp"
                     android:scaleType="fitStart" />
@@ -67,28 +68,25 @@
                 android:id="@+id/btn_add"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
+                android:layout_marginTop="6.6dp"
                 android:contentDescription="New event"
                 android:src="@drawable/ic_cal_add" />
         </LinearLayout>
 
-        <!-- week row -->
+        <!-- week row, a little below the header so today's highlight keeps clear of the "+" -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="2dp"
+            android:layout_height="54dp"
+            android:layout_marginTop="9.1dp"
             android:orientation="horizontal">
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="40dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center_horizontal"
                 android:orientation="vertical">
                 <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
                 <LinearLayout
                     android:id="@+id/wk_col_0"
                     android:layout_width="match_parent"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
                     android:layout_height="match_parent"
                     android:gravity="center_horizontal"
                     android:orientation="vertical"
@@ -96,30 +94,30 @@
                     <ImageView
                         android:id="@+id/wk_label_0"
                         android:layout_width="wrap_content"
-                        android:layout_height="14dp"
+                        android:layout_height="16dp"
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                     <ImageView
                         android:id="@+id/wk_num_0"
                         android:layout_width="wrap_content"
-                        android:layout_height="30dp"
+                        android:layout_height="34dp"
                         android:adjustViewBounds="true"
                         android:layout_marginTop="0dp"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
             </LinearLayout>
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+            <LinearLayout
+                android:layout_width="40dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center_horizontal"
                 android:orientation="vertical">
                 <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
                 <LinearLayout
                     android:id="@+id/wk_col_1"
                     android:layout_width="match_parent"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
                     android:layout_height="match_parent"
                     android:gravity="center_horizontal"
                     android:orientation="vertical"
@@ -127,30 +125,30 @@
                     <ImageView
                         android:id="@+id/wk_label_1"
                         android:layout_width="wrap_content"
-                        android:layout_height="14dp"
+                        android:layout_height="16dp"
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                     <ImageView
                         android:id="@+id/wk_num_1"
                         android:layout_width="wrap_content"
-                        android:layout_height="30dp"
+                        android:layout_height="34dp"
                         android:adjustViewBounds="true"
                         android:layout_marginTop="0dp"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
             </LinearLayout>
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+            <LinearLayout
+                android:layout_width="40dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center_horizontal"
                 android:orientation="vertical">
                 <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
                 <LinearLayout
                     android:id="@+id/wk_col_2"
                     android:layout_width="match_parent"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
                     android:layout_height="match_parent"
                     android:gravity="center_horizontal"
                     android:orientation="vertical"
@@ -158,30 +156,30 @@
                     <ImageView
                         android:id="@+id/wk_label_2"
                         android:layout_width="wrap_content"
-                        android:layout_height="14dp"
+                        android:layout_height="16dp"
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                     <ImageView
                         android:id="@+id/wk_num_2"
                         android:layout_width="wrap_content"
-                        android:layout_height="30dp"
+                        android:layout_height="34dp"
                         android:adjustViewBounds="true"
                         android:layout_marginTop="0dp"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
             </LinearLayout>
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+            <LinearLayout
+                android:layout_width="40dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center_horizontal"
                 android:orientation="vertical">
                 <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
                 <LinearLayout
                     android:id="@+id/wk_col_3"
                     android:layout_width="match_parent"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
                     android:layout_height="match_parent"
                     android:gravity="center_horizontal"
                     android:orientation="vertical"
@@ -189,30 +187,30 @@
                     <ImageView
                         android:id="@+id/wk_label_3"
                         android:layout_width="wrap_content"
-                        android:layout_height="14dp"
+                        android:layout_height="16dp"
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                     <ImageView
                         android:id="@+id/wk_num_3"
                         android:layout_width="wrap_content"
-                        android:layout_height="30dp"
+                        android:layout_height="34dp"
                         android:adjustViewBounds="true"
                         android:layout_marginTop="0dp"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
             </LinearLayout>
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+            <LinearLayout
+                android:layout_width="40dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center_horizontal"
                 android:orientation="vertical">
                 <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
                 <LinearLayout
                     android:id="@+id/wk_col_4"
                     android:layout_width="match_parent"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
                     android:layout_height="match_parent"
                     android:gravity="center_horizontal"
                     android:orientation="vertical"
@@ -220,30 +218,30 @@
                     <ImageView
                         android:id="@+id/wk_label_4"
                         android:layout_width="wrap_content"
-                        android:layout_height="14dp"
+                        android:layout_height="16dp"
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                     <ImageView
                         android:id="@+id/wk_num_4"
                         android:layout_width="wrap_content"
-                        android:layout_height="30dp"
+                        android:layout_height="34dp"
                         android:adjustViewBounds="true"
                         android:layout_marginTop="0dp"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
             </LinearLayout>
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+            <LinearLayout
+                android:layout_width="40dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center_horizontal"
                 android:orientation="vertical">
                 <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
                 <LinearLayout
                     android:id="@+id/wk_col_5"
                     android:layout_width="match_parent"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
                     android:layout_height="match_parent"
                     android:gravity="center_horizontal"
                     android:orientation="vertical"
@@ -251,30 +249,30 @@
                     <ImageView
                         android:id="@+id/wk_label_5"
                         android:layout_width="wrap_content"
-                        android:layout_height="14dp"
+                        android:layout_height="16dp"
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                     <ImageView
                         android:id="@+id/wk_num_5"
                         android:layout_width="wrap_content"
-                        android:layout_height="30dp"
+                        android:layout_height="34dp"
                         android:adjustViewBounds="true"
                         android:layout_marginTop="0dp"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
             </LinearLayout>
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+            <LinearLayout
+                android:layout_width="40dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center_horizontal"
                 android:orientation="vertical">
                 <!-- the day; today it sits on a solid tile in the song's colour (CalendarWidgetProvider) -->
                 <LinearLayout
                     android:id="@+id/wk_col_6"
                     android:layout_width="match_parent"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
                     android:layout_height="match_parent"
                     android:gravity="center_horizontal"
                     android:orientation="vertical"
@@ -282,13 +280,13 @@
                     <ImageView
                         android:id="@+id/wk_label_6"
                         android:layout_width="wrap_content"
-                        android:layout_height="14dp"
+                        android:layout_height="16dp"
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                     <ImageView
                         android:id="@+id/wk_num_6"
                         android:layout_width="wrap_content"
-                        android:layout_height="30dp"
+                        android:layout_height="34dp"
                         android:adjustViewBounds="true"
                         android:layout_marginTop="0dp"
                         android:scaleType="fitCenter" />
@@ -296,39 +294,28 @@
             </LinearLayout>
         </LinearLayout>
 
-        <ImageView
-            android:id="@+id/cal_div"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="5dp"
-            android:layout_marginBottom="5dp"
-            android:scaleType="fitXY"
-            android:src="@drawable/cal_divider" />
 
-        <!-- events, each day's on tiles, the day beside its first one (CalendarWidgetProvider) -->
+        <!-- the events, on one card, thin lines between them; the day beside each day's first (CalendarWidgetProvider) -->
         <LinearLayout
+            android:id="@+id/cal_events"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-        <LinearLayout
-            android:id="@+id/cal_row_0"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-            <!-- one line, 40 dp tall: the day beside the event's tile (or, for a day with nothing on, both on one tile) -->
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/cal_card"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:paddingEnd="12dp">
             <LinearLayout
-                android:id="@+id/cal_line_0"
+                android:id="@+id/cal_row_0"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="44dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
                 <!-- the day: its weekday over its number, beside its first event only -->
                 <LinearLayout
                     android:id="@+id/cal_day_0"
-                    android:layout_width="40dp"
+                    android:layout_width="44dp"
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:orientation="vertical">
@@ -345,76 +332,63 @@
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
-                <!-- the event, on its tile -->
+                <ImageView
+                    android:id="@+id/cal_bar_0"
+                    android:layout_width="3dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="10dp"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/cal_bar" />
                 <LinearLayout
-                    android:id="@+id/cal_tile_0"
                     android:layout_width="0dp"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/cal_event"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp">
+                    android:orientation="vertical">
                     <ImageView
-                        android:id="@+id/cal_bar_0"
-                        android:layout_width="3dp"
-                        android:layout_height="24dp"
-                        android:layout_marginEnd="9dp"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/cal_bar" />
+                        android:id="@+id/cal_title_0"
+                        android:layout_width="match_parent"
+                        android:layout_height="19dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitStart" />
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:orientation="horizontal">
                         <ImageView
-                            android:id="@+id/cal_title_0"
-                            android:layout_width="match_parent"
-                            android:layout_height="19dp"
+                            android:id="@+id/cal_time_0"
+                            android:layout_width="wrap_content"
+                            android:layout_height="14dp"
                             android:adjustViewBounds="true"
                             android:scaleType="fitStart" />
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-                            <ImageView
-                                android:id="@+id/cal_time_0"
-                                android:layout_width="wrap_content"
-                                android:layout_height="14dp"
-                                android:adjustViewBounds="true"
-                                android:scaleType="fitStart" />
-                            <ImageView
-                                android:id="@+id/cal_hint_0"
-                                android:layout_width="wrap_content"
-                                android:layout_height="14dp"
-                                android:adjustViewBounds="true"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
-                        </LinearLayout>
+                        <ImageView
+                            android:id="@+id/cal_hint_0"
+                            android:layout_width="wrap_content"
+                            android:layout_height="14dp"
+                            android:adjustViewBounds="true"
+                            android:layout_marginStart="8dp"
+                            android:scaleType="fitStart" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/cal_row_1"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-            <!-- one line, 40 dp tall: the day beside the event's tile (or, for a day with nothing on, both on one tile) -->
-            <LinearLayout
-                android:id="@+id/cal_line_1"
+            <ImageView
+                android:id="@+id/cal_sep_1"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="1dp"
+                android:layout_marginStart="12dp"
+                android:importantForAccessibility="no"
+                android:scaleType="fitXY"
+                android:src="@drawable/cur_div" />
+            <LinearLayout
+                android:id="@+id/cal_row_1"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
                 <!-- the day: its weekday over its number, beside its first event only -->
                 <LinearLayout
                     android:id="@+id/cal_day_1"
-                    android:layout_width="40dp"
+                    android:layout_width="44dp"
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:orientation="vertical">
@@ -431,76 +405,63 @@
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
-                <!-- the event, on its tile -->
+                <ImageView
+                    android:id="@+id/cal_bar_1"
+                    android:layout_width="3dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="10dp"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/cal_bar" />
                 <LinearLayout
-                    android:id="@+id/cal_tile_1"
                     android:layout_width="0dp"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/cal_event"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp">
+                    android:orientation="vertical">
                     <ImageView
-                        android:id="@+id/cal_bar_1"
-                        android:layout_width="3dp"
-                        android:layout_height="24dp"
-                        android:layout_marginEnd="9dp"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/cal_bar" />
+                        android:id="@+id/cal_title_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="19dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitStart" />
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:orientation="horizontal">
                         <ImageView
-                            android:id="@+id/cal_title_1"
-                            android:layout_width="match_parent"
-                            android:layout_height="19dp"
+                            android:id="@+id/cal_time_1"
+                            android:layout_width="wrap_content"
+                            android:layout_height="14dp"
                             android:adjustViewBounds="true"
                             android:scaleType="fitStart" />
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-                            <ImageView
-                                android:id="@+id/cal_time_1"
-                                android:layout_width="wrap_content"
-                                android:layout_height="14dp"
-                                android:adjustViewBounds="true"
-                                android:scaleType="fitStart" />
-                            <ImageView
-                                android:id="@+id/cal_hint_1"
-                                android:layout_width="wrap_content"
-                                android:layout_height="14dp"
-                                android:adjustViewBounds="true"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
-                        </LinearLayout>
+                        <ImageView
+                            android:id="@+id/cal_hint_1"
+                            android:layout_width="wrap_content"
+                            android:layout_height="14dp"
+                            android:adjustViewBounds="true"
+                            android:layout_marginStart="8dp"
+                            android:scaleType="fitStart" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/cal_row_2"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-            <!-- one line, 40 dp tall: the day beside the event's tile (or, for a day with nothing on, both on one tile) -->
-            <LinearLayout
-                android:id="@+id/cal_line_2"
+            <ImageView
+                android:id="@+id/cal_sep_2"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="1dp"
+                android:layout_marginStart="12dp"
+                android:importantForAccessibility="no"
+                android:scaleType="fitXY"
+                android:src="@drawable/cur_div" />
+            <LinearLayout
+                android:id="@+id/cal_row_2"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
                 <!-- the day: its weekday over its number, beside its first event only -->
                 <LinearLayout
                     android:id="@+id/cal_day_2"
-                    android:layout_width="40dp"
+                    android:layout_width="44dp"
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:orientation="vertical">
@@ -517,64 +478,45 @@
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
-                <!-- the event, on its tile -->
+                <ImageView
+                    android:id="@+id/cal_bar_2"
+                    android:layout_width="3dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="10dp"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/cal_bar" />
                 <LinearLayout
-                    android:id="@+id/cal_tile_2"
                     android:layout_width="0dp"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/cal_event"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp">
+                    android:orientation="vertical">
                     <ImageView
-                        android:id="@+id/cal_bar_2"
-                        android:layout_width="3dp"
-                        android:layout_height="24dp"
-                        android:layout_marginEnd="9dp"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/cal_bar" />
+                        android:id="@+id/cal_title_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="19dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitStart" />
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:orientation="horizontal">
                         <ImageView
-                            android:id="@+id/cal_title_2"
-                            android:layout_width="match_parent"
-                            android:layout_height="19dp"
+                            android:id="@+id/cal_time_2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="14dp"
                             android:adjustViewBounds="true"
                             android:scaleType="fitStart" />
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-                            <ImageView
-                                android:id="@+id/cal_time_2"
-                                android:layout_width="wrap_content"
-                                android:layout_height="14dp"
-                                android:adjustViewBounds="true"
-                                android:scaleType="fitStart" />
-                            <ImageView
-                                android:id="@+id/cal_hint_2"
-                                android:layout_width="wrap_content"
-                                android:layout_height="14dp"
-                                android:adjustViewBounds="true"
-                                android:layout_marginStart="8dp"
-                                android:scaleType="fitStart" />
-                        </LinearLayout>
+                        <ImageView
+                            android:id="@+id/cal_hint_2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="14dp"
+                            android:adjustViewBounds="true"
+                            android:layout_marginStart="8dp"
+                            android:scaleType="fitStart" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-        </LinearLayout>
-        <ImageView
-            android:id="@+id/cal_more"
-            android:layout_width="match_parent"
-            android:layout_height="14dp"
-            android:adjustViewBounds="true"
-            android:scaleType="fitEnd" />
     </LinearLayout>
 </FrameLayout>
