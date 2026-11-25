@@ -186,11 +186,10 @@ final class Optics {
         float inward = 28 * px * grow;
         spike(c, rp, gx, gy, -sign * out * q, -sign * out * q, thick * 1.2f, rayPale, colour, s * 0.75f);
         spike(c, rp, gx, gy, sign * inward * q, sign * inward * q, thick * 1.2f, rayPale, colour, s * 0.6f);
-        // faint rays square to the card, along its edges
+        // faint rays square to the card, along its edges: the horizontal one the same as the vertical (2.11; no longer
+        // longer, and no long streak along the top)
         float ray = 16 * px * grow;
-        spike(c, rp, gx, gy, sign * ray * 1.5f, 0, thick * 0.8f, rayPale, streak, s * 0.35f);
+        spike(c, rp, gx, gy, sign * ray, 0, thick * 0.8f, rayPale, colour, s * 0.25f);
         spike(c, rp, gx, gy, 0, sign * ray, thick * 0.8f, rayPale, colour, s * 0.25f);
-        // the logo's anamorphic streak (2.06): from the top left glint, a long faint line of blue light along the top
-        if (!far) spike(c, rp, gx, gy, Math.min(box.width() * 0.6f, 170 * px), 0, thick * 0.8f, rayPale, streak, s * 0.32f);
     }
 }

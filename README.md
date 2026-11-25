@@ -109,8 +109,8 @@ stays at Friday's close.
   left corner (`Stage.ICE`), shorter and warmer round the bottom right (`Stage.WARM`), almost nothing along the straight
   sides, and a fainter bevel line inside near each lit corner; all in fixed colours. Since 2.06 the whole look follows
   the crystal logo: the cards are the deep navy of its space, with an icy sheen in their top left, a warm glow inside
-  their bottom right and the bevel's polished slope along the lit edges; a long, faint blue streak runs along the top
-  from the top left glint; the buttons and input fields are crystal (lighter towards the light, a rim icy at the top
+  their bottom right and the bevel's polished slope along the lit edges; (until 2.11 a long, faint blue streak ran along the top
+  from the top left glint; now its horizontal ray is as short as its vertical one); the buttons and input fields are crystal (lighter towards the light, a rim icy at the top
   left warming to the bottom right, a fainter bevel line inside); hairlines are icy; and the app's room is deep space,
   with a navy haze, out-of-focus specks and film grain under the song's washes. The app's header shows the icon.
   The cards keep their rounded-square shape (28 dp on the widgets).
