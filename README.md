@@ -38,16 +38,13 @@ the widgets and settings, so add them again afterwards.
 The **Status** tab shows what worked and what failed (cities, market rate, Visa, weather, clock updates).
 
 ### The app (since 2.20)
-Five tabs, after the segmented control, tab bar and car app references, in the dark:
+Four tabs (five in 2.20; Home went in 2.22), after the segmented control, tab bar and car app references, in the dark:
 - **Tab bar**: frosted glass across the bottom (the pages blur through it, `GlassBar` docked), each tab a line icon
   over its name (`Glyph`); the open tab's icon filled and white, the others slate. A light **Refresh** pill floats
   just above it, as the reference's Map button; it shows what it's doing while it works.
 - **Pages** open as the car app's screen: the crystal globe in a glass ring, the page's name in big white letters and
-  a grey line under it. **Home**: the four world clocks' live skies as the hero (`SkyStrip`, moving while you look,
-  reflected on the dark as on a polished floor), the first rate in big polished figures ("3,921 COP per USD"), a row
-  of three tiles (Visa by card, minutes since the last update raised in the middle, the weather where you are) and an
-  amber pill for whatever needs your attention. **Clocks**: the four cities as tiles with their day, UTC offset and
-  time, and the skies' motion. **Rates**: your currencies as lines with their flags and rates, how many rows the
+  a grey line under it. **Clocks** (the first): the four cities as tiles with their day, UTC offset and time, and the
+  skies' motion. **Rates**: your currencies as lines with their flags and rates, how many rows the
   widget shows, what they convert to, your bank's fee (kept as you type). **Widgets**: a tile for each widget (tap to
   add it), and the SBB clock's motion. **Status**: access (each with an Allow pill until it's allowed) and live data.
 - **Choices are segmented controls** (`Segmented`): a recessed track, the options side by side with their icons, the
@@ -190,8 +187,7 @@ from there, so one edit restyles everything.
 ## Code map (`app/src/main/java/app/currencyexchange/widget/`)
 `Renderer` draws everything onto one bitmap; `Trend` sets the rate history's window (no longer drawn since 2.01); `Fetcher` does all network calls; `Store` holds settings
 and cache; `SunCalc` offline sun times; `WidgetProvider` + `RefreshJobService` handle updates;
-`MainActivity` is the app (its five tabs; `Segmented` its choices, `Glyph` its icons, `SkyStrip` Home's live
-clocks); `Util`, `Net`, `Flags` are helpers.
+`MainActivity` is the app (its four tabs; `Segmented` its choices, `Glyph` its icons); `Util`, `Net`, `Flags` are helpers.
 Sound widget: `NowPlaying` reads the playing media session (through `MediaListener`, the notification listener),
 `SoundWave` gives the sound's levels (audio visualizer, or made-up levels that move like music), `SoundLights` is the
 wall of lamps (`Airstream` its motion when nothing plays), `SoundRecord` the LP, `SoundPicture` lays out one widget's picture, `Scene` and `Colours` give its

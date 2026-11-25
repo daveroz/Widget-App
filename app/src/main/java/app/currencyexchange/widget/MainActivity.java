@@ -47,24 +47,22 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The app (2.20): five tabs, after the references. A frosted glass tab bar across the bottom (the pages blur through
+ * The app (2.20): four tabs, after the references. A frosted glass tab bar across the bottom (the pages blur through
  * it), each tab an icon over its name, the open one white and filled; a floating "Refresh" pill just above it. Each page
- * opens as the car app's screen does: the crystal globe in a glass ring with the page's name; Home has the four world
- * clocks' live skies as its hero, reflected on the dark, the first rate in big polished figures, a row of three tiles
- * (the middle one raised) and a pill for whatever needs attention. Choices are segmented controls ({@link Segmented}).
- * Cities and currencies are picked from lists.
+ * opens as the car app's screen does: the crystal globe in a glass ring with the page's name. Choices are segmented
+ * controls ({@link Segmented}). Cities and currencies are picked from lists. (2.20 had a Home tab too; it went in 2.22.)
  */
 public class MainActivity extends Activity {
-    private static final int HOME = 0, CLOCKS = 1, RATES = 2, WIDGETS = 3, STATUS = 4;
-    private static final String[] TABS = {"Home", "Clocks", "Rates", "Widgets", "Status"};
-    private static final int[] TAB_GLYPHS = {Glyph.GLOBE, Glyph.CLOCK, Glyph.RATES, Glyph.WIDGETS, Glyph.STATUS};
+    private static final int CLOCKS = 0, RATES = 1, WIDGETS = 2, STATUS = 3;
+    private static final String[] TABS = {"Clocks", "Rates", "Widgets", "Status"};
+    private static final int[] TAB_GLYPHS = {Glyph.CLOCK, Glyph.RATES, Glyph.WIDGETS, Glyph.STATUS};
     private static final String[] MODES = {"smooth", "second", "minute"};
 
-    private final ScrollView[] pages = new ScrollView[5];
-    private final LinearLayout[] cols = new LinearLayout[5];
-    private final ImageView[] tabIcon = new ImageView[5];
-    private final TextView[] tabWord = new TextView[5];
-    private int tab = HOME;
+    private final ScrollView[] pages = new ScrollView[TABS.length];
+    private final LinearLayout[] cols = new LinearLayout[TABS.length];
+    private final ImageView[] tabIcon = new ImageView[TABS.length];
+    private final TextView[] tabWord = new TextView[TABS.length];
+    private int tab = CLOCKS;
     private boolean resumed;
 
     private FrameLayout room;
@@ -73,12 +71,8 @@ public class MainActivity extends Activity {
     private LinearLayout pill;
     private TextView pillWord;
     private View topShade, bottomFade;
-    private SkyStrip hero;
     private StageView stage;
 
-    // home
-    private TextView bigRate, bigUnit, bigWhat, alert;
-    private final TextView[] tileValue = new TextView[3], tileWord = new TextView[3];
     // clocks
     private final TextView[] cityName = new TextView[4], cityWhen = new TextView[4], cityTime = new TextView[4];
     // rates
@@ -101,7 +95,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         drawnIn = Theme.accent().tag();
-        if (b != null) tab = Math.max(0, Math.min(4, b.getInt("tab", HOME)));
+        if (b != null) tab = Math.max(0, Math.min(TABS.length - 1, b.getInt("tab", CLOCKS)));
         edgeToEdge();
 
         // The room: the stage behind, the pages over it, both in a frame of their own so the tab bar can show them
@@ -111,7 +105,7 @@ public class MainActivity extends Activity {
         room.addView(behind, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         stage = new StageView(this);
         behind.addView(stage, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < TABS.length; i++) {
             ScrollView sv = new ScrollView(this);
             sv.setBackgroundColor(0);
             sv.setFillViewport(true);
@@ -123,7 +117,6 @@ public class MainActivity extends Activity {
             cols[i] = col;
         }
 
-        buildHome(cols[HOME]);
         buildClocks(cols[CLOCKS]);
         buildRates(cols[RATES]);
         buildWidgets(cols[WIDGETS]);
@@ -143,7 +136,7 @@ public class MainActivity extends Activity {
         dock = new GlassBar(this, behind, 0, true);
         dock.setOrientation(LinearLayout.HORIZONTAL);
         dock.setGravity(Gravity.CENTER_VERTICAL);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < TABS.length; i++) {
             final int t = i;
             LinearLayout item = vbox();
             item.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -283,7 +276,7 @@ public class MainActivity extends Activity {
     private void selectTab(int t, boolean animate) {
         boolean same = t == tab && animate;
         tab = t;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < TABS.length; i++) {
             boolean on = i == t;
             pages[i].setVisibility(on ? View.VISIBLE : View.GONE);
             tabIcon[i].setImageDrawable(new Glyph(TAB_GLYPHS[i], on ? Segmented.ON : Segmented.OFF, on, 1.7f));
@@ -296,7 +289,6 @@ public class MainActivity extends Activity {
             pages[t].setTranslationY(dp(6));
             pages[t].animate().alpha(1f).translationY(0).setDuration(200).start();
         }
-        hero.setRunning(resumed && t == HOME);
         dock.refresh();
     }
 
@@ -309,73 +301,11 @@ public class MainActivity extends Activity {
     @Override
     @SuppressWarnings("deprecation")
     public void onBackPressed() {
-        if (tab != HOME) selectTab(HOME, true);
+        if (tab != CLOCKS) selectTab(CLOCKS, true);
         else super.onBackPressed();
     }
 
     // ------------------------------------------------------------------ pages
-
-    /** Home: the hero (the four clocks' skies, reflected), the first rate in big figures, three tiles, what needs you. */
-    private void buildHome(LinearLayout col) {
-        header(col, "Worldly", "World clocks · rates · widgets");
-        hero = new SkyStrip(this);
-        hero.setOnClickListener(v -> selectTab(CLOCKS, true));
-        col.addView(hero, matchWrap(6));
-
-        // the first rate, big, as the reference's "89 %"
-        LinearLayout big = hbox();
-        big.setBaselineAligned(true);
-        big.setPadding(dp(4), 0, 0, 0);
-        bigRate = chrome("--", 66);
-        big.addView(bigRate);
-        bigUnit = chrome("", 24);
-        bigUnit.setPadding(dp(8), 0, 0, 0);
-        big.addView(bigUnit);
-        bigWhat = text("", 14, Theme.uiMedium(this), Theme.MUTED);
-        bigWhat.setPadding(dp(16), 0, 0, 0);
-        big.addView(bigWhat);
-        big.setClickable(true);
-        big.setOnClickListener(v -> selectTab(RATES, true));
-        col.addView(big, matchWrap(0));
-
-        // three tiles, the middle one raised
-        LinearLayout tiles = hbox();
-        String[] titles = {"Visa", "Updated", "Weather"};
-        for (int i = 0; i < 3; i++) {
-            LinearLayout t = tile(i == 1);
-            TextView title = text(titles[i], 16, Theme.uiMedium(this), Theme.TEXT);
-            title.setGravity(Gravity.CENTER);
-            t.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            t.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1f));
-            tileWord[i] = text("", 12.5f, Theme.uiMedium(this), Theme.MUTED);
-            tileWord[i].setGravity(Gravity.CENTER);
-            t.addView(tileWord[i], new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            tileValue[i] = chrome("--", 32);
-            tileValue[i].setGravity(Gravity.CENTER);
-            tileValue[i].setMaxLines(1);
-            t.addView(tileValue[i], new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            final int target = i == 0 ? RATES : STATUS;
-            t.setClickable(true);
-            t.setOnClickListener(v -> selectTab(target, true));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(136), 1f);
-            lp.leftMargin = i == 0 ? 0 : dp(10);
-            tiles.addView(t, lp);
-        }
-        col.addView(tiles, matchWrap(18));
-
-        // what needs attention, as the reference's orange pill
-        alert = text("", 14, Theme.uiMedium(this), 0xFFFFF1E2);
-        alert.setPadding(dp(18), dp(10), dp(18), dp(10));
-        alert.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{0xFF8A4518, 0xFFC0702E}));
-        ((GradientDrawable) alert.getBackground()).setCornerRadius(dp(100));
-        alert.setClickable(true);
-        alert.setOnClickListener(v -> selectTab(STATUS, true));
-        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        ap.topMargin = dp(18);
-        ap.gravity = Gravity.CENTER_HORIZONTAL;
-        col.addView(alert, ap);
-    }
 
     /** Clocks: the four cities as tiles (tap one to change it), and how their skies move. */
     private void buildClocks(LinearLayout col) {
@@ -632,7 +562,6 @@ public class MainActivity extends Activity {
         WidgetProvider.kick(app); // (re)start the per-minute clock alarms
         statusTicker.run();
         stage.setRunning(true);
-        hero.setRunning(tab == HOME);
         // The song changed while the screen was away: draw it again in the new light.
         ui.post(() -> {
             if (!isFinishing() && !Theme.accent().tag().equals(drawnIn)) recreate();
@@ -645,7 +574,6 @@ public class MainActivity extends Activity {
         resumed = false;
         ui.removeCallbacks(statusTicker);
         stage.setRunning(false);
-        hero.setRunning(false);
         if (fee != null) {
             ui.removeCallbacks(saveFee);
             saveFee.run();
@@ -757,12 +685,6 @@ public class MainActivity extends Activity {
         }
         accessRow(false, Glyph.LEVELS, "Sound levels", levelsText, levels,
                 v -> requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_ALL));
-
-        // Home's pill: the first thing that needs you
-        String need = !loc ? "Allow location for local weather" : !cal ? "Allow your calendar for events"
-                : !bat ? "Let Worldly run in the background" : !media ? "Allow media access for Sound" : null;
-        alert.setText(need == null ? "" : need);
-        alert.setVisibility(need == null ? View.GONE : View.VISIBLE);
     }
 
     /** An access line: its icon, name and what it's for; on the right a check when it's allowed, or an Allow pill. */
@@ -852,44 +774,6 @@ public class MainActivity extends Activity {
         String geoErr = Store.sp(this).getString("geoErr", "");
         statusRow(false, "Cities", geoErr.isEmpty(), geoErr.isEmpty() ? "All cities found" : geoErr);
 
-        updateHome(t);
-    }
-
-    /** Home's big rate (the first row's market rate) and its three tiles. */
-    private void updateHome(long lastFetch) {
-        String from = Store.from(this, 0).trim().toUpperCase(Locale.ROOT), to = Store.to(this).trim().toUpperCase(Locale.ROOT);
-        double market = Store.rate(this, from, to);
-        bigRate.setText(rateText(market));
-        bigUnit.setText(to);
-        bigWhat.setText("per " + from + " · market");
-        double visa = Util.alignToMarket(Store.visa(this, from, to), market);
-        if (!Double.isNaN(visa)) {
-            tileValue[0].setText(rateText(visa));
-            tileWord[0].setText(from + " by card");
-        } else if (!Double.isNaN(market)) {
-            tileValue[0].setText("~" + rateText(market * (1.0 + Store.fee(this) / 100.0)));
-            tileWord[0].setText("Estimated");
-        } else {
-            tileValue[0].setText("--");
-            tileWord[0].setText(from + " by card");
-        }
-        if (lastFetch == 0) {
-            tileValue[1].setText("--");
-            tileWord[1].setText("Not yet");
-        } else {
-            long min = Math.max(0, (System.currentTimeMillis() - lastFetch) / 60_000L);
-            if (min < 120) {
-                tileValue[1].setText(String.valueOf(min));
-                tileWord[1].setText(min == 1 ? "Minute ago" : "Minutes ago");
-            } else {
-                long h = min / 60;
-                tileValue[1].setText(String.valueOf(h));
-                tileWord[1].setText("Hours ago");
-            }
-        }
-        Store.Weather wx = Store.weather(this);
-        tileValue[2].setText(wx == null ? "--" : Math.round(wx.temp) + "°");
-        tileWord[2].setText("Where you are");
     }
 
     /** The clock tiles: each city's name, day and offset, and its time now. */
