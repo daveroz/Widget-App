@@ -45,6 +45,11 @@ final class Optics {
      * is pixels per dp.
      */
     static void star(Canvas c, float x, float y, float reach, float px, int colour, float strength) {
+        star(c, x, y, reach, px, colour, STREAK, strength);
+    }
+
+    /** As {@link #star}, its horizontal (anamorphic) streak fading to {@code streak} instead of the usual blue. */
+    static void star(Canvas c, float x, float y, float reach, float px, int colour, int streak, float strength) {
         Look look = Look.get();
         if (strength <= 0f || reach <= 0f || look.flares <= 0f) return;
         strength = Math.min(1.2f, strength * look.flares); // the look's flares: brighter, and reaching a little further
@@ -63,8 +68,8 @@ final class Optics {
                 HALATION & 0x00FFFFFF}, new float[]{0.3f, 0.55f, 1f}, Shader.TileMode.CLAMP));
         c.drawCircle(x, y, ring, p);
         float thick = Math.max(0.8f, 0.9f * px);
-        spike(c, p, x, y, reach * 1.5f, 0, thick, pale, STREAK, strength);
-        spike(c, p, x, y, -reach * 1.5f, 0, thick, pale, STREAK, strength);
+        spike(c, p, x, y, reach * 1.5f, 0, thick, pale, streak, strength);
+        spike(c, p, x, y, -reach * 1.5f, 0, thick, pale, streak, strength);
         spike(c, p, x, y, 0, reach, thick, pale, colour, strength * 0.8f);
         spike(c, p, x, y, 0, -reach, thick, pale, colour, strength * 0.8f);
         p.setShader(null);
@@ -115,10 +120,20 @@ final class Optics {
      * shade of {@code colour}. {@code edge} is the edge's path, {@code px} pixels per dp.
      */
     static void catchlight(Canvas c, RectF box, Path edge, float r, float in, float px, int colour, float strength) {
+        catchlight(c, box, edge, r, in, px, colour, STREAK, strength, false);
+    }
+
+    /**
+     * As above, at the top left corner or ({@code far}) the bottom right one, as a crystal pane lit from two sides
+     * shows it (2.05): the strike's horizontal streak fading to {@code streak}.
+     */
+    static void catchlight(Canvas c, RectF box, Path edge, float r, float in, float px, int colour, int streak,
+                           float strength, boolean far) {
         if (strength <= 0f) return;
         r = Math.max(r, 4 * px);
-        float cx = box.left + in + r, cy = box.top + in + r; // the bend's middle
-        float gx = cx - r * 0.7071f, gy = cy - r * 0.7071f; // the bend at 45°, where it faces the light
+        float cx = far ? box.right - in - r : box.left + in + r, cy = far ? box.bottom - in - r : box.top + in + r;
+        float k = far ? 0.7071f : -0.7071f;
+        float gx = cx + r * k, gy = cy + r * k; // the bend at 45°, where it faces the light
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(Math.max(1f, px));
@@ -126,8 +141,19 @@ final class Optics {
         p.setShader(new RadialGradient(gx, gy, r * 1.25f, new int[]{Scene.alpha(pale, 0.7f * strength),
                 Scene.alpha(pale, 0.22f * strength), pale & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(edge, p);
-        // the strike stays inside the pane's picture: its arms no longer than the way to the edges
-        float room = (gx - box.left) * 0.92f;
-        star(c, gx, gy, Math.min(6 * px, room / 1.5f), px, colour, 0.55f * strength);
+        // the strike stays inside the pane's picture: its arms no longer than the way to the edges...
+        float room = (far ? box.right - gx : gx - box.left) * 0.92f;
+        float reach = Math.min(6 * px, room / 1.5f);
+        star(c, gx, gy, reach, px, colour, streak, 0.55f * strength);
+        // ...but the two pointing into the pane run on along its edges, as the mockup's long rays (2.05)
+        Look look = Look.get();
+        if (look.flares <= 0f) return;
+        float s = Math.min(1.2f, 0.55f * strength * look.flares), sign = far ? -1f : 1f;
+        float ray = 16 * px * (0.55f + 0.45f * look.flares);
+        int rayPale = Scene.mix(colour, 0xFFFFFFFF, 0.6f);
+        float thick = Math.max(0.8f, 0.9f * px);
+        Paint rp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+        spike(c, rp, gx, gy, sign * ray * 1.5f, 0, thick, rayPale, streak, s * 0.8f);
+        spike(c, rp, gx, gy, 0, sign * ray, thick, rayPale, colour, s * 0.65f);
     }
 }

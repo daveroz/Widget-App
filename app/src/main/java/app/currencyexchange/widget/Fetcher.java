@@ -126,11 +126,12 @@ final class Fetcher {
         }
         if (names.isEmpty()) return;
         String body = Net.get("https://api.open-meteo.com/v1/forecast?latitude=" + la + "&longitude=" + lo
-                + "&current=cloud_cover,weather_code&timezone=auto").trim();
+                + "&current=cloud_cover,weather_code,wind_speed_10m&wind_speed_unit=kmh&timezone=auto").trim();
         org.json.JSONArray all = body.startsWith("[") ? new org.json.JSONArray(body) : new org.json.JSONArray().put(new JSONObject(body));
         for (int i = 0; i < Math.min(all.length(), names.size()); i++) {
             JSONObject cur = all.getJSONObject(i).optJSONObject("current");
-            if (cur != null) Store.putSky(ctx, names.get(i), cur.optInt("cloud_cover", -1), cur.optInt("weather_code", -1));
+            if (cur != null) Store.putSky(ctx, names.get(i), cur.optInt("cloud_cover", -1), cur.optInt("weather_code", -1),
+                    (int) Math.round(cur.optDouble("wind_speed_10m", -1)));
         }
     }
 

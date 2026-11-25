@@ -1,6 +1,7 @@
 package app.currencyexchange.widget;
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
@@ -18,8 +19,8 @@ import android.util.LruCache;
  * ({@link Look#opacity}), so the home screen shows faintly through it; the app's cards are nearly opaque. The light is the
  * colour of what's playing ({@link Ambience}), so everything shares it. Bright things in front can light the card
  * round them ({@link Spill}). Glass on black reads by what it reflects ({@link Optics}): a faint band of the room's
- * light slanting across it, the edge doubled near the light by the glass's thickness, and the corner catching the
- * light. No grain.
+ * light slanting across it, the edge doubled near the light by the glass's thickness, and the corners catching the
+ * light; since 2.05 the glass has a fine frost in it ({@link #grain}), after the crystal logo.
  */
 final class Stage {
     private Stage() {}
@@ -29,7 +30,7 @@ final class Stage {
     /** How bright the glass's reflection of the room is, at its brightest: barely there. */
     private static final float REFLECTION = 0.035f;
     /** How strongly the edge catches the light at its top left corner. */
-    private static final float CATCH = 0.75f;
+    private static final float CATCH = 0.9f;
 
     private static final LruCache<String, Bitmap> CACHE = new LruCache<>(14);
 
@@ -60,6 +61,7 @@ final class Stage {
                 Shader.TileMode.CLAMP));
         c.drawRect(box, p); // the sheen
         p.setShader(null);
+        grain(c, box); // the frost in the glass
         Optics.reflection(c, box, REFLECTION); // the room's light, reflected in the glass
         spill(c, box.left, box.top, spills, 1f);
     }
@@ -113,34 +115,75 @@ final class Stage {
      */
     static final int EDGE = 0xFFF0EBE4;
 
+    /** The icy white the glass's edge takes where it catches the light, as the crystal logo's (2.05): fixed. */
+    static final int ICE = 0xFFE2EEFF;
+    /** The warm light the far corner catches, as the logo's bottom right: fixed. */
+    static final int WARM = 0xFFFFA24E;
+
     /**
-     * A card's edge, just inside {@code box}, as glass on black shows it: a hairline ({@code px} pixels per dp) in a
-     * fixed warm white ({@link #EDGE}), light at the top left and fading round the card to almost nothing on the far
-     * side, as a pane of clear glass shows its edge only where it catches the light (2.02: never a line in the song's
-     * colour there, only the card itself); a fainter line a little inside
-     * it near the top left, the glass's other face seen through its thickness; and the corner there catching the light,
-     * with a flare where it's brightest ({@link Optics#catchlight}): the only flares there are.
+     * A card's edge, just inside {@code box}, as a pane of crystal lit from two sides shows it (2.05, after the crystal
+     * logo): a hairline ({@code px} pixels per dp) that's almost nothing along the straight sides (clear glass, never
+     * a line in the song's colour), lit icy white round the top left corner and, shorter and warmer, round the bottom
+     * right; a fainter line a little inside near each, the glass's other face seen through its bevel; and a glint at
+     * each lit corner ({@link Optics#catchlight}), icy at the top left, warm at the bottom right: the only flares there
+     * are. All in fixed colours, whatever is playing.
      */
     static void rim(Canvas c, RectF box, float[] radii, float px) {
         float line = Math.max(1f, px), in = line / 2;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(line);
-        int edge = EDGE;
-        float reach = Math.max(box.width(), box.height());
+        float reach = Math.max(box.width(), box.height()), r = Math.max(radii[0], 8 * px);
         Path path = inset(box, radii, in);
-        p.setShader(new RadialGradient(box.left, box.top, reach * 0.95f,
-                new int[]{Scene.alpha(edge, 0.42f), Scene.alpha(edge, 0.13f), Scene.alpha(edge, 0.03f)},
-                new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
+        // all round, almost nothing: the straight sides stay clear glass
+        p.setColor(Scene.alpha(ICE, 0.035f));
         c.drawPath(path, p);
-        // the glass's other face, seen through its thickness: a fainter line inside, only near the light
-        float deep = 2.5f * px;
+        // the top left catches the light, icy, along both edges away from the corner
+        float near = Math.min(reach * 0.6f, 7 * r), far = Math.min(reach * 0.4f, 4 * r);
+        int warmIce = Scene.mix(ICE, WARM, 0.3f);
+        p.setShader(new RadialGradient(box.left, box.top, near, new int[]{Scene.alpha(ICE, 0.5f), Scene.alpha(ICE, 0.16f),
+                ICE & 0x00FFFFFF}, new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(path, p);
+        // the bottom right, the far corner: a shorter, warmer light
+        p.setShader(new RadialGradient(box.right, box.bottom, far, new int[]{Scene.alpha(warmIce, 0.38f),
+                Scene.alpha(warmIce, 0.1f), warmIce & 0x00FFFFFF}, new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(path, p);
+        // the bevel: the glass's other face, a fainter line inside near each lit corner
+        Path bevel = inset(box, radii, in + 2.5f * px);
         p.setStrokeWidth(Math.max(1f, 0.7f * px));
-        p.setShader(new RadialGradient(box.left, box.top, reach * 0.5f,
-                new int[]{Scene.alpha(edge, 0.14f), Scene.alpha(edge, 0.04f), edge & 0x00FFFFFF},
-                new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
-        c.drawPath(inset(box, radii, in + deep), p);
-        Optics.catchlight(c, box, path, Math.max(0, radii[0] - in), in, px, EDGE, CATCH);
+        p.setShader(new RadialGradient(box.left, box.top, near * 0.6f, new int[]{Scene.alpha(ICE, 0.16f),
+                Scene.alpha(ICE, 0.05f), ICE & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(bevel, p);
+        p.setShader(new RadialGradient(box.right, box.bottom, far * 0.7f, new int[]{Scene.alpha(warmIce, 0.12f),
+                Scene.alpha(warmIce, 0.03f), warmIce & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(bevel, p);
+        // the glints: icy at the top left, warm at the bottom right
+        Optics.catchlight(c, box, path, Math.max(0, radii[0] - in), in, px, ICE, 0xFF8CC4FF, CATCH, false);
+        Optics.catchlight(c, box, path, Math.max(0, radii[4] - in), in, px, WARM, 0xFFFFC890, CATCH * 0.8f, true);
+    }
+
+    private static Bitmap grainTile;
+
+    /**
+     * The frost in the glass, as in the crystal logo (2.05): a fine, faint grain of light and dark specks (about two
+     * levels either way on the black) with a few brighter specks of dust, the same tile repeated over {@code box}.
+     */
+    static void grain(Canvas c, RectF box) {
+        if (grainTile == null) {
+            int n = 128;
+            int[] px = new int[n * n];
+            java.util.Random r = new java.util.Random(0x6A1A55L);
+            for (int i = 0; i < px.length; i++) {
+                float g = (float) r.nextGaussian();
+                int a = Math.min(255, Math.round(Math.abs(g) * 3.5f));
+                px[i] = (a << 24) | (g > 0 ? 0xFFFFFF : 0x000000);
+            }
+            for (int k = 0; k < 24; k++) px[r.nextInt(px.length)] = ((18 + r.nextInt(22)) << 24) | 0xF4F8FF;
+            grainTile = Bitmap.createBitmap(px, n, n, Bitmap.Config.ARGB_8888);
+        }
+        Paint p = new Paint();
+        p.setShader(new BitmapShader(grainTile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
+        c.drawRect(box, p);
     }
 
     /** {@code box}'s rounded shape, {@code in} pixels inside it. */

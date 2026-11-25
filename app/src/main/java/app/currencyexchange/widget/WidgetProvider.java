@@ -100,12 +100,15 @@ public class WidgetProvider extends AppWidgetProvider {
         int max = Math.min(CurrencyView.LAYOUTS.length, Store.count(ctx));
         boolean land = ctx.getResources().getConfiguration().orientation
                 == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        boolean animated = Store.animateSkies(ctx);
         for (int id : ids) {
             RemoteViews rv;
             android.os.Bundle o = awm.getAppWidgetOptions(id);
             int wdp = o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH
                     : AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
-            if (Build.VERSION.SDK_INT >= 31) {
+            // With animated skies the widget gets the one layout its height fits (picked again on resize): the sky
+            // frames are partial updates, which never reach the per-size layouts of a size map.
+            if (Build.VERSION.SDK_INT >= 31 && !animated) {
                 // The launcher shows the variant whose number of rows fits the real height, and re-picks on resize.
                 java.util.Map<android.util.SizeF, RemoteViews> map = new java.util.LinkedHashMap<>();
                 for (int k = 1; k <= max; k++) {
@@ -115,15 +118,33 @@ public class WidgetProvider extends AppWidgetProvider {
                 }
                 rv = new RemoteViews(map);
             } else {
-                int hdp = o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
-                        : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 400);
-                int k = 1;
-                for (int i = 1; i <= max; i++) if (CurrencyView.heightFor(i) <= hdp) k = i;
-                rv = CurrencyView.build(ctx, k, wdp);
+                rv = CurrencyView.build(ctx, variant(ctx, awm, id), wdp);
                 rv.setOnClickPendingIntent(R.id.root, open);
             }
             awm.updateAppWidget(id, rv);
         }
+    }
+
+    /** How many currency rows widget {@code id} shows: as many as its height fits (and as are set up). */
+    static int variant(Context ctx, AppWidgetManager awm, int id) {
+        boolean land = ctx.getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        android.os.Bundle o = awm.getAppWidgetOptions(id);
+        int hdp = o == null ? 400 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
+                : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 400);
+        int max = Math.min(CurrencyView.LAYOUTS.length, Store.count(ctx)), k = 1;
+        for (int i = 1; i <= max; i++) if (CurrencyView.heightFor(i) <= hdp) k = i;
+        return k;
+    }
+
+    /** Widget {@code id}'s width in dp, as the cards' pictures are drawn for it (360 when the launcher doesn't say). */
+    static int widthDp(Context ctx, AppWidgetManager awm, int id) {
+        boolean land = ctx.getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        android.os.Bundle o = awm.getAppWidgetOptions(id);
+        int w = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH
+                : AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
+        return w >= 120 && w <= 1200 ? w : 360;
     }
 
     private static PendingIntent tickIntent(Context ctx) {

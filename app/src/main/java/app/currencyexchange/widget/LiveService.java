@@ -39,8 +39,11 @@ public class LiveService extends Service {
      * The two animations each have a thread of their own, so the minute work and each other can't hold their frames
      * up, at the priority Android gives drawing the screen, so a busy phone doesn't push them aside.
      */
-    private HandlerThread soundThread, sbbThread;
-    private Handler soundHandler, sbbHandler;
+    private HandlerThread soundThread, sbbThread, skyThread;
+    private Handler soundHandler, sbbHandler, skyHandler;
+    /** When the world clocks' next sky frame is due (uptime ms), on a steady timeline; 0 before the first. */
+    private long skyNext, skyPoll;
+    private int[] skyIds = new int[0];
     /** When the Sound widget's next frame is due (uptime ms), on a steady timeline; 0 before the first. */
     private long soundNext;
     private BroadcastReceiver screen;
@@ -56,8 +59,10 @@ public class LiveService extends Service {
     static boolean wanted(Context ctx) {
         // Only the moving SBB second hand and the Sound widget's lights need a running service (Android requires a
         // notification for that). World clocks and the calendar run on exact alarms alone, with no notification.
+        // Since 2.05 the world clocks' animated skies want it too (unless turned off in the settings).
         return (SbbWidgetProvider.widgetIds(ctx).length > 0 && !"minute".equals(Store.sbbMode(ctx)))
-                || SoundWidgetProvider.widgetIds(ctx).length > 0;
+                || SoundWidgetProvider.widgetIds(ctx).length > 0
+                || (Store.animateSkies(ctx) && WidgetProvider.widgetIds(ctx).length > 0);
     }
 
     static void ensure(Context ctx) {
@@ -93,6 +98,9 @@ public class LiveService extends Service {
         sbbThread = new HandlerThread("sbb-frames", android.os.Process.THREAD_PRIORITY_DISPLAY);
         sbbThread.start();
         sbbHandler = new Handler(sbbThread.getLooper());
+        skyThread = new HandlerThread("sky-frames", android.os.Process.THREAD_PRIORITY_DISPLAY);
+        skyThread.start();
+        skyHandler = new Handler(skyThread.getLooper());
         screen = new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent i) {
@@ -133,6 +141,7 @@ public class LiveService extends Service {
         if (thread != null) thread.quitSafely();
         if (soundThread != null) soundThread.quitSafely();
         if (sbbThread != null) sbbThread.quitSafely();
+        if (skyThread != null) skyThread.quitSafely();
         super.onDestroy();
     }
 
@@ -186,6 +195,7 @@ public class LiveService extends Service {
         handler.post(minuteLoop);
         sbbHandler.post(frameLoop);
         soundHandler.post(soundLoop);
+        skyHandler.post(skyLoop);
     }
 
     /** Restarts the frame loops, which stop by themselves while they have no widget to move. */
@@ -195,6 +205,9 @@ public class LiveService extends Service {
         sbbHandler.post(frameLoop);
         soundHandler.removeCallbacks(soundLoop);
         soundHandler.post(soundLoop);
+        skyHandler.removeCallbacks(skyLoop);
+        skyNext = 0;
+        skyHandler.post(skyLoop);
     }
 
     private void stopLoops() {
@@ -204,6 +217,8 @@ public class LiveService extends Service {
             sbbHandler.removeCallbacks(frameLoop);
             soundHandler.removeCallbacks(soundLoop);
             soundHandler.post(this::stopListening);
+            skyHandler.removeCallbacks(skyLoop);
+            skyNext = 0;
         }
     }
 
@@ -260,6 +275,38 @@ public class LiveService extends Service {
             soundNext += period;
             if (soundNext < after) soundNext = after;
             soundHandler.postAtTime(this, soundNext);
+        }
+    };
+
+    /**
+     * The world clocks' skies (2.05): about eight frames a second, each clock's stars twinkling, clouds drifting,
+     * trees swaying, a plane crossing now and then, sent as a partial update of just the four pictures. Stops while
+     * there's no Currency widget or skies are set to stay still.
+     */
+    private final Runnable skyLoop = new Runnable() {
+        @Override
+        public void run() {
+            if (!on) return;
+            Context ctx = getApplicationContext();
+            long now = SystemClock.uptimeMillis();
+            if (skyPoll == 0 || now - skyPoll >= 2000) {
+                skyPoll = now;
+                skyIds = Store.animateSkies(ctx) ? WidgetProvider.widgetIds(ctx) : new int[0];
+            }
+            if (skyIds.length == 0) {
+                skyNext = 0;
+                skyPoll = 0;
+                return; // nothing to move; kick() restarts this when a widget is added or skies are turned on
+            }
+            if (skyNext == 0) skyNext = now;
+            try {
+                CurrencyView.pushSkies(ctx, skyIds, System.currentTimeMillis());
+            } catch (Throwable ignored) { }
+            // on a steady timeline (as the Sound widget's): a late frame is dropped, not pushed back
+            long after = SystemClock.uptimeMillis();
+            skyNext += 125L;
+            if (skyNext < after) skyNext = after;
+            skyHandler.postAtTime(this, skyNext);
         }
     };
 

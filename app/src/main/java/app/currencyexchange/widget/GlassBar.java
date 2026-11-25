@@ -14,7 +14,8 @@ import android.widget.LinearLayout;
 /**
  * A bar of frosted glass floating at the top of the settings screen, after the Justice store's header: the cards
  * scroll under it and show through, heavily blurred, under a translucent dark grey, with a glass rim (light caught by
- * its edge, brightest at the top left) and a faint sheen along its top. Its corner catches the light like every card's ({@link Optics#catchlight}).
+ * its edge, brightest at the top left) and a faint sheen along its top. Its corners catch the light like every card's ({@link Optics#catchlight}),
+ * and since 2.05 it has the same frost ({@link Stage#grain}).
  * <p>
  * What's behind it is drawn small ({@link #DOWN} times smaller), blurred, and stretched back up: drawn again after
  * every scroll, and now and then for the room's slowly drifting light.
@@ -123,17 +124,21 @@ final class GlassBar extends LinearLayout {
         canvas.drawRect(box, paint);
         paint.setShader(new LinearGradient(0, 0, 0, h * 0.6f, 0x14FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
         canvas.drawRect(box, paint);
+        paint.setShader(null);
+        Stage.grain(canvas, box); // the frost in the glass, as every card's (2.05)
         canvas.restore();
         // its rim: light caught by the glass's edge, brightest at the top left and back, softer, at the bottom right
         // (as the buttons'; see Theme.glassEdge), never fading as far as theirs
-        int line = Stage.EDGE; // a fixed warm white, as every card's edge
+        int line = Stage.ICE; // a fixed icy white, as every card's edge (2.05)
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(Math.max(1f, 1.2f * px));
         paint.setShader(Theme.glassEdge(box, line, RIM));
         canvas.drawPath(edge, paint);
         paint.setShader(null);
         paint.setStyle(Paint.Style.FILL);
-        Optics.catchlight(canvas, box, edge, radius - Math.max(1f, px) / 2, Math.max(1f, px) / 2, px, Stage.EDGE, 0.5f);
+        float in = Math.max(1f, px) / 2;
+        Optics.catchlight(canvas, box, edge, radius - in, in, px, Stage.ICE, 0xFF8CC4FF, 0.5f, false);
+        Optics.catchlight(canvas, box, edge, radius - in, in, px, Stage.WARM, 0xFFFFC890, 0.4f, true);
     }
 
     /** The room round the bar taken in too, so the blur at its edges has something to draw from. */

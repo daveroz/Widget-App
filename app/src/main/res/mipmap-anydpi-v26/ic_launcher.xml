@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Worldly's icon (2.05): a crystal globe, a meridian and the equator cut into it, on deep space; an icy glint at its
+     top left and a warm one at its bottom right. The monochrome layer is for themed icons (Android 13 and up). -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@mipmap/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>
