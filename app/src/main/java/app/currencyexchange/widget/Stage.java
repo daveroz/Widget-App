@@ -48,12 +48,12 @@ final class Stage {
         c.clipPath(shape);
         float w = box.width(), h = box.height();
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-        int warm = Scene.mix(BLACK, scene.deep, 0.16f); // just a hint of the colour
+        int warm = Scene.mix(BLACK, scene.deep, 0.09f); // just a hint of the colour (fainter since 2.18: neutral glass)
         p.setShader(new LinearGradient(box.left, 0, box.right, 0, new int[]{Scene.alpha(BLACK, opacity),
                 Scene.alpha(Scene.mix(BLACK, warm, 0.18f), opacity), Scene.alpha(warm, opacity)},
                 new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
         c.drawRect(box, p);
-        float glow = (0.05f + 0.12f * Math.min(1f, bass)) * Look.get().haze; // a faint glow of the light at the right, swelling with the bass
+        float glow = (0.03f + 0.1f * Math.min(1f, bass)) * Look.get().haze; // a faint glow of the light at the right, swelling with the bass
         p.setShader(new RadialGradient(box.left + w * 0.96f, box.top + h * 0.22f, Math.max(w, h) * 0.6f,
                 Scene.alpha(scene.key, glow), scene.key & 0x00FFFFFF, Shader.TileMode.CLAMP));
         c.drawRect(box, p);
@@ -139,8 +139,8 @@ final class Stage {
         p.setStrokeWidth(line);
         float reach = Math.max(box.width(), box.height()), r = Math.max(radii[0], 8 * px);
         Path path = inset(box, radii, in);
-        // all round, almost nothing: the straight sides stay clear glass
-        p.setColor(Scene.alpha(ICE, 0.035f));
+        // all round, a fine line of glass, as the video's tile (2.18; it was almost nothing)
+        p.setColor(Scene.alpha(ICE, 0.13f));
         c.drawPath(path, p);
         // the top left catches the light, icy, along both edges away from the corner
         float near = Math.min(reach * 0.6f, 7 * r);
@@ -156,9 +156,12 @@ final class Stage {
         slope.setShader(new RadialGradient(box.left, box.top, near * 0.8f, new int[]{Scene.alpha(ICE, 0.13f),
                 Scene.alpha(ICE, 0.04f), ICE & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(band, slope);
-        // the bevel: the glass's other face, a fainter line inside near each lit corner
+        // the bevel: the glass's other face, a fainter line inside, all round (2.18) and brighter near the lit corner
         Path bevel = inset(box, radii, in + 2.5f * px);
         p.setStrokeWidth(Math.max(1f, 0.7f * px));
+        p.setShader(null);
+        p.setColor(Scene.alpha(ICE, 0.035f));
+        c.drawPath(bevel, p);
         p.setShader(new RadialGradient(box.left, box.top, near * 0.6f, new int[]{Scene.alpha(ICE, 0.16f),
                 Scene.alpha(ICE, 0.05f), ICE & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(bevel, p);

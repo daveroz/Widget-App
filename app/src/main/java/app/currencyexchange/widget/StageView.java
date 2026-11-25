@@ -79,11 +79,11 @@ final class StageView extends View {
         float big = Math.max(w, h);
         soft.eraseColor(0);
         glow(key, w * (0.82f + 0.03f * (float) Math.sin(air * 0.07)), h * (0.12f + 0.02f * (float) Math.cos(air * 0.05)),
-                big * 0.42f, big * 0.42f, 0.085f);
-        glow(key, w * (0.16f + 0.05f * (float) Math.sin(air * 0.06 + 1)), h * 0.92f, big * 0.4f, big * 0.4f, 0.04f);
+                big * 0.42f, big * 0.42f, 0.05f); // fainter since 2.18: the room as dark as the video's
+        glow(key, w * (0.16f + 0.05f * (float) Math.sin(air * 0.06 + 1)), h * 0.92f, big * 0.4f, big * 0.4f, 0.025f);
         for (int i = 0; i < 2; i++) {
             float x = ((air * (7 + i * 4) / 1280f + i * 0.6f) % 1.6f - 0.3f) * w;
-            glow(fog, x, h * (0.36f + i * 0.28f), w * 0.95f, h * 0.13f, 0.025f);
+            glow(fog, x, h * (0.36f + i * 0.28f), w * 0.95f, h * 0.13f, 0.012f);
         }
         screen.set(0, 0, w, h);
         canvas.drawBitmap(soft, null, screen, softPaint);
@@ -103,17 +103,17 @@ final class StageView extends View {
         android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG
                 | android.graphics.Paint.DITHER_FLAG);
         float big = Math.max(w, h);
-        p.setShader(new android.graphics.RadialGradient(w * 0.5f, h * 0.28f, big * 0.75f, 0x3A16223A, 0x0016223A,
+        p.setShader(new android.graphics.RadialGradient(w * 0.5f, h * 0.28f, big * 0.75f, 0x1C10182A, 0x0010182A,
                 Shader.TileMode.CLAMP));
         c.drawRect(0, 0, w, h, p);
-        p.setShader(new android.graphics.RadialGradient(w * 0.85f, h * 0.88f, big * 0.45f, 0x30402010, 0x00402010,
+        p.setShader(new android.graphics.RadialGradient(w * 0.85f, h * 0.88f, big * 0.45f, 0x12402010, 0x00402010,
                 Shader.TileMode.CLAMP));
         c.drawRect(0, 0, w, h, p);
         java.util.Random r = new java.util.Random(0x59ACEL);
         for (int i = 0; i < 26; i++) {
             float x = r.nextFloat() * w, y = r.nextFloat() * h, rad = (1.2f + r.nextFloat() * 4f) * big / 270f;
             int col = r.nextFloat() < 0.62f ? Stage.ICE : Stage.WARM;
-            p.setShader(new android.graphics.RadialGradient(x, y, rad, Scene.alpha(col, 0.05f + r.nextFloat() * 0.12f),
+            p.setShader(new android.graphics.RadialGradient(x, y, rad, Scene.alpha(col, 0.03f + r.nextFloat() * 0.07f),
                     col & 0x00FFFFFF, Shader.TileMode.CLAMP));
             c.drawCircle(x, y, rad, p);
         }

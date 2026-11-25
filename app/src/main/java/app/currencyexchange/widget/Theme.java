@@ -27,7 +27,7 @@ final class Theme {
     private Theme() {}
 
     // surfaces (darkest to lightest)
-    static final int BG = 0xFF03050A;        // the night behind everything: the crystal logo's deep space (2.06)
+    static final int BG = 0xFF020508;        // the night behind everything: as dark as the crystal video's (2.18)
     static final int HEADER = 0xFF070A10;
     static final int PANEL = 0xFF0B1220;
     static final int SURFACE = 0xFF0D1422;
