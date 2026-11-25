@@ -239,7 +239,7 @@ final class Sky {
         }
         // a very soft shade behind the clock's text, fading out well before the edges (the corner's landmark and
         // floodlights stay as bright as they are)
-        p.setShader(new RadialGradient(w * 0.5f, h * 0.42f, Math.max(w, h) * 0.62f, 0x30000000, 0x00000000,
+        p.setShader(new RadialGradient(w * 0.5f, h * 0.5f, Math.max(w, h) * 0.62f, 0x30000000, 0x00000000,
                 Shader.TileMode.CLAMP));
         fc.drawRect(0, 0, w, h, p);
         p.setShader(null);
