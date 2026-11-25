@@ -17,8 +17,11 @@ import android.widget.LinearLayout;
  * its edge, brightest at the top left) and a faint sheen along its top. Its corners catch the light like every card's ({@link Optics#catchlight}),
  * and since 2.05 it has the same frost ({@link Stage#grain}).
  * <p>
- * What's behind it is drawn small ({@link #DOWN} times smaller), blurred, and stretched back up: drawn again after
- * every scroll, and now and then for the room's slowly drifting light.
+ * Since 2.18 what it floats over is a {@link BackdropFrame} beside it. On Android 12 and up it draws that frame's
+ * render node again through the system's blur ({@code RenderEffect}), so it follows every scroll by itself; before that,
+ * what's behind is drawn small ({@link #DOWN} times smaller), blurred, and stretched back up: drawn again after every
+ * scroll, and now and then for the room's slowly drifting light. If that picture can't be taken, the glass is drawn
+ * nearly solid rather than showing what's behind it sharp.
  */
 final class GlassBar extends LinearLayout {
     /** What's behind is drawn this many times smaller than the screen... */
@@ -36,18 +39,22 @@ final class GlassBar extends LinearLayout {
     private final Path shape = new Path(), edge = new Path();
     private final RectF box = new RectF();
     private Bitmap backdrop;
+    /** Android 12 and up: the frame's render node drawn again through a blur. */
+    private android.graphics.RenderNode blur;
+    private final float blurRadius;
+    private boolean failed;
     private Canvas backdropCanvas;
     private int[] pixels, spare;
     private boolean capturing, stale = true;
     /** Takes in what's behind just before a frame is drawn, when it's changed (never in the middle of drawing one). */
     private final android.view.ViewTreeObserver.OnPreDrawListener before = () -> {
-        if (stale) capture();
+        if (stale && !live()) capture();
         return true;
     };
     private final Runnable drift = new Runnable() {
         @Override
         public void run() {
-            if (hasWindowFocus()) refresh(); // only while the screen is in front
+            if (hasWindowFocus() && !live()) refresh(); // only while the screen is in front (the blur node follows by itself)
             postDelayed(this, DRIFT_MS);
         }
     };
@@ -59,6 +66,7 @@ final class GlassBar extends LinearLayout {
         float density = c.getResources().getDisplayMetrics().density;
         this.radius = radiusDp * density;
         this.px = density;
+        this.blurRadius = 22 * density;
         setWillNotDraw(false);
     }
 
@@ -105,11 +113,33 @@ final class GlassBar extends LinearLayout {
     protected void onDraw(Canvas canvas) {
         int w = getWidth(), h = getHeight();
         if (w <= 0 || h <= 0) return;
-        if (stale) capture(); // not taken in before this frame (drawn straight to a picture, say)
+        boolean node = live() && canvas.isHardwareAccelerated() && ((BackdropFrame) room).content != null;
+        if (stale && !node) capture(); // not taken in before this frame (drawn straight to a picture, say)
         Scene s = Theme.accent();
         canvas.save();
         canvas.clipPath(shape);
-        if (backdrop != null) { // what's behind, blurred, stretched back up to where it is
+        if (node) { // Android 12 and up: what's behind, drawn again through the system's blur
+            if (blur == null) {
+                blur = new android.graphics.RenderNode("glass");
+                blur.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(blurRadius, blurRadius,
+                        Shader.TileMode.CLAMP));
+            }
+            int[] at = offset();
+            blur.setPosition(0, 0, w, h);
+            android.graphics.RecordingCanvas rc = blur.beginRecording(w, h);
+            try {
+                rc.drawColor(Theme.BG);
+                rc.translate(-at[0], -at[1]);
+                rc.drawRenderNode(((BackdropFrame) room).content);
+            } finally {
+                blur.endRecording();
+            }
+            canvas.drawRenderNode(blur);
+        } else if (failed || backdrop == null) { // no picture of what's behind: nearly solid, never sharp through it
+            paint.setShader(null);
+            paint.setColor(Scene.alpha(Theme.BG, 0.92f));
+            canvas.drawRect(box, paint);
+        } else { // what's behind, blurred, stretched back up to where it is
             int m = margin();
             canvas.save();
             canvas.translate(-m, -m);
@@ -140,6 +170,19 @@ final class GlassBar extends LinearLayout {
         Optics.catchlight(canvas, box, edge, radius - in, in, px, Stage.ICE, 0xFF8CC4FF, 0.5f, false);
     }
 
+    /** Whether the glass draws the frame's render node through the system's blur (Android 12 and up). */
+    private boolean live() {
+        return android.os.Build.VERSION.SDK_INT >= 31 && room instanceof BackdropFrame && isHardwareAccelerated();
+    }
+
+    /** Where the bar is over the frame, in pixels. */
+    private int[] offset() {
+        int[] me = new int[2], it = new int[2];
+        getLocationInWindow(me);
+        room.getLocationInWindow(it);
+        return new int[]{me[0] - it[0], me[1] - it[1]};
+    }
+
     /** The room round the bar taken in too, so the blur at its edges has something to draw from. */
     private int margin() {
         return BLUR * 3 * DOWN;
@@ -159,18 +202,18 @@ final class GlassBar extends LinearLayout {
             spare = new int[bw * bh];
         }
         backdrop.eraseColor(Theme.BG);
-        // where the bar is in the room
-        float x = 0, y = 0;
-        for (View v = this; v != room && v != null; v = v.getParent() instanceof View ? (View) v.getParent() : null) {
-            x += v.getLeft() + v.getTranslationX();
-            y += v.getTop() + v.getTranslationY();
-        }
+        // where the bar is over the frame
+        int[] at = offset();
+        float x = at[0], y = at[1];
         backdropCanvas.save();
         backdropCanvas.scale(1f / DOWN, 1f / DOWN);
         backdropCanvas.translate(m - x, m - y);
         capturing = true;
         try {
             room.draw(backdropCanvas);
+            failed = false;
+        } catch (RuntimeException e) {
+            failed = true; // drawn nearly solid instead
         } finally {
             capturing = false;
             backdropCanvas.restore();

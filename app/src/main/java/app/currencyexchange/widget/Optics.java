@@ -132,6 +132,76 @@ final class Optics {
     }
 
     /**
+     * The crystal video's glint (2.18), on the rim of the top left bend ({@code r} its radius, the rim {@code in} pixels
+     * inside {@code box}), a little nearer the top than its middle, as in the video: a small, intense core drawn out
+     * along the rim, a soft icy halo round it, a short streak along the rim (the diagonal, still the longest) and faint
+     * short rays square to the card; and the rim splitting like a prism round it, cyan on its outer side and amber on
+     * its inner, fading along the edges. Kept small and quiet.
+     */
+    static void glint(Canvas c, RectF box, float r, float in, float px, float strength) {
+        Look look = Look.get();
+        if (strength <= 0f || look.flares <= 0f) return;
+        float s = Math.min(1.2f, strength * (0.55f + 0.45f * look.flares) * 0.85f);
+        r = Math.max(r, 4 * px);
+        double th = Math.toRadians(54); // from the left, round towards the top
+        float cx = box.left + in + r, cy = box.top + in + r;
+        float gx = cx - r * (float) Math.cos(th), gy = cy - r * (float) Math.sin(th);
+        float tx = (float) Math.sin(th), ty = -(float) Math.cos(th); // the rim's direction there (up and to the right)
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+        // the prism round it: cyan just outside the rim's line, amber just inside, fading over two radii
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(Math.max(0.8f, 0.7f * px));
+        float reach = r * 2.2f;
+        android.graphics.Path outer = new android.graphics.Path(), inner = new android.graphics.Path();
+        float o = Math.max(0.35f, in - 0.6f * px), i2 = in + 1.15f * px;
+        outer.addRoundRect(new RectF(box.left + o, box.top + o, box.right - o, box.bottom - o), r + in - o, r + in - o,
+                android.graphics.Path.Direction.CW);
+        inner.addRoundRect(new RectF(box.left + i2, box.top + i2, box.right - i2, box.bottom - i2), Math.max(0, r + in - i2),
+                Math.max(0, r + in - i2), android.graphics.Path.Direction.CW);
+        p.setShader(new RadialGradient(gx, gy, reach, new int[]{Scene.alpha(0xFF7CD6FF, 0.8f * s), Scene.alpha(0xFF7CD6FF, 0.24f * s),
+                0x007CD6FF}, new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(outer, p);
+        p.setShader(new RadialGradient(gx, gy, reach, new int[]{Scene.alpha(0xFFFFA860, 0.55f * s), Scene.alpha(0xFFFFA860, 0.15f * s),
+                0x00FFA860}, new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(inner, p);
+        // the rim glowing white round it, softly
+        android.graphics.Path rim = new android.graphics.Path();
+        rim.addRoundRect(new RectF(box.left + in, box.top + in, box.right - in, box.bottom - in), r, r,
+                android.graphics.Path.Direction.CW);
+        p.setStrokeWidth(Math.max(1f, 0.9f * px));
+        p.setShader(new RadialGradient(gx, gy, r * 1.4f, new int[]{Scene.alpha(0xFFF6FAFF, 0.85f * s), Scene.alpha(0xFFDCEBFF, 0.3f * s),
+                0x00DCEBFF}, new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(rim, p); // the rim itself bright and sharp near the glint, as in the video
+        p.setStyle(Paint.Style.FILL);
+        // its soft icy halo
+        float halo = r * 0.4f; // small: in the video it spreads outside the glass, which a card's picture can't
+        p.setShader(new RadialGradient(gx, gy, halo, new int[]{Scene.alpha(0xFFDCEBFF, 0.45f * s), Scene.alpha(0xFFDCEBFF, 0.12f * s),
+                0x00DCEBFF}, new float[]{0f, 0.3f, 1f}, Shader.TileMode.CLAMP));
+        c.drawCircle(gx, gy, halo, p);
+        // a short streak along the rim and faint short rays square to the card
+        float thick = Math.max(0.8f, 0.8f * px);
+        int pale = 0xFFF4F8FF;
+        spike(c, p, gx, gy, tx * r * 0.62f, ty * r * 0.62f, thick * 1.2f, pale, 0xFF9CCBFF, 0.5f * s);
+        spike(c, p, gx, gy, -tx * r * 0.62f, -ty * r * 0.62f, thick * 1.2f, pale, 0xFF9CCBFF, 0.5f * s);
+        float ray = r * 0.34f;
+        spike(c, p, gx, gy, ray, 0, thick * 0.8f, pale, 0xFF9CCBFF, 0.22f * s);
+        spike(c, p, gx, gy, -ray * 0.8f, 0, thick * 0.8f, pale, 0xFF9CCBFF, 0.22f * s);
+        spike(c, p, gx, gy, 0, ray, thick * 0.8f, pale, 0xFF9CCBFF, 0.2f * s);
+        spike(c, p, gx, gy, 0, -ray * 0.8f, thick * 0.8f, pale, 0xFF9CCBFF, 0.2f * s);
+        // the core: small and intense, drawn out along the rim
+        float core = r * 0.09f;
+        c.save();
+        c.translate(gx, gy);
+        c.rotate((float) Math.toDegrees(Math.atan2(ty, tx)));
+        c.scale(3.2f, 1f);
+        p.setShader(new RadialGradient(0, 0, core, new int[]{0xFFFFFFFF, Scene.alpha(0xFFF4F8FF, Math.min(1f, 0.85f * s + 0.15f)),
+                0x00F0F6FF}, new float[]{0f, 0.38f, 1f}, Shader.TileMode.CLAMP));
+        c.drawCircle(0, 0, core, p);
+        c.restore();
+        p.setShader(null);
+    }
+
+    /**
      * Just the edge catching the light round a corner's bend, brighter where it faces the light, with no glint (2.10:
      * what the bottom right corner keeps): the top left corner, or ({@code far}) the bottom right one.
      */
@@ -163,33 +233,6 @@ final class Optics {
         float k = far ? 0.7071f : -0.7071f;
         float gx = cx + r * k, gy = cy + r * k; // the bend at 45°, where it faces the light
         bendLight(c, box, edge, r, in, px, colour, strength, far);
-        // the glint: its core, mist and halation (2.09: its rays drawn below, at the mockup's angle)
-        float room = (far ? box.right - gx : gx - box.left) * 0.92f;
-        float reach = Math.min(6 * px, room / 1.5f);
-        star(c, gx, gy, reach, px, colour, streak, 0.55f * strength, false);
-        Look look = Look.get();
-        if (look.flares <= 0f) return;
-        float s = Math.min(1.2f, 0.55f * strength * look.flares), sign = far ? -1f : 1f, grow = 0.55f + 0.45f * look.flares;
-        int rayPale = Scene.mix(colour, 0xFFFFFFFF, 0.6f);
-        float thick = Math.max(0.8f, 0.9f * px);
-        Paint rp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-        final float q = 0.7071f; // cos 45°
-        // the long pair along the bend's tangent (up to the right, down to the left), as far as the picture allows
-        float up = Math.min(gy - box.top, box.right - gx) / q * 0.95f, down = Math.min(box.bottom - gy, gx - box.left) / q * 0.95f;
-        float longRay = 30 * px * grow;
-        float a1 = Math.min(longRay, up), a2 = Math.min(longRay, down);
-        float main = Math.min(1.2f, s * 1.15f); // a touch smaller (2.12), still the biggest
-        spike(c, rp, gx, gy, a1 * q * 0.9f, -a1 * q * 0.9f, thick * 1.4f, rayPale, streak, main);
-        spike(c, rp, gx, gy, -a2 * q * 0.9f, a2 * q * 0.9f, thick * 1.4f, rayPale, streak, main);
-        // a shorter pair across it: out past the corner, and in across the card
-        float out = Math.min(far ? Math.min(box.right - gx, box.bottom - gy) : Math.min(gx - box.left, gy - box.top), 12 * px) / q * 0.9f;
-        float inward = 19 * px * grow; // a bit shorter (2.13), still longer than the rays square to the card
-        spike(c, rp, gx, gy, -sign * out * q, -sign * out * q, thick * 1.1f, rayPale, colour, s * 0.65f);
-        spike(c, rp, gx, gy, sign * inward * q, sign * inward * q, thick * 1.1f, rayPale, colour, s * 0.5f);
-        // faint rays square to the card, along its edges: the horizontal one the same as the vertical (2.11; no longer
-        // longer, and no long streak along the top)
-        float ray = 16 * px * grow;
-        spike(c, rp, gx, gy, sign * ray, 0, thick * 0.8f, rayPale, colour, s * 0.25f);
-        spike(c, rp, gx, gy, 0, sign * ray, thick * 0.8f, rayPale, colour, s * 0.25f);
+        if (!far) glint(c, box, r, in, px, strength);
     }
 }

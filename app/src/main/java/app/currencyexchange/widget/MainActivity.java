@@ -71,19 +71,23 @@ public class MainActivity extends Activity {
         drawnIn = Theme.accent().tag();
 
         // The stage stays put behind the cards while they scroll over it.
+        // The glass header floats over a frame of its own (2.18): the stage and the scrolling cards, beside the header,
+        // so it can show them blurred (BackdropFrame, GlassBar)
         android.widget.FrameLayout room = new android.widget.FrameLayout(this);
+        final BackdropFrame behind = new BackdropFrame(this);
+        room.addView(behind, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         stage = new StageView(this);
-        room.addView(stage, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        behind.addView(stage, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         ScrollView sv = new ScrollView(this);
         sv.setBackgroundColor(0);
         sv.setFillViewport(true);
-        room.addView(sv, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        behind.addView(sv, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         final LinearLayout col = vbox();
         col.setPadding(dp(16), dp(104), dp(16), dp(28)); // room at the top for the glass bar floating over it
         sv.addView(col, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         // ---- header: a bar of frosted glass floating at the top, the cards scrolling under it, blurred ----
-        final GlassBar head = new GlassBar(this, room, 16);
+        final GlassBar head = new GlassBar(this, behind, 16);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.setPadding(dp(12), dp(12), dp(12), dp(12));
