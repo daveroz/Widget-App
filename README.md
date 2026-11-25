@@ -144,7 +144,7 @@ stays at Friday's close.
     of light. Since 1.84 only where a card's edge catches the light (the widgets' cards, the app's cards and its glass
     header), never on anything inside a card. Fairly strong (flares 1.9 in `Look`), in fixed colours, so it never
     changes colour with the song. Since 2.05 there are two, as on the crystal logo and the mockup: an icy one at the top
-    left corner and a warm one at the bottom right, their two rays pointing into the card running on along its edges. Since 2.09 they're angled as in the mockup: the long pair runs along the corner's tangent (as far as the card's picture allows: a widget can't draw past its own edges), a shorter pair crosses it, reaching into the card, and only faint rays run square to the edges.
+    left corner and a warm one at the bottom right, their two rays pointing into the card running on along its edges. Since 2.10 only the top left has one: the bottom right corner keeps just its edge catching the light, in the same icy white (and the buttons' and header's rims, and the cards' inner glow, are that one colour too). Since 2.09 the flare is angled as in the mockup: the long pair runs along the corner's tangent (as far as the card's picture allows: a widget can't draw past its own edges), a shorter pair crosses it, reaching into the card, and only faint rays run square to the edges.
   - *Glass reflections*: glass on black reads by what it reflects (white-line lighting; glass reflects most at grazing
     angles). Every card has a faint band of the room's light slanting across its top right, a second, fainter edge
     a little inside near the top left (the glass's other face, seen through its thickness), and its top left corner

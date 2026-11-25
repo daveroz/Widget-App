@@ -132,6 +132,26 @@ final class Optics {
     }
 
     /**
+     * Just the edge catching the light round a corner's bend, brighter where it faces the light, with no glint (2.10:
+     * what the bottom right corner keeps): the top left corner, or ({@code far}) the bottom right one.
+     */
+    static void bendLight(Canvas c, RectF box, Path edge, float r, float in, float px, int colour, float strength,
+                          boolean far) {
+        if (strength <= 0f) return;
+        r = Math.max(r, 4 * px);
+        float cx = far ? box.right - in - r : box.left + in + r, cy = far ? box.bottom - in - r : box.top + in + r;
+        float k = far ? 0.7071f : -0.7071f;
+        float gx = cx + r * k, gy = cy + r * k;
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(Math.max(1f, px));
+        int pale = Scene.mix(colour, 0xFFFFFFFF, 0.7f);
+        p.setShader(new RadialGradient(gx, gy, r * 1.25f, new int[]{Scene.alpha(pale, 0.7f * strength),
+                Scene.alpha(pale, 0.22f * strength), pale & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(edge, p);
+    }
+
+    /**
      * As above, at the top left corner or ({@code far}) the bottom right one, as a crystal pane lit from two sides
      * shows it (2.05): the strike's horizontal streak fading to {@code streak}.
      */
@@ -142,13 +162,7 @@ final class Optics {
         float cx = far ? box.right - in - r : box.left + in + r, cy = far ? box.bottom - in - r : box.top + in + r;
         float k = far ? 0.7071f : -0.7071f;
         float gx = cx + r * k, gy = cy + r * k; // the bend at 45°, where it faces the light
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(Math.max(1f, px));
-        int pale = Scene.mix(colour, 0xFFFFFFFF, 0.7f);
-        p.setShader(new RadialGradient(gx, gy, r * 1.25f, new int[]{Scene.alpha(pale, 0.7f * strength),
-                Scene.alpha(pale, 0.22f * strength), pale & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
-        c.drawPath(edge, p);
+        bendLight(c, box, edge, r, in, px, colour, strength, far);
         // the glint: its core, mist and halation (2.09: its rays drawn below, at the mockup's angle)
         float room = (far ? box.right - gx : gx - box.left) * 0.92f;
         float reach = Math.min(6 * px, room / 1.5f);
