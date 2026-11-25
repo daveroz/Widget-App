@@ -20,7 +20,8 @@ import android.view.animation.AnimationUtils;
  * left, with a breath of fog drifting through. There's no lighting rig any more: nothing along the top, nothing that
  * chases.
  *
- * The washes are drawn at 1/8 of the screen's size and stretched, so they spread like light in fog. No grain.
+ * The washes are drawn at 1/8 of the screen's size and stretched, so they spread like light in fog. Since 2.06 they
+ * light the crystal logo's deep space: a navy haze, out-of-focus specks and a film grain ({@link #space}).
  */
 final class StageView extends View {
     private static final int SOFT = 8;
@@ -33,8 +34,10 @@ final class StageView extends View {
     private final Rect screen = new Rect();
     private final Shader key = unit(Theme.accent().deep);
     private final Shader fog = unit(FOG);
-    private Bitmap soft;
+    private Bitmap soft, space;
     private Canvas softCanvas;
+    private final Rect full = new Rect();
+    private final android.graphics.RectF fullF = new android.graphics.RectF();
     private boolean running;
     private long lastFrame;
     private float air;
@@ -58,6 +61,7 @@ final class StageView extends View {
         soft = Bitmap.createBitmap(Math.max(1, w / SOFT), Math.max(1, h / SOFT), Bitmap.Config.ARGB_8888);
         softCanvas = new Canvas(soft);
         softCanvas.scale(soft.getWidth() / (float) w, soft.getHeight() / (float) h);
+        space = space(Math.max(1, w / 4), Math.max(1, h / 4));
     }
 
     @Override
@@ -69,6 +73,8 @@ final class StageView extends View {
         int w = getWidth(), h = getHeight();
         canvas.drawColor(Theme.BG);
         if (soft == null) return;
+        full.set(0, 0, w, h);
+        canvas.drawBitmap(space, null, full, softPaint); // deep space, as behind the crystal logo
 
         float big = Math.max(w, h);
         soft.eraseColor(0);
@@ -81,8 +87,37 @@ final class StageView extends View {
         }
         screen.set(0, 0, w, h);
         canvas.drawBitmap(soft, null, screen, softPaint);
+        fullF.set(0, 0, w, h);
+        Stage.grain(canvas, fullF); // and its film grain
 
         if (running) postInvalidateDelayed(FRAME_MS);
+    }
+
+    /**
+     * The deep space behind the cards, as behind the crystal logo (2.06), drawn small and stretched: a navy haze high up,
+     * a warm one low on the right, and a scatter of out-of-focus specks, icy and warm.
+     */
+    private static Bitmap space(int w, int h) {
+        Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG
+                | android.graphics.Paint.DITHER_FLAG);
+        float big = Math.max(w, h);
+        p.setShader(new android.graphics.RadialGradient(w * 0.5f, h * 0.28f, big * 0.75f, 0x3A16223A, 0x0016223A,
+                Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, p);
+        p.setShader(new android.graphics.RadialGradient(w * 0.85f, h * 0.88f, big * 0.45f, 0x30402010, 0x00402010,
+                Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, p);
+        java.util.Random r = new java.util.Random(0x59ACEL);
+        for (int i = 0; i < 26; i++) {
+            float x = r.nextFloat() * w, y = r.nextFloat() * h, rad = (1.2f + r.nextFloat() * 4f) * big / 270f;
+            int col = r.nextFloat() < 0.62f ? Stage.ICE : Stage.WARM;
+            p.setShader(new android.graphics.RadialGradient(x, y, rad, Scene.alpha(col, 0.05f + r.nextFloat() * 0.12f),
+                    col & 0x00FFFFFF, Shader.TileMode.CLAMP));
+            c.drawCircle(x, y, rad, p);
+        }
+        return b;
     }
 
     /** A soft glow on the small canvas, in screen pixels: centre, radii and strength. */

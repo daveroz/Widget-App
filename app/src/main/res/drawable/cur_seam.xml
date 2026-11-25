@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The hairline between two world clocks: the fixed warm white of every card's edge, faint, so the clocks read as
+<!-- The hairline between two world clocks: the icy white of every card's edge (2.06), faint, so the clocks read as
      panes of one glass. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#38F0EBE4" />
+    <solid android:color="#3CE2EEFF" />
 </shape>

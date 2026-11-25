@@ -77,6 +77,15 @@ final class Sky {
      * {@code seed}.
      */
     static Layers layers(int w, int h, float px, double elevation, int cloud, int code, long seed) {
+        return layers(w, h, px, elevation, cloud, code, seed, false, 0L, Float.NaN);
+    }
+
+    /**
+     * As above, with the sun on the left ({@code sunLeft}, the morning) or the right near the horizon, and, at {@code ms}
+     * (0: none), the moon in its phase on a clear night while it's up, {@code localHour} being the city's hour (2.06).
+     */
+    static Layers layers(int w, int h, float px, double elevation, int cloud, int code, long seed, boolean sunLeft,
+                         long ms, float localHour) {
         Layers L = new Layers();
         L.w = w = Math.max(2, w);
         L.h = h = Math.max(2, h);
@@ -109,6 +118,45 @@ final class Sky {
             c.drawRect(0, 0, w, h, p);
         }
         p.setShader(null);
+        // the sun itself while it's low (behind the clouds, dimmed by them): orange at the horizon, paler as it climbs
+        if (e > -1.5f && e < 24f) {
+            float sx = (sunLeft ? 0.2f : 0.8f) * w, sy = h * (0.99f - clamp(e / 24f) * 0.66f);
+            float vis = 1f - Math.min(0.85f, cover);
+            int sun = e < 5f ? Scene.mix(0xFFFF9C55, 0xFFFFE2B0, clamp(e / 5f)) : 0xFFFFF4DE;
+            p.setShader(new RadialGradient(sx, sy, 26 * px, Scene.alpha(sun, 0.38f * vis), sun & 0x00FFFFFF, Shader.TileMode.CLAMP));
+            c.drawCircle(sx, sy, 26 * px, p);
+            p.setShader(new RadialGradient(sx, sy, 8 * px, Scene.alpha(sun, 0.55f * vis), sun & 0x00FFFFFF, Shader.TileMode.CLAMP));
+            c.drawCircle(sx, sy, 8 * px, p);
+            p.setShader(null);
+            p.setColor(Scene.alpha(Scene.mix(sun, 0xFFFFFFFF, 0.45f), 0.95f * vis));
+            c.drawCircle(sx, sy, 2.8f * px, p);
+        }
+        // the moon on a clear night, in its phase (waxing lit on the right), away from the clock's text
+        if (ms > 0 && e < -3f && cover < 0.8f && !Float.isNaN(localHour)) {
+            double ph = ((ms / 86400000.0 - 10962.76) / 29.530588) % 1.0;
+            if (ph < 0) ph += 1;
+            float lit = (float) ((1 - Math.cos(2 * Math.PI * ph)) / 2);
+            // it crosses the sky about six hours either side of its highest, which comes at noon at the new moon and
+            // at midnight at the full: up from the left (east), highest over the middle (above the clock), down right
+            double ha = ((localHour - (12 + ph * 24)) % 24 + 36) % 24 - 12;
+            float vis = clamp((-3f - e) / 4f) * (1f - cover) * clamp((6.2f - (float) Math.abs(ha)) / 0.8f);
+            if (lit > 0.04f && vis > 0.02f) {
+                double a = ha / 6 * Math.PI / 2;
+                float mr = 2.9f * px, mx = w * (0.5f + 0.4f * (float) Math.sin(a)), my = h * (0.075f + 0.3f * (1 - (float) Math.cos(a)));
+                p.setShader(new RadialGradient(mx, my, mr * 5, Scene.alpha(0xFFE8ECF6, 0.16f * vis * lit), 0x00E8ECF6,
+                        Shader.TileMode.CLAMP));
+                c.drawCircle(mx, my, mr * 5, p);
+                p.setShader(null);
+                c.saveLayer(mx - mr * 2, my - mr * 2, mx + mr * 2, my + mr * 2, null);
+                p.setColor(Scene.alpha(0xFFF1EEE2, 0.95f * vis));
+                c.drawCircle(mx, my, mr, p);
+                Paint cut = new Paint(Paint.ANTI_ALIAS_FLAG);
+                cut.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT));
+                float off = 2 * mr * lit * (ph < 0.5 ? -1 : 1);
+                if (lit < 0.97f) c.drawCircle(mx + off, my, mr, cut);
+                c.restore();
+            }
+        }
 
         // the stars, on a night clear enough to see them (drawn with each frame, so they can twinkle)
         float stars = clamp((-6f - e) / 6f) * clamp(1f - cover / 0.6f);

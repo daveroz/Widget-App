@@ -25,8 +25,8 @@ import android.util.LruCache;
 final class Stage {
     private Stage() {}
 
-    /** The cards' black (before its opacity), with a breath of violet so it isn't flat. */
-    private static final int BLACK = 0xFF0B0A0F;
+    /** The cards' black (before its opacity): since 2.06 the deep navy of the crystal logo's space, so it isn't flat. */
+    private static final int BLACK = 0xFF090B12;
     /** How bright the glass's reflection of the room is, at its brightest: barely there. */
     private static final float REFLECTION = 0.035f;
     /** How strongly the edge catches the light at its top left corner. */
@@ -60,6 +60,14 @@ final class Stage {
         p.setShader(new LinearGradient(0, box.top, 0, box.top + Math.min(h, 44 * px), 0x0FFFFFFF, 0x00FFFFFF,
                 Shader.TileMode.CLAMP));
         c.drawRect(box, p); // the sheen
+        // the crystal's own light, as in the logo (2.06): an icy sheen in its top left, a warm glow inside its bottom right
+        float big = Math.max(w, h);
+        p.setShader(new RadialGradient(box.left + w * 0.1f, box.top + h * 0.08f, big * 0.55f,
+                Scene.alpha(ICE, 0.055f * opacity), ICE & 0x00FFFFFF, Shader.TileMode.CLAMP));
+        c.drawRect(box, p);
+        p.setShader(new RadialGradient(box.right - w * 0.08f, box.bottom - h * 0.06f, big * 0.42f,
+                Scene.alpha(WARM, 0.05f * opacity), WARM & 0x00FFFFFF, Shader.TileMode.CLAMP));
+        c.drawRect(box, p);
         p.setShader(null);
         grain(c, box); // the frost in the glass
         Optics.reflection(c, box, REFLECTION); // the room's light, reflected in the glass
@@ -148,6 +156,18 @@ final class Stage {
         p.setShader(new RadialGradient(box.right, box.bottom, far, new int[]{Scene.alpha(warmIce, 0.38f),
                 Scene.alpha(warmIce, 0.1f), warmIce & 0x00FFFFFF}, new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(path, p);
+        // the bevel's polished slope (2.06, as the logo's): a soft band of light just inside the edge near each lit corner
+        Paint slope = new Paint(Paint.ANTI_ALIAS_FLAG);
+        slope.setStyle(Paint.Style.STROKE);
+        slope.setStrokeWidth(2.6f * px);
+        slope.setMaskFilter(new android.graphics.BlurMaskFilter(1.3f * px, android.graphics.BlurMaskFilter.Blur.NORMAL));
+        Path band = inset(box, radii, in + 1.6f * px);
+        slope.setShader(new RadialGradient(box.left, box.top, near * 0.8f, new int[]{Scene.alpha(ICE, 0.13f),
+                Scene.alpha(ICE, 0.04f), ICE & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(band, slope);
+        slope.setShader(new RadialGradient(box.right, box.bottom, far * 0.8f, new int[]{Scene.alpha(warmIce, 0.1f),
+                Scene.alpha(warmIce, 0.03f), warmIce & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
+        c.drawPath(band, slope);
         // the bevel: the glass's other face, a fainter line inside near each lit corner
         Path bevel = inset(box, radii, in + 2.5f * px);
         p.setStrokeWidth(Math.max(1f, 0.7f * px));
@@ -182,8 +202,14 @@ final class Stage {
             grainTile = Bitmap.createBitmap(px, n, n, Bitmap.Config.ARGB_8888);
         }
         Paint p = new Paint();
-        p.setShader(new BitmapShader(grainTile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
+        p.setShader(grainShader());
         c.drawRect(box, p);
+    }
+
+    /** The frost's grain as a repeating shader (for drawing it onto other things too). */
+    static Shader grainShader() {
+        if (grainTile == null) grain(new Canvas(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)), new RectF(0, 0, 1, 1));
+        return new BitmapShader(grainTile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT);
     }
 
     /** {@code box}'s rounded shape, {@code in} pixels inside it. */
