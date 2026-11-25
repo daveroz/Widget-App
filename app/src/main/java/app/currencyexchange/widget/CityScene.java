@@ -103,7 +103,7 @@ final class CityScene {
         for (Tree t : b.trees) { // trees were placed in units from the left edge: into pixels
             t.x *= u;
             t.ground *= u;
-            t.height *= u * 1.3f; // zoomed in with the landmark (2.09)
+            t.height *= u * 1.2f; // zoomed in with the landmark (2.09, 2.12)
         }
         return b;
     }
@@ -156,8 +156,8 @@ final class CityScene {
      * shrunk by {@link #K} towards the bottom right corner (so the clock's text stays above it).
      */
     private static final class Pen {
-        /** How big a landmark is drawn: zoomed in (2.09), so its details and the motion round it show. */
-        static final float K = 1.25f;
+        /** How big a landmark is drawn: zoomed in (2.09, eased a little in 2.12), so its details and motion show. */
+        static final float K = 1.15f;
         final Canvas c;
         final float u, ox;
         final Light l;
@@ -1099,7 +1099,7 @@ final class CityScene {
      * catches the light of the hour: white by day, pink and gold at dusk, faint at night, when its lights blink.
      */
     static void plane(Canvas c, Sky.Layers L, Light l, float t, long seed, float px) {
-        px *= 1.3f; // zoomed in (2.09)
+        px *= 1.2f; // zoomed in (2.09, 2.12)
         if (L.cover > 0.85f) return;
         Random r = new Random(seed ^ 0xA1121EL);
         float period = 46 + r.nextInt(34), cross = 17 + r.nextInt(6), phase = r.nextFloat() * period;

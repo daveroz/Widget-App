@@ -176,16 +176,16 @@ final class Optics {
         final float q = 0.7071f; // cos 45°
         // the long pair along the bend's tangent (up to the right, down to the left), as far as the picture allows
         float up = Math.min(gy - box.top, box.right - gx) / q * 0.95f, down = Math.min(box.bottom - gy, gx - box.left) / q * 0.95f;
-        float longRay = 34 * px * grow;
+        float longRay = 30 * px * grow;
         float a1 = Math.min(longRay, up), a2 = Math.min(longRay, down);
-        float main = Math.min(1.2f, s * 1.3f);
-        spike(c, rp, gx, gy, a1 * q, -a1 * q, thick * 1.6f, rayPale, streak, main);
-        spike(c, rp, gx, gy, -a2 * q, a2 * q, thick * 1.6f, rayPale, streak, main);
+        float main = Math.min(1.2f, s * 1.15f); // a touch smaller (2.12), still the biggest
+        spike(c, rp, gx, gy, a1 * q * 0.9f, -a1 * q * 0.9f, thick * 1.4f, rayPale, streak, main);
+        spike(c, rp, gx, gy, -a2 * q * 0.9f, a2 * q * 0.9f, thick * 1.4f, rayPale, streak, main);
         // a shorter pair across it: out past the corner, and in across the card
-        float out = Math.min(far ? Math.min(box.right - gx, box.bottom - gy) : Math.min(gx - box.left, gy - box.top), 14 * px) / q * 0.9f;
-        float inward = 28 * px * grow;
-        spike(c, rp, gx, gy, -sign * out * q, -sign * out * q, thick * 1.2f, rayPale, colour, s * 0.75f);
-        spike(c, rp, gx, gy, sign * inward * q, sign * inward * q, thick * 1.2f, rayPale, colour, s * 0.6f);
+        float out = Math.min(far ? Math.min(box.right - gx, box.bottom - gy) : Math.min(gx - box.left, gy - box.top), 12 * px) / q * 0.9f;
+        float inward = 23 * px * grow;
+        spike(c, rp, gx, gy, -sign * out * q, -sign * out * q, thick * 1.1f, rayPale, colour, s * 0.65f);
+        spike(c, rp, gx, gy, sign * inward * q, sign * inward * q, thick * 1.1f, rayPale, colour, s * 0.5f);
         // faint rays square to the card, along its edges: the horizontal one the same as the vertical (2.11; no longer
         // longer, and no long streak along the top)
         float ray = 16 * px * grow;
