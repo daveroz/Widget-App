@@ -155,5 +155,7 @@ final class Optics {
         Paint rp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
         spike(c, rp, gx, gy, sign * ray * 1.5f, 0, thick, rayPale, streak, s * 0.8f);
         spike(c, rp, gx, gy, 0, sign * ray, thick, rayPale, colour, s * 0.65f);
+        // the logo's anamorphic streak (2.06): from the top left glint, a long faint line of blue light along the top
+        if (!far) spike(c, rp, gx, gy, Math.min(box.width() * 0.6f, 170 * px), 0, thick * 0.8f, rayPale, streak, s * 0.32f);
     }
 }

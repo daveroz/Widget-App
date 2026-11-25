@@ -64,7 +64,9 @@ final class SkyCell {
         this.seed = city == null ? 0 : city.hashCode();
         this.px = px;
         this.wind = wind;
-        sky = Sky.layers(w, h, px, el, cloud, code, seed);
+        long now = System.currentTimeMillis();
+        java.time.ZonedDateTime local = Instant.ofEpochMilli(now).atZone(zone);
+        sky = Sky.layers(w, h, px, el, cloud, code, seed, sunLeft, now, local.getHour() + local.getMinute() / 60f);
         light = CityScene.light(sky, sunLeft);
         built = CityScene.build(city, lat, w, h, px, light, seed);
         // the clouds cross their strip (twice the cell) in about eight minutes in a breeze, faster in a wind

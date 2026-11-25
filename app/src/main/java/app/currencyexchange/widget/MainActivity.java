@@ -96,10 +96,10 @@ public class MainActivity extends Activity {
             int want = bottom + dp(16); // the first card starts just under the bar
             if (col.getPaddingTop() != want) col.setPadding(col.getPaddingLeft(), want, col.getPaddingRight(), col.getPaddingBottom());
         });
-        TextView badge = text("FX", 13, Theme.monoBold(this), Theme.onLit());
-        badge.setGravity(Gravity.CENTER);
-        badge.setLetterSpacing(0.12f);
-        badge.setBackground(Theme.lit(this, 12, false));
+        // the crystal globe, the app's icon (2.06)
+        android.widget.ImageView badge = new android.widget.ImageView(this);
+        badge.setImageResource(R.mipmap.ic_launcher);
+        badge.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
         head.addView(badge, new LinearLayout.LayoutParams(dp(48), dp(48)));
         LinearLayout titles = vbox();
         titles.setPadding(dp(12), 0, 0, 0);

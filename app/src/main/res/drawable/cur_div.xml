@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The thin line between the currency rows in their card: a faint warm white, the same whatever is playing. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#1FF0EBE4" />
+    <solid android:color="#22E2EEFF" />
 </shape>

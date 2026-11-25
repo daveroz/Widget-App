@@ -27,7 +27,7 @@ final class Theme {
     private Theme() {}
 
     // surfaces (darkest to lightest)
-    static final int BG = 0xFF020304;        // the night behind everything
+    static final int BG = 0xFF03050A;        // the night behind everything: the crystal logo's deep space (2.06)
     static final int HEADER = 0xFF070A10;
     static final int PANEL = 0xFF0B1220;
     static final int SURFACE = 0xFF0D1422;
@@ -128,10 +128,18 @@ final class Theme {
         return new Card(dp(c, radiusDp), dp(c, 1), fill);
     }
 
-    /** A well inside a card: inputs and pickers. The edge turns to the key when it's focused or pressed. */
+    /**
+     * A well inside a card: inputs and pickers, a pane of the crystal's navy glass (2.06) with an icy hairline. The edge
+     * turns to the key when it's focused or pressed.
+     */
     static GradientDrawable well(Context c, float radiusDp, boolean active) {
         Scene s = accent();
-        return box(c, active ? Scene.alpha(s.key, 0.14f) : WELL, active ? Scene.alpha(s.key, 0.6f) : line(0.22f), radiusDp);
+        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR, active
+                ? new int[]{Scene.alpha(s.key, 0.18f), Scene.alpha(s.key, 0.1f)}
+                : new int[]{0xFF111520, 0xFF080A10});
+        g.setCornerRadius(dp(c, radiusDp));
+        g.setStroke(Math.max(1, Math.round(dp(c, 1))), active ? Scene.alpha(s.key, 0.6f) : Scene.alpha(Stage.ICE, 0.16f));
+        return g;
     }
 
     /** A card picture ({@link #card}), drawn once whenever its size changes, in the light it was made in. */
@@ -190,14 +198,14 @@ final class Theme {
         return Scene.mix(litFill(s), 0xFFFFF8EE, 0.6f);
     }
 
-    /** A dark button's fill: near black, with a breath of the song's colour. */
+    /** A dark button's fill: the crystal logo's deep navy glass (2.06), with a breath of the song's colour. */
     static int darkFill(Scene s) {
-        return Scene.mix(0xFF17191A, s.key, 0.04f);
+        return Scene.mix(0xFF141823, s.key, 0.04f);
     }
 
-    /** A dark button's rim colour: a warm white, a touch of the song's line colour in it. */
+    /** A dark button's rim colour: the crystal's icy white (2.06), a touch of the song's line colour in it. */
     static int darkEdge(Scene s) {
-        return Scene.mix(0xFFF3ECE8, s.line, 0.15f);
+        return Scene.mix(Stage.ICE, s.line, 0.1f);
     }
 
     /**
@@ -206,13 +214,33 @@ final class Theme {
      */
     static void glassCircle(Canvas c, float cx, float cy, float r, float stroke, int fill, int edge, float[] rim) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-        p.setColor(fill);
+        RectF box = new RectF(cx - r, cy - r, cx + r, cy + r);
+        p.setShader(crystal(box, fill));
         c.drawCircle(cx, cy, r, p);
         float in = stroke / 2;
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(stroke);
-        p.setShader(glassEdge(new RectF(cx - r, cy - r, cx + r, cy + r), edge, rim));
+        p.setShader(glassEdge(box, edge, rim));
         c.drawCircle(cx, cy, r - in, p);
+        // the bevel's inner line, fainter (2.06, as the crystal logo's)
+        p.setStrokeWidth(Math.max(1f, stroke * 0.6f));
+        p.setShader(glassEdge(box, edge, scaled(rim, 0.35f)));
+        c.drawCircle(cx, cy, r - stroke * 2.2f, p);
+    }
+
+    /**
+     * A button's fill as crystal (2.06): its colour a touch lighter towards the top left, where the light is, and a touch
+     * deeper towards the bottom right, across {@code box}.
+     */
+    static android.graphics.Shader crystal(RectF box, int fill) {
+        return new android.graphics.LinearGradient(box.left, box.top, box.right, box.bottom,
+                Scene.mix(fill, Stage.ICE, 0.07f), Scene.mix(fill, 0xFF000000, 0.14f), android.graphics.Shader.TileMode.CLAMP);
+    }
+
+    private static float[] scaled(float[] a, float k) {
+        float[] out = new float[a.length];
+        for (int i = 0; i < a.length; i++) out[i] = a[i] * k;
+        return out;
     }
 
     /**
@@ -233,7 +261,10 @@ final class Theme {
     static android.graphics.Shader glassEdge(RectF box, int colour, float[] alphas) {
         float cx = box.centerX(), cy = box.centerY(), q = (box.width() + box.height()) / 4f;
         int[] colours = new int[alphas.length];
-        for (int i = 0; i < alphas.length; i++) colours[i] = Scene.alpha(colour, alphas[i]);
+        // icy where the light catches it at the top left, warming towards the bottom right, as the crystal logo (2.06)
+        for (int i = 0; i < alphas.length; i++) {
+            colours[i] = Scene.alpha(Scene.mix(colour, Stage.WARM, 0.4f * RIM_AT[i] * RIM_AT[i]), alphas[i]);
+        }
         return new android.graphics.LinearGradient(cx - q, cy - q, cx + q, cy + q, colours, RIM_AT,
                 android.graphics.Shader.TileMode.CLAMP);
     }
@@ -263,8 +294,7 @@ final class Theme {
             box.set(b);
             float r = round ? Math.min(b.width(), b.height()) / 2f : Math.min(radius, b.height() / 2f);
             paint.setStyle(Paint.Style.FILL);
-            paint.setShader(null);
-            paint.setColor(fill);
+            paint.setShader(crystal(box, fill));
             canvas.drawRoundRect(box, r, r, paint);
             float in = stroke / 2;
             paint.setStyle(Paint.Style.STROKE);
@@ -272,6 +302,12 @@ final class Theme {
             paint.setShader(glassEdge(box, edge, rim));
             box.inset(in, in);
             canvas.drawRoundRect(box, r - in, r - in, paint);
+            // the bevel's inner line, fainter
+            float deep = stroke * 1.8f;
+            paint.setStrokeWidth(Math.max(1f, stroke * 0.6f));
+            paint.setShader(glassEdge(box, edge, scaled(rim, 0.35f)));
+            box.inset(deep, deep);
+            canvas.drawRoundRect(box, Math.max(0, r - in - deep), Math.max(0, r - in - deep), paint);
             paint.setShader(null);
         }
 

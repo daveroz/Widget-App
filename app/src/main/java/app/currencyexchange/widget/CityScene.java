@@ -69,6 +69,8 @@ final class CityScene {
         static final int PALM = 0, ROUND = 1, FIR = 2;
         int kind;
         float x, ground, height, lean, phase;
+        /** A round tree's crown: puffs of leaves (x, y, radius, as shares of its height) round its middle. */
+        float[] puffs;
     }
 
     /** A city's corner, built for one light: the still picture, and what moves in front of it. */
@@ -89,7 +91,10 @@ final class CityScene {
         Pen pen = new Pen(new Canvas(b.still), u, wide - 100f, l, seed);
         List<float[]> beacons = new ArrayList<>();
         String key = key(city);
+        boolean own = MOUNTAINS.contains(key);
+        if (!own) pen.farCity(wide);
         if (!landmark(key, pen, b, beacons, l, wide)) generic(pen, b, beacons, l, lat, wide, key.hashCode());
+        finish(pen.c, b.still.getWidth(), b.still.getHeight(), l);
         b.beacons = new float[beacons.size() * 2];
         for (int i = 0; i < beacons.size(); i++) {
             b.beacons[2 * i] = pen.X(beacons.get(i)[0]);
@@ -101,6 +106,39 @@ final class CityScene {
             t.height *= u * 0.88f; // a little smaller too, so they stay under the text
         }
         return b;
+    }
+
+    /** Cities whose landmark stands before mountains or desert: they draw the far city (or none) themselves. */
+    private static final java.util.Set<String> MOUNTAINS = new java.util.HashSet<>(java.util.Arrays.asList(
+            "bogota", "bogota dc", "santa fe de bogota", "seattle", "rio de janeiro", "rio", "cairo", "giza",
+            "los angeles", "la", "hollywood", "sydney"));
+
+    /**
+     * The finishing light over the corner (2.06): the buildings darker towards the ground, a fine grain on them so they
+     * aren't flat, the horizon's haze over their feet by day and the streets' warm glow at night.
+     */
+    private static void finish(Canvas c, int w, int h, Light l) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+        p.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_ATOP));
+        p.setShader(new LinearGradient(0, h * 0.5f, 0, h, 0x00000000, 0x55000000, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, p);
+        p.setShader(Stage.grainShader());
+        c.drawRect(0, 0, w, h, p);
+        p.setShader(Stage.grainShader()); // twice: a little more texture than the glass has
+        c.drawRect(0, 0, w, h, p);
+        p.setXfermode(null);
+        float day = 1 - l.night;
+        if (day > 0.02f) {
+            p.setShader(new LinearGradient(0, h, 0, h * 0.8f, Scene.alpha(l.horizon, 0.3f * day), l.horizon & 0x00FFFFFF,
+                    Shader.TileMode.CLAMP));
+            c.drawRect(0, h * 0.8f, w, h, p);
+        }
+        if (l.night > 0.02f) {
+            p.setShader(new LinearGradient(0, h, 0, h * 0.72f, Scene.alpha(0xFFFFA860, 0.22f * l.night), 0x00FFA860,
+                    Shader.TileMode.CLAMP));
+            c.drawRect(0, h * 0.72f, w, h, p);
+        }
+        p.setShader(null);
     }
 
     /** The city's name as a key: lower case, no accents, no country after a comma. */
@@ -189,18 +227,71 @@ final class CityScene {
             c.restore();
         }
 
-        /** Lit windows in a block, as the evening comes on: some on, some off, the same ones each time. */
+        /**
+         * A block's windows: by day the glass catches the sky (a faint grid); as the evening comes on some light up,
+         * mostly warm, some cool white, some amber, the same ones each time (2.06).
+         */
         void windows(float l0, float t, float r0, float b) {
-            if (l.lights <= 0.02f) return;
             Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
+            float day = 1f - l.lights;
+            int glass = Scene.mix(l.horizon, 0xFFFFFFFF, 0.2f);
             float sx = 2.6f, sy = 3.4f, ww = 1.1f, wh = 1.5f;
             for (float y = t + 2.2f; y + wh < b - 1f; y += sy) {
                 for (float x = l0 + 1.4f; x + ww < r0 - 0.8f; x += sx) {
-                    if (r.nextFloat() > 0.5f) continue;
-                    float a = l.lights * (0.45f + 0.5f * r.nextFloat());
-                    wp.setColor(Scene.alpha(WINDOW, a));
-                    c.drawRect(X(x), Y(y), X(x + ww), Y(y + wh), wp);
+                    float on = r.nextFloat(), kind = r.nextFloat(), bright = r.nextFloat();
+                    if (day > 0.05f) {
+                        wp.setColor(Scene.alpha(glass, 0.1f * day * (0.6f + 0.8f * bright)));
+                        c.drawRect(X(x), Y(y), X(x + ww), Y(y + wh), wp);
+                    }
+                    if (l.lights > 0.02f && on < 0.5f) {
+                        int col = kind < 0.18f ? 0xFFDCE8FF : kind < 0.3f ? 0xFFFFB866 : WINDOW;
+                        wp.setColor(Scene.alpha(col, l.lights * (0.35f + 0.6f * bright)));
+                        c.drawRect(X(x), Y(y), X(x + ww), Y(y + wh), wp);
+                    }
                 }
+            }
+        }
+
+        /** A building: its shaded block, the edge and roof catching the light, its windows. */
+        void tower(float l0, float t, float r0, float b) {
+            body(l0, r0).rect(l0, t, r0, b);
+            edges(l0, t, r0, b);
+            windows(l0, t, r0, b);
+        }
+
+        /** The side facing the sun and the roof's edge catching the light (a rim of sky light at night). */
+        void edges(float l0, float t, float r0, float b) {
+            Paint e = new Paint(Paint.ANTI_ALIAS_FLAG);
+            int hi = Scene.mix(l.lit, 0xFFFFFFFF, 0.2f * (1 - l.night));
+            float a = 0.5f * (1 - l.night) + 0.1f;
+            e.setColor(Scene.alpha(hi, a));
+            float sw = 0.7f;
+            if (l.sunLeft) c.drawRect(X(l0), Y(t), X(l0 + sw), Y(b), e);
+            else c.drawRect(X(r0 - sw), Y(t), X(r0), Y(b), e);
+            e.setColor(Scene.alpha(hi, a * 0.8f));
+            c.drawRect(X(l0), Y(t), X(r0), Y(t + 0.5f), e);
+        }
+
+        /** The rest of the city far behind, low and hazy, across the whole cell (2.06): it gives the corner depth. */
+        void farCity(float wide) {
+            Random fr = new Random(r.nextLong());
+            int col = Scene.mix(l.far, l.horizon, 0.22f);
+            Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
+            float x = 100 - wide / K - 1;
+            while (x < 101) {
+                float w = 3 + fr.nextFloat() * 5, hgt = 5 + fr.nextFloat() * 11;
+                solid(col).rect(x, 100 - hgt, x + w, 100);
+                if (fr.nextFloat() < 0.15f) line(x + w / 2, 100 - hgt, x + w / 2, 100 - hgt - 3, 0.3f);
+                if (l.lights > 0.05f) {
+                    for (float y = 100 - hgt + 1.5f; y < 99; y += 2.6f) {
+                        for (float wx = x + 0.8f; wx < x + w - 0.8f; wx += 1.8f) {
+                            if (fr.nextFloat() > 0.3f) continue;
+                            wp.setColor(Scene.alpha(WINDOW, 0.3f * l.lights));
+                            c.drawRect(X(wx), Y(y), X(wx + 0.7f), Y(y + 0.9f), wp);
+                        }
+                    }
+                }
+                x += w + fr.nextFloat() * 0.6f;
             }
         }
 
@@ -222,6 +313,15 @@ final class CityScene {
         t.height = height;
         t.lean = lean;
         t.phase = r.nextFloat() * 6.2832f;
+        int n = 14;
+        t.puffs = new float[n * 3];
+        for (int i = 0; i < n; i++) { // a crown of leaf puffs, fuller in the middle, ragged at the edge
+            double a = r.nextFloat() * Math.PI * 2;
+            float d = (float) Math.sqrt(r.nextFloat()) * 0.27f;
+            t.puffs[3 * i] = (float) Math.cos(a) * d * 1.15f;
+            t.puffs[3 * i + 1] = (float) Math.sin(a) * d * 0.85f;
+            t.puffs[3 * i + 2] = 0.09f + r.nextFloat() * 0.09f;
+        }
         return t;
     }
 
@@ -234,8 +334,7 @@ final class CityScene {
         switch (key) {
             case "mexico city": case "ciudad de mexico": case "cdmx": case "mexico df": case "mexico": {
                 // Torre Reforma's slanted top and Torre Mayor behind, the Ángel de la Independencia, palms on the left
-                p.body(47, 55).rect(47, 60, 55, 100);
-                p.windows(47, 60, 55, 100);
+                p.tower(47, 60, 55, 100);
                 p.body(58, 68).poly(58, 100, 58, 51, 63, 46.5f, 68, 49.5f, 68, 100);
                 p.windows(58, 52, 68, 100);
                 beacons.add(new float[]{63, 46.5f});
@@ -266,6 +365,7 @@ final class CityScene {
                     float x = 64 + i * 4.75f;
                     p.line(73.5f, 52, x, 70.6f, 0.35f);
                 }
+                p.glow(68, 58, 9, Scene.mix(l.lit, 0xFFFFFFFF, 0.4f), 0.3f * (1 - night)); // the sky caught on the dome
                 p.tinted(72, 75, FLOOD, k).rect(72, 46.5f, 75, 51.8f);
                 p.circle(73.5f, 46.5f, 1.6f);
                 p.line(73.5f, 45, 73.5f, 42.2f, 0.45f);
@@ -320,22 +420,19 @@ final class CityScene {
             }
             case "charlotte": {
                 // Uptown: the Bank of America Corporate Center's crown of rods, Duke Energy Center, the Hearst Tower
-                p.body(47, 54).rect(47, 79, 54, 100);
-                p.windows(47, 79, 54, 100);
+                p.tower(47, 79, 54, 100);
                 p.body(54, 59.5f).poly(54, 100, 54, 68, 56.5f, 66, 59.5f, 68, 59.5f, 100);
                 p.windows(54, 68, 59.5f, 100);
                 p.body(60, 68.5f).poly(60, 100, 60, 59.5f, 61.5f, 58, 67, 58, 68.5f, 59.5f, 68.5f, 100);
                 p.windows(60, 59, 68.5f, 100);
-                p.body(72, 80.5f).rect(72, 52, 80.5f, 100);
-                p.windows(72, 53, 80.5f, 100);
+                p.tower(72, 52, 80.5f, 100);
                 p.tinted(72.6f, 79.9f, 0xFFFFE7B8, 0.6f * night).poly(72.6f, 52, 73.6f, 47, 78.9f, 47, 79.9f, 52);
                 for (int i = 0; i < 7; i++) {
                     float x = 73.8f + i * 0.82f, t = 43.5f - (3 - Math.abs(i - 3)) * 1.1f;
                     p.line(x, 47, x, t, 0.32f);
                 }
                 beacons.add(new float[]{76.25f, 40.2f});
-                p.body(83, 90).rect(83, 61, 90, 100);
-                p.windows(83, 61, 90, 100);
+                p.tower(83, 61, 90, 100);
                 p.body(83, 90).poly(83, 61.2f, 86.5f, 55.5f, 90, 61.2f);
                 p.body(91, 98).rect(91, 76, 98.5f, 100);
                 p.windows(91, 76, 98.5f, 100);
@@ -345,17 +442,16 @@ final class CityScene {
             case "bogota": case "bogota dc": case "santa fe de bogota": {
                 // Monserrate behind, its sanctuary on the top, and the Colpatria and Bacatá towers
                 p.solid(l.far).poly(18, 100, 40, 78, 56, 62, 66, 53.5f, 72, 56, 86, 64, 100 + 8, 74, 100 + 8, 100);
+                p.farCity(wide);
                 int church = Scene.mix(Scene.mix(l.far, 0xFFFFFFFF, 0.45f * (1 - night)), FLOOD, 0.8f * night);
                 p.solid(church).rect(64.2f, 50, 68.4f, 54);
                 p.poly(64, 50.2f, 66.3f, 48.2f, 68.6f, 50.2f);
                 p.rect(65.6f, 46.5f, 67, 49);
                 p.glow(66.3f, 51, 6, FLOOD, 0.35f * night);
-                p.body(66, 73).rect(66, 76, 73, 100);
-                p.windows(66, 76, 73, 100);
+                p.tower(66, 76, 73, 100);
                 p.body(74, 80).poly(74, 100, 74, 57, 80, 54.5f, 80, 100);
                 p.windows(74, 57, 80, 100);
-                p.body(82, 88).rect(82, 51, 88, 100);
-                p.windows(82, 52, 88, 100);
+                p.tower(82, 51, 88, 100);
                 if (night > 0.1f) { // Colpatria's coloured lights
                     p.solid(Scene.alpha(0xFF7FD3FF, 0.5f * night)).rect(82, 51, 88, 53);
                     p.solid(Scene.alpha(0xFFFF7FD0, 0.35f * night)).rect(82, 53, 88, 54.2f);
@@ -391,9 +487,16 @@ final class CityScene {
                 p.rect(76.6f, 57.6f, 83.4f, 59.6f);
                 p.rect(78.7f, 46, 81.3f, 48);
                 p.line(80, 42.5f, 80, 37, 0.5f);
-                p.solid(Scene.alpha(l.near, 0.5f)); // a hint of its lattice
+                p.solid(Scene.alpha(Scene.mix(l.near, 0xFF000000, 0.3f), 0.55f)); // its lattice
                 p.line(76.2f, 74, 83.8f, 58.5f, 0.3f);
                 p.line(83.8f, 74, 76.2f, 58.5f, 0.3f);
+                p.line(77.8f, 58.5f, 81.3f, 47, 0.25f);
+                p.line(82.2f, 58.5f, 78.7f, 47, 0.25f);
+                p.line(68, 96, 75, 74, 0.25f);
+                p.line(70, 87, 75.8f, 74, 0.25f);
+                p.line(92, 96, 85, 74, 0.25f);
+                p.line(90, 87, 84.2f, 74, 0.25f);
+                p.line(71.5f, 88, 88.5f, 88, 0.3f);
                 beacons.add(new float[]{80, 37});
                 b.sparkle = new RectF(p.X(68), p.Y(40), p.X(92), p.Y(98));
                 b.trees.add(tree(Tree.ROUND, 9, 100, 18, 0, r));
@@ -402,8 +505,7 @@ final class CityScene {
             }
             case "london": {
                 // Parliament's roofline and the Elizabeth Tower (Big Ben), its clock lit at night
-                p.body(44, 76).rect(44, 82, 76, 100);
-                p.windows(44, 83, 76, 100);
+                p.tower(44, 82, 76, 100);
                 for (float x = 46; x < 75; x += 4.8f) p.poly(x - 0.8f, 82.2f, x, 77.5f, x + 0.8f, 82.2f);
                 p.body(76, 84).rect(76, 56, 84, 100);
                 p.body(75.2f, 84.8f).rect(75.2f, 48.8f, 84.8f, 56);
@@ -421,8 +523,7 @@ final class CityScene {
             }
             case "new york": case "new york city": case "nyc": case "manhattan": case "brooklyn": {
                 // the Empire State Building over Midtown, its top lit at night
-                p.body(50, 60).rect(50, 64, 60, 100);
-                p.windows(50, 64, 60, 100);
+                p.tower(50, 64, 60, 100);
                 p.body(61, 68).poly(61, 100, 61, 58, 64.5f, 54, 68, 58, 68, 100);
                 p.windows(61, 58, 68, 100);
                 p.body(70, 90).rect(70, 80, 90, 100);
@@ -444,8 +545,7 @@ final class CityScene {
             case "tokyo": {
                 // the Tokyo Skytree: its tapering tower with two observation decks, blue at night
                 int blue = 0xFF8FB8FF;
-                p.body(52, 62).rect(52, 80, 62, 100);
-                p.windows(52, 80, 62, 100);
+                p.tower(52, 80, 62, 100);
                 p.body(88, 98).rect(88, 76, 98.5f, 100);
                 p.windows(88, 76, 98.5f, 100);
                 p.tinted(73, 87, blue, 0.6f * night).poly(73, 100, 78.6f, 57, 81.4f, 57, 87, 100);
@@ -498,8 +598,7 @@ final class CityScene {
                 beacons.add(new float[]{82, 21});
                 p.body(55, 62).poly(55, 100, 55, 64, 58.5f, 60, 62, 64, 62, 100);
                 p.windows(55, 64, 62, 100);
-                p.body(64, 71).rect(64, 74, 71, 100);
-                p.windows(64, 74, 71, 100);
+                p.tower(64, 74, 71, 100);
                 p.body(90, 97).rect(90, 70, 97.5f, 100);
                 p.windows(90, 70, 97.5f, 100);
                 b.trees.add(tree(Tree.PALM, 11, 100, 30, 0.08f, r));
@@ -508,8 +607,7 @@ final class CityScene {
             }
             case "berlin": {
                 // the Fernsehturm: its sphere on a needle
-                p.body(50, 62).rect(50, 82, 62, 100);
-                p.windows(50, 82, 62, 100);
+                p.tower(50, 82, 62, 100);
                 p.body(88, 98).rect(88, 80, 98.5f, 100);
                 p.windows(88, 80, 98.5f, 100);
                 p.body(77, 83).poly(77, 100, 78.9f, 92, 79.4f, 56, 80.6f, 56, 81.1f, 92, 83, 100);
@@ -524,10 +622,8 @@ final class CityScene {
             }
             case "toronto": {
                 // the CN Tower over the skyline
-                p.body(52, 60).rect(52, 66, 60, 100);
-                p.windows(52, 66, 60, 100);
-                p.body(61, 70).rect(61, 74, 70, 100);
-                p.windows(61, 74, 70, 100);
+                p.tower(52, 66, 60, 100);
+                p.tower(61, 74, 70, 100);
                 p.body(77.5f, 82.5f).poly(77.5f, 100, 79.3f, 53, 80.7f, 53, 82.5f, 100);
                 p.body(75.5f, 84.5f).oval(75.5f, 49, 84.5f, 55.5f);
                 if (l.lights > 0.05f) p.solid(Scene.alpha(WINDOW, 0.7f * l.lights)).rect(76, 51.8f, 84, 52.8f);
@@ -545,6 +641,7 @@ final class CityScene {
                 // Mount Rainier far behind and the Space Needle
                 p.solid(l.far).poly(14, 100, 38, 74, 44, 70, 50, 75, 74, 100);
                 p.solid(Scene.mix(l.far, 0xFFFFFFFF, 0.5f * (1 - night) + 0.15f)).poly(38.8f, 73.4f, 44, 70, 48.6f, 74, 46, 75, 43.5f, 73.8f, 41, 75.6f);
+                p.farCity(wide);
                 p.body(74, 86).poly(74.5f, 100, 79.3f, 71, 76.6f, 53.5f, 78.2f, 53.5f, 80, 68, 81.8f, 53.5f, 83.4f, 53.5f, 80.7f, 71, 85.5f, 100, 84, 100, 80, 75, 76, 100);
                 p.body(72, 88).oval(72, 48, 88, 54);
                 if (l.lights > 0.05f) p.solid(Scene.alpha(WINDOW, 0.75f * l.lights)).rect(73, 50.6f, 87, 51.6f);
@@ -650,8 +747,7 @@ final class CityScene {
                 p.line(80.5f, 40, 80.5f, 26, 0.55f);
                 beacons.add(new float[]{76.5f, 28});
                 beacons.add(new float[]{80.5f, 26});
-                p.body(52, 60).rect(52, 62, 60, 100);
-                p.windows(52, 62, 60, 100);
+                p.tower(52, 62, 60, 100);
                 p.body(61, 68).poly(61, 100, 61, 70, 64.5f, 66, 68, 70, 68, 100);
                 p.windows(61, 70, 68, 100);
                 p.body(92, 98).rect(92, 72, 98.5f, 100);
@@ -661,15 +757,13 @@ final class CityScene {
             }
             case "los angeles": case "la": case "hollywood": {
                 // hills far behind, the US Bank Tower's crown, and tall thin palms
-                p.solid(l.far).poly(0 - (wide - 100), 100, 20, 80, 40, 76, 60, 82, 80, 77, 100, 84, 100, 100);
-                p.body(76, 84).rect(76, 54, 84, 100);
-                p.windows(76, 54, 84, 100);
+                p.solid(l.far).poly(100 - wide / Pen.K - 1, 100, 20, 80, 40, 76, 60, 82, 80, 77, 100, 84, 100, 100);
+                p.farCity(wide);
+                p.tower(76, 54, 84, 100);
                 p.body(76, 84).poly(76, 54.2f, 77, 51.5f, 83, 51.5f, 84, 54.2f);
                 beacons.add(new float[]{80, 51.5f});
-                p.body(64, 72).rect(64, 66, 72, 100);
-                p.windows(64, 66, 72, 100);
-                p.body(87, 95).rect(87, 70, 95, 100);
-                p.windows(87, 70, 95, 100);
+                p.tower(64, 66, 72, 100);
+                p.tower(87, 70, 95, 100);
                 b.trees.add(tree(Tree.PALM, 9, 100, 50, 0.04f, r));
                 b.trees.add(tree(Tree.PALM, 17, 100, 44, -0.03f, r));
                 b.trees.add(tree(Tree.PALM, wide - 3, 100, 38, -0.05f, r));
@@ -679,8 +773,7 @@ final class CityScene {
                 // palms and the towers along the bay
                 for (int i = 0; i < 4; i++) {
                     float x = 58 + i * 9.5f, t = 56 + (i % 2) * 10 + r.nextFloat() * 4;
-                    p.body(x, x + 7).rect(x, t, x + 7, 100);
-                    p.windows(x, t, x + 7, 100);
+                    p.tower(x, t, x + 7, 100);
                 }
                 b.trees.add(tree(Tree.PALM, 10, 100, 40, 0.1f, r));
                 b.trees.add(tree(Tree.PALM, 19, 100, 32, -0.06f, r));
@@ -689,8 +782,7 @@ final class CityScene {
             }
             case "buenos aires": {
                 // the Obelisco
-                p.body(54, 64).rect(54, 72, 64, 100);
-                p.windows(54, 72, 64, 100);
+                p.tower(54, 72, 64, 100);
                 p.body(88, 98).rect(88, 74, 98.5f, 100);
                 p.windows(88, 74, 98.5f, 100);
                 p.tinted(77.5f, 82.5f, FLOOD, 0.5f * night).poly(77.4f, 100, 78.6f, 48, 80, 44.5f, 81.4f, 48, 82.6f, 100);
@@ -721,8 +813,7 @@ final class CityScene {
                     p.windows(x, 61, x + 7, 100);
                 }
                 p.body(57, 96).poly(56.5f, 57.2f, 95, 56.5f, 96, 59.6f, 60, 60.2f);
-                p.body(48, 56).rect(48, 74, 56, 100);
-                p.windows(48, 74, 56, 100);
+                p.tower(48, 74, 56, 100);
                 b.trees.add(tree(Tree.PALM, 10, 100, 30, 0.08f, r));
                 b.trees.add(tree(Tree.ROUND, 22, 100, 15, 0, r));
                 return true;
@@ -730,8 +821,7 @@ final class CityScene {
             case "kuala lumpur": {
                 // the Petronas Twin Towers and their skybridge
                 for (float cx : new float[]{70, 86}) {
-                    p.body(cx - 4.5f, cx + 4.5f).rect(cx - 4.5f, 60, cx + 4.5f, 100);
-                    p.windows(cx - 4.5f, 60, cx + 4.5f, 100);
+                    p.tower(cx - 4.5f, 60, cx + 4.5f, 100);
                     p.body(cx - 3.6f, cx + 3.6f).rect(cx - 3.6f, 52, cx + 3.6f, 60);
                     p.body(cx - 2.6f, cx + 2.6f).rect(cx - 2.6f, 46, cx + 2.6f, 52);
                     p.body(cx - 1.6f, cx + 1.6f).poly(cx - 1.6f, 46, cx, 40, cx + 1.6f, 46);
@@ -856,6 +946,7 @@ final class CityScene {
                 default:
                     p.rect(l0, t, x, 100);
             }
+            p.edges(l0, t, x, 100);
             p.windows(l0, t, x, 100);
             x = l0 - 0.6f - r.nextFloat() * 1.6f;
             n++;
@@ -876,6 +967,7 @@ final class CityScene {
         float amp = (float) Math.toRadians(Math.min(8f, 1.3f + w * 0.16f));
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(l.front);
+        int litLeaf = Scene.mix(l.front, l.lit, 0.42f * (1 - 0.7f * l.night));
         for (Tree tr : b.trees) {
             float period = 3.6f + (tr.phase % 1.4f);
             float sway = amp * ((float) Math.sin(t * 6.2832f / period + tr.phase)
@@ -883,7 +975,7 @@ final class CityScene {
             switch (tr.kind) {
                 case Tree.PALM: palm(c, p, tr, sway, px); break;
                 case Tree.FIR: fir(c, p, tr, sway); break;
-                default: round(c, p, tr, sway);
+                default: round(c, p, tr, sway, litLeaf, l.sunLeft);
             }
         }
     }
@@ -913,23 +1005,44 @@ final class CityScene {
             float th = h * 0.045f, nx = -dy / dl * th, ny = dx / dl * th;
             Path leaf = new Path();
             leaf.moveTo(topX, topY);
-            leaf.quadTo(cx + nx, cy + ny, ex, ey);
-            leaf.quadTo(cx - nx * 0.4f, cy - ny * 0.4f, topX, topY);
+            leaf.quadTo(cx + nx * 0.5f, cy + ny * 0.5f, ex, ey);
+            leaf.quadTo(cx - nx * 0.2f, cy - ny * 0.2f, topX, topY);
             c.drawPath(leaf, p);
+            // its leaflets: short strokes along the rib, drooping, shorter towards the tip
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(Math.max(0.8f, h * 0.01f));
+            for (int k = 1; k <= 9; k++) {
+                float q = k / 10f, m = 1 - q;
+                float bx = m * m * topX + 2 * m * q * cx + q * q * ex, by = m * m * topY + 2 * m * q * cy + q * q * ey;
+                float tx = 2 * m * (cx - topX) + 2 * q * (ex - cx), ty = 2 * m * (cy - topY) + 2 * q * (ey - cy);
+                float tl = (float) Math.hypot(tx, ty);
+                float ll = h * (0.075f - 0.05f * q);
+                for (int sgn = -1; sgn <= 1; sgn += 2) {
+                    float ox = -ty / tl * sgn, oy = tx / tl * sgn;
+                    c.drawLine(bx, by, bx + (ox * 0.8f + tx / tl * 0.45f) * ll, by + (oy * 0.8f + ty / tl * 0.45f + 0.5f) * ll, p);
+                }
+            }
+            p.setStyle(Paint.Style.FILL);
         }
         c.drawCircle(topX, topY, h * 0.035f, p);
     }
 
-    private static void round(Canvas c, Paint p, Tree t, float sway) {
+    /** A round tree: its trunk and a crown of leaf puffs, shaded, the side facing the sun catching the light. */
+    private static void round(Canvas c, Paint p, Tree t, float sway, int lit, boolean sunLeft) {
         float h = t.height;
+        int shade = p.getColor();
         c.drawRect(t.x - h * 0.03f, t.ground - h * 0.42f, t.x + h * 0.03f, t.ground, p);
         c.save();
         c.rotate((float) Math.toDegrees(sway * 0.6f), t.x, t.ground - h * 0.4f);
-        float cy = t.ground - h * 0.66f;
-        c.drawCircle(t.x, cy, h * 0.28f, p);
-        c.drawCircle(t.x - h * 0.2f, cy + h * 0.08f, h * 0.2f, p);
-        c.drawCircle(t.x + h * 0.21f, cy + h * 0.06f, h * 0.21f, p);
-        c.drawCircle(t.x + h * 0.04f, cy - h * 0.2f, h * 0.2f, p);
+        float cy = t.ground - h * 0.66f, side = sunLeft ? -1 : 1;
+        for (int i = 0; i < t.puffs.length; i += 3) c.drawCircle(t.x + t.puffs[i] * h, cy + t.puffs[i + 1] * h, t.puffs[i + 2] * h, p);
+        p.setColor(lit); // the leaves facing the light: the same puffs, smaller, shifted towards it and up
+        for (int i = 0; i < t.puffs.length; i += 3) {
+            float px0 = t.puffs[i], py0 = t.puffs[i + 1];
+            if (px0 * side < -0.02f || py0 > 0.08f) continue;
+            c.drawCircle(t.x + (px0 + side * 0.035f) * h, cy + (py0 - 0.035f) * h, t.puffs[i + 2] * h * 0.62f, p);
+        }
+        p.setColor(shade);
         c.restore();
     }
 
