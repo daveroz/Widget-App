@@ -30,23 +30,28 @@ final class Sky {
     /** How far the sky is zoomed in: its stars and rain drawn this much bigger. */
     static final float ZOOM = 1.2f;
 
-    /** The sun's heights (degrees) at which the sky's colours below are set; in between, they blend. */
-    private static final float[] AT = {-18f, -9f, -5f, -2f, 1f, 5f, 12f, 25f};
+    /**
+     * The sun's heights (degrees) at which the sky's colours below are set; in between, they blend. Since 2.16 the blue
+     * hour has a step of its own and another between it and the night, so the evening glides from dusk to night.
+     */
+    private static final float[] AT = {-18f, -12f, -8f, -5f, -2f, 1f, 5f, 12f, 25f};
     /** The morning's skies at each height: top, middle, horizon (after the references' dawn and sunrise). */
     private static final int[][] MORNING = {
             {0xFF0A1B45, 0xFF12306E, 0xFF1E4A92},   // night
-            {0xFF132A6E, 0xFF22438F, 0xFF3A5EAE},   // the blue hour
-            {0xFF2B4A9C, 0xFF5466B8, 0xFF9584C2},   // first light
+            {0xFF112664, 0xFF1A3A86, 0xFF2A52A2},   // the night lifting
+            {0xFF1F3C8C, 0xFF2A4EA6, 0xFF4A66B8},   // the blue hour: an even, rich blue
+            {0xFF2E4C9E, 0xFF5868BA, 0xFF9A86C4},   // first light
             {0xFF4F6FCC, 0xFF9A86C6, 0xFFF0A0A8},   // dawn: blue, lavender, a pink horizon
             {0xFF7A78C0, 0xFFF29C86, 0xFFFFC68A},   // sunrise: lilac, salmon, peach-gold
             {0xFF8F8CC6, 0xFFF6B07E, 0xFFFFD88E},   // the golden morning
             {0xFF4C8ADB, 0xFF7DB2EC, 0xFFD2E6F4},   // morning
             {0xFF2E7BE0, 0xFF5CA2F0, 0xFFAED6F8},   // midday
     };
-    /** The evening's skies at each height (after the references' sunset, dusk and blue hour). */
+    /** The evening's skies at each height (after the references' sunset, dusk, blue hour and night). */
     private static final int[][] EVENING = {
             {0xFF0A1B45, 0xFF12306E, 0xFF1E4A92},   // night
-            {0xFF142A6C, 0xFF20408E, 0xFF35589F},   // the blue hour
+            {0xFF112664, 0xFF1A3A86, 0xFF2A52A2},   // the night coming on
+            {0xFF203C8E, 0xFF2C4CA6, 0xFF465EB2},   // the blue hour: an even, rich blue
             {0xFF2C3B92, 0xFF5A46A6, 0xFFA65CA8},   // late dusk: indigo, purple, magenta
             {0xFF3C3E9C, 0xFF9150A6, 0xFFF27A90},   // dusk: indigo, purple, pink
             {0xFF7A4A9A, 0xFFE66E74, 0xFFFF9A50},   // sunset: purple, red-pink, orange
@@ -55,15 +60,15 @@ final class Sky {
             {0xFF2E7BE0, 0xFF5CA2F0, 0xFFAED6F8},   // midday
     };
     /** The clouds' lit edges at each height (warm undersides when the sun is low, white at midday). */
-    private static final int[] LIT_MORNING = {0xFF2A4278, 0xFF3E5A9A, 0xFF8A86C2, 0xFFFFB4B0, 0xFFFFC890, 0xFFFFE2A8,
-            0xFFFFFFFF, 0xFFFFFFFF};
-    private static final int[] LIT_EVENING = {0xFF2A4278, 0xFF3A5494, 0xFFC27AB8, 0xFFFF9AA8, 0xFFFFA866, 0xFFFFC266,
-            0xFFFFF6EC, 0xFFFFFFFF};
+    private static final int[] LIT_MORNING = {0xFF2A4278, 0xFF2E4A88, 0xFF4A62A8, 0xFF8A86C2, 0xFFFFB4B0, 0xFFFFC890,
+            0xFFFFE2A8, 0xFFFFFFFF, 0xFFFFFFFF};
+    private static final int[] LIT_EVENING = {0xFF2A4278, 0xFF2E4A88, 0xFF4A5CA8, 0xFFC27AB8, 0xFFFF9AA8, 0xFFFFA866,
+            0xFFFFC266, 0xFFFFF6EC, 0xFFFFFFFF};
     /** The clouds' bodies in shade at each height. */
-    private static final int[] SHADE_MORNING = {0xFF0E2152, 0xFF1C3577, 0xFF3E4C98, 0xFF7468AE, 0xFF9C80B4, 0xFFB898B6,
-            0xFFC2D2EC, 0xFFC8D6EC};
-    private static final int[] SHADE_EVENING = {0xFF0E2152, 0xFF1A3272, 0xFF3A3A8E, 0xFF6A4A9E, 0xFFA65A86, 0xFFD27458,
-            0xFFCCD2E2, 0xFFC8D6EC};
+    private static final int[] SHADE_MORNING = {0xFF0E2152, 0xFF152A66, 0xFF1E387E, 0xFF3E4C98, 0xFF7468AE, 0xFF9C80B4,
+            0xFFB898B6, 0xFFC2D2EC, 0xFFC8D6EC};
+    private static final int[] SHADE_EVENING = {0xFF0E2152, 0xFF152A66, 0xFF1C347C, 0xFF3A3A8E, 0xFF6A4A9E, 0xFFA65A86,
+            0xFFD27458, 0xFFCCD2E2, 0xFFC8D6EC};
 
     /** A sky's layers and what's needed to make its frames: drawn once per light and weather. */
     static final class Layers {
@@ -116,12 +121,25 @@ final class Sky {
         L.rain = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
         L.snow = (code >= 71 && code <= 77) || code == 85 || code == 86;
         L.fog = code == 45 || code == 48;
-        if (L.rain || L.snow) {
+        // the weather by the time of day (2.16): how much day and how much night there is in the light
+        float day = clamp((e - 2f) / 10f), night = clamp((-2f - e) / 10f);
+        if (L.rain) {
             cover = Math.max(cover, 0.85f);
-            // the sky keeps its hour's glow behind the gaps (more grey by day), the clouds dark and heavy over it
-            float grey = 0.2f + 0.35f * clamp((e - 2f) / 10f);
-            sky = new int[]{Scene.mix(sky[0], 0xFF2A2E48, grey + 0.15f), Scene.mix(sky[1], 0xFF4A4E66, grey), Scene.mix(sky[2], 0xFF6A6478, grey * 0.7f)};
-            shade = Scene.mix(shade, 0xFF2A2C44, 0.72f);
+            // the sky keeps its hour's glow behind the gaps at dawn and dusk; grey by day, a dark navy at night; the
+            // clouds heavy over it, their edges warm when the sun is low, grey by day
+            int grey = Scene.mix(Scene.mix(0xFF4A4C68, 0xFF6E7488, day), 0xFF141C36, night);
+            sky = new int[]{Scene.mix(sky[0], grey, 0.35f + 0.3f * day), Scene.mix(sky[1], grey, 0.3f + 0.35f * day),
+                    Scene.mix(sky[2], grey, 0.15f + 0.45f * day)};
+            shade = Scene.mix(shade, Scene.mix(Scene.mix(0xFF3A3A58, 0xFF5A6074, day), 0xFF161E38, night), 0.75f);
+            lit = Scene.mix(lit, Scene.mix(lit, 0xFFB4B8C6, day), 0.6f);
+        } else if (L.snow) {
+            cover = Math.max(cover, 0.85f);
+            // a paler, softer sky: pale grey by day, mauve and rose at dawn and dusk, a soft blue at night; gentle clouds
+            int snowy = Scene.mix(Scene.mix(0xFFB8A8C8, 0xFFC8CED8, day), 0xFF223060, night);
+            sky = new int[]{Scene.mix(sky[0], snowy, 0.35f + 0.3f * day), Scene.mix(sky[1], snowy, 0.4f + 0.3f * day),
+                    Scene.mix(sky[2], snowy, 0.3f + 0.3f * day)};
+            shade = Scene.mix(Scene.mix(sky[1], snowy, 0.5f), 0xFF000000, 0.08f);
+            lit = Scene.mix(lit, 0xFFFFFFFF, 0.3f);
         }
         L.sky = sky;
         L.cloud = new int[]{lit, shade};
@@ -333,9 +351,9 @@ final class Sky {
         // in front: rain's and fog's mist low over the city, and the soft shade behind the clock's text
         L.front = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas fc = new Canvas(L.front);
-        if (L.fog || L.rain) {
-            int mist = Scene.mix(sky[2], 0xFFB8C0D8, 0.4f);
-            p.setShader(new LinearGradient(0, h * 0.6f, 0, h, mist & 0x00FFFFFF, Scene.alpha(mist, L.fog ? 0.55f : 0.32f),
+        if (L.fog || L.rain || L.snow) {
+            int mist = Scene.mix(sky[2], L.snow ? 0xFFE8ECF4 : 0xFFB8C0D8, 0.4f);
+            p.setShader(new LinearGradient(0, h * 0.6f, 0, h, mist & 0x00FFFFFF, Scene.alpha(mist, L.fog ? 0.55f : L.snow ? 0.38f : 0.32f),
                     Shader.TileMode.CLAMP));
             fc.drawRect(0, h * 0.6f, w, h, p);
             p.setShader(null);
@@ -389,12 +407,17 @@ final class Sky {
         if (L.over != null) c.drawBitmap(L.over, 0, 0, p);
     }
 
-    /** The rain falling in long, thin, slanting streaks, or the snow drifting down, at {@code t} seconds. */
+    /**
+     * The rain falling in long, thin, slanting streaks (pale by day, faintly lit by the city at night), or the snow
+     * drifting down at two depths (small, slow flakes far off; bigger, quicker ones near), at {@code t} seconds.
+     */
     static void weather(Canvas c, Layers L, float t, Paint p) {
         int w = L.w, h = L.h;
+        float night = clamp((-2f - L.e) / 10f);
         if (L.rain) {
             Random r = new Random(L.seed ^ 0x7A1L);
-            p.setColor(Scene.alpha(Scene.mix(L.sky[2], 0xFFFFFFFF, 0.5f), 0.3f));
+            int streak = Scene.mix(Scene.mix(L.sky[2], 0xFFFFFFFF, 0.5f), 0xFFFFD8A8, 0.35f * night);
+            p.setColor(Scene.alpha(streak, 0.3f - 0.06f * night));
             p.setStrokeWidth(Math.max(1f, 0.45f * L.px));
             for (int i = 0; i < 48; i++) {
                 float len = h * (0.18f + r.nextFloat() * 0.25f), speed = h * (1.6f + r.nextFloat() * 0.8f);
@@ -404,11 +427,14 @@ final class Sky {
             }
         } else if (L.snow) {
             Random r = new Random(L.seed ^ 0x5A0L);
-            p.setColor(0xB3FFFFFF);
-            for (int i = 0; i < 30; i++) {
-                float size = (0.5f + r.nextFloat() * 0.6f) * L.px * 1.15f, speed = h * (0.08f + r.nextFloat() * 0.06f);
+            int flake = Scene.mix(0xFFFFFFFF, 0xFFDCE6FF, night);
+            for (int i = 0; i < 64; i++) {
+                boolean near = i % 3 == 0;
+                float size = (near ? 1.1f + r.nextFloat() * 0.7f : 0.45f + r.nextFloat() * 0.45f) * L.px;
+                float speed = h * (near ? 0.16f + r.nextFloat() * 0.08f : 0.07f + r.nextFloat() * 0.05f);
                 float y = (r.nextFloat() * h + t * speed) % (h + 4 * size) - 2 * size;
-                float x = r.nextFloat() * w + (float) Math.sin(t * 0.7f + i) * 3f * L.px;
+                float x = r.nextFloat() * w + (float) Math.sin(t * (near ? 0.9f : 0.6f) + i * 1.7f) * (near ? 5f : 3f) * L.px;
+                p.setColor(Scene.alpha(flake, near ? 0.92f : 0.6f + 0.25f * r.nextFloat()));
                 c.drawCircle(x, y, size, p);
             }
         }

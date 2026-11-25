@@ -36,7 +36,7 @@ final class CityScene {
         int lit;
         /** 0 by day, 1 at night; how far the windows have lit up (from late afternoon). */
         float night, lights;
-        boolean sunLeft;
+        boolean sunLeft, snow;
         float e;
         int cloudTop, cloudUnder, horizon;
     }
@@ -61,6 +61,7 @@ final class CityScene {
         boolean low = e < 8f;
         l.lit = Scene.mix(l.near, low ? 0xFFFFB27A : 0xFFFFF1DE, (low ? 0.3f : 0.2f) * day);
         l.sunLeft = sunLeft;
+        l.snow = L.snow;
         l.cloudTop = L.cloud[0];
         l.cloudUnder = L.cloud[1];
         l.horizon = L.sky[2];
@@ -158,6 +159,10 @@ final class CityScene {
             int col = Scene.mix(base, near ? 0xFF000000 : l.horizon, r.nextFloat() * 0.12f);
             p.setColor(col);
             c.drawRect(l0 * u, top * u, r0 * u, 100 * u, p);
+            if (l.snow) { // snow lying on its roof (2.16)
+                p.setColor(Scene.mix(0xFFF4F7FC, l.horizon, near ? 0.12f + 0.4f * l.night : 0.35f + 0.3f * l.night));
+                c.drawRect(l0 * u, top * u, r0 * u, (top + (near ? 1.4f : 0.9f)) * u, p);
+            }
             if (near) { // the side facing the sun catching it, and the roof's edge
                 p.setColor(Scene.alpha(Scene.mix(l.lit, 0xFFFFFFFF, 0.15f), 0.3f * (1 - l.night) + 0.08f));
                 float sw = 0.6f;
