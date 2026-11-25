@@ -197,7 +197,7 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="14dp"
+                    android:paddingStart="24dp"
                     android:paddingEnd="24dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -290,7 +290,7 @@
                 android:id="@+id/div_1"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="14dp"
+                android:layout_marginStart="24dp"
                 android:layout_marginEnd="24dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY"
@@ -305,7 +305,7 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="14dp"
+                    android:paddingStart="24dp"
                     android:paddingEnd="24dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -398,7 +398,7 @@
                 android:id="@+id/div_2"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="14dp"
+                android:layout_marginStart="24dp"
                 android:layout_marginEnd="24dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY"
@@ -413,7 +413,7 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="14dp"
+                    android:paddingStart="24dp"
                     android:paddingEnd="24dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -506,7 +506,7 @@
                 android:id="@+id/div_3"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="14dp"
+                android:layout_marginStart="24dp"
                 android:layout_marginEnd="24dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY"
@@ -521,7 +521,7 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="14dp"
+                    android:paddingStart="24dp"
                     android:paddingEnd="24dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -614,7 +614,7 @@
                 android:id="@+id/div_4"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="14dp"
+                android:layout_marginStart="24dp"
                 android:layout_marginEnd="24dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY"
@@ -629,7 +629,7 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="14dp"
+                    android:paddingStart="24dp"
                     android:paddingEnd="24dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
