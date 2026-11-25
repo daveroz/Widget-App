@@ -137,15 +137,22 @@ final class Store {
         if (s == null) return null;
         try {
             JSONObject o = new JSONObject(s);
-            return new int[]{o.optInt("cover", -1), o.optInt("code", -1)};
+            return new int[]{o.optInt("cover", -1), o.optInt("code", -1), o.optInt("wind", -1)};
         } catch (Exception e) { return null; }
     }
 
-    static void putSky(Context c, String city, int cover, int code) {
+    /** A city's sky now: {@code cover} % cloud, WMO weather {@code code}, {@code wind} km/h (-1 each when unknown). */
+    static void putSky(Context c, String city, int cover, int code, int wind) {
         try {
-            sp(c).edit().putString("sky|" + city, new JSONObject().put("cover", cover).put("code", code).toString()).apply();
+            sp(c).edit().putString("sky|" + city, new JSONObject().put("cover", cover).put("code", code)
+                    .put("wind", wind).toString()).apply();
         } catch (Exception ignored) { }
     }
+
+    /** Whether the world clocks' skies move (stars, clouds, trees, planes): on unless turned off in the settings. */
+    static boolean animateSkies(Context c) { return sp(c).getBoolean("animateSkies", true); }
+
+    static void setAnimateSkies(Context c, boolean on) { sp(c).edit().putBoolean("animateSkies", on).apply(); }
 
     /** Null until the first fetch (and for the older humidity-only cache, so it is fetched again). */
     static Weather weather(Context c) {

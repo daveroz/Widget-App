@@ -89,28 +89,15 @@ final class CurrencyView {
         // world clocks, each on its city's sky right now (Sky): the light of the hour there, its clouds and weather
         DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault());
         DateTimeFormatter timeF = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
+        long nowMs = System.currentTimeMillis();
+        Clock[] clocks = clocks(ctx, nowMs);
         for (int i = 0; i < 4; i++) {
-            String city = Store.city(ctx, i);
-            JSONObject g = Store.geo(ctx, city);
-            ZoneId z = ZoneId.systemDefault();
-            double lat = Double.NaN, lon = Double.NaN;
-            if (g != null) {
-                try { z = ZoneId.of(g.optString("tz", z.getId())); } catch (Exception ignored) { }
-                lat = g.optDouble("lat", Double.NaN);
-                lon = g.optDouble("lon", Double.NaN);
-            }
-            ZonedDateTime now = ZonedDateTime.now(z);
-            double el;
-            if (!Double.isNaN(lat) && !Double.isNaN(lon)) el = SunCalc.elevation(lat, lon, now.toInstant().toEpochMilli());
-            else { // no place known: a rough sun from the hour (highest at noon)
-                double hr = now.getHour() + now.getMinute() / 60.0;
-                el = 50 * Math.cos((hr - 12) / 12 * Math.PI) - 5;
-            }
-            int[] weather = Store.sky(ctx, city);
-            // one picture per clock, at the cell's real width (a quarter of the card inside its 1 dp padding), so nothing
-            // is stretched and there's no seam; the outer cells have the card's round corners baked in
-            rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), skyCell(el, weather == null ? -1 : weather[0],
-                    weather == null ? -1 : weather[1], city.hashCode(), i == 0 ? 1 : (i == 3 ? 2 : 0), rowW / 4f));
+            Clock k0 = clocks[i];
+            String city = k0.city;
+            ZonedDateTime now = ZonedDateTime.now(k0.zone);
+            // one picture per clock, at the cell's real width, its city's sky and corner (SkyCell); a copy, since the
+            // live service draws the next frame into the same picture while this update is on its way
+            rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), cell(k0, i, rowW).frame(nowMs).copy(Bitmap.Config.ARGB_8888, false));
             // the day, time and city in front of the sky stay white whatever is playing
             txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11);
             rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.fringed(reg, 22 * 2.5f, 0.8f, now.format(timeF), // the calendar's weight, not bold
@@ -183,95 +170,125 @@ final class CurrencyView {
         return out;
     }
 
-    /**
-     * "Market", its ink ending at its picture's right edge (no clear margin there), so drawn to the right of its slot it
-     * ends where the Visa badge and the line between the rows end.
-     */
+    /** "Market", without the clear margins round its ink, so centred in the labels' column it sits exactly over the badge. */
     private static Bitmap marketLabel(Typeface tf, int colour) {
         String key = "m|" + Look.get().tag() + "|" + System.identityHashCode(tf) + "|" + colour;
         Bitmap hit = PICS.get(key);
         if (hit != null) return hit;
         Bitmap b = tight(tf, CITY_SP, "Market", colour);
-        int w = b.getWidth(), h = b.getHeight(), end = w;
+        int w = b.getWidth(), h = b.getHeight(), start = 0, end = w;
         int[] col = new int[h];
-        while (end > 1) {
-            b.getPixels(col, 0, 1, end - 1, 0, 1, h);
-            boolean ink = false;
-            for (int v : col) if ((v >>> 24) > 8) { ink = true; break; }
-            if (ink) break;
-            end--;
-        }
-        Bitmap made = end == w ? b : Bitmap.createBitmap(b, 0, 0, end, h);
+        while (end > 1 && clear(b, col, end - 1)) end--;
+        while (start < end - 1 && clear(b, col, start)) start++;
+        Bitmap made = start == 0 && end == w ? b : Bitmap.createBitmap(b, start, 0, end - start, h);
         PICS.put(key, made);
         return made;
     }
 
+    /** Whether column {@code x} of {@code b} has no ink ({@code col} holds one column's pixels). */
+    private static boolean clear(Bitmap b, int[] col, int x) {
+        b.getPixels(col, 0, 1, x, 0, 1, col.length);
+        for (int v : col) if ((v >>> 24) > 8) return false;
+        return true;
+    }
+
+    /**
+     * The Visa badge, monochrome as in the mockup (2.05): a small dark grey tile with "VISA" in white bold italics,
+     * so nothing but the flags brings colour into the rows.
+     */
     static Bitmap visaLogo(Context ctx) {
-        String key = "v|" + (Flags.visa(ctx) != null);
-        Bitmap hit = PICS.get(key);
+        Bitmap hit = PICS.get("v|mono");
         if (hit != null) return hit;
-        Bitmap made = visaLogo0(ctx);
-        PICS.put(key, made);
-        return made;
+        Bitmap out = Bitmap.createBitmap(130, 64, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(out);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(0xFF3A3A40);
+        c.drawRoundRect(new RectF(0, 0, 130, 64), 9, 9, p);
+        Paint t = new Paint(Paint.ANTI_ALIAS_FLAG);
+        t.setColor(0xFFF2F2F4);
+        t.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD_ITALIC));
+        t.setTextSize(34);
+        t.setTextAlign(Paint.Align.CENTER);
+        t.setLetterSpacing(0.02f);
+        c.drawText("VISA", 64, 32 - (t.ascent() + t.descent()) / 2f, t);
+        PICS.put("v|mono", out);
+        return out;
     }
 
-    private static Bitmap visaLogo0(Context ctx) {
-        Bitmap vb = Flags.visa(ctx);
-        Bitmap out = Bitmap.createBitmap(120, 80, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(out);
-        RectF r = new RectF(0, 0, 120, 80);
-        if (vb != null) {
-            cover(c, vb, r, 12);
-        } else {
-            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-            p.setColor(0xFF1A3C9C);
-            c.drawRoundRect(r, 12, 12, p);
-            Paint t = new Paint(Paint.ANTI_ALIAS_FLAG);
-            t.setColor(Theme.TEXT);
-            t.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD_ITALIC));
-            t.setTextSize(30);
-            t.setTextAlign(Paint.Align.CENTER);
-            c.drawText("VISA", 60, 40 - (t.ascent() + t.descent()) / 2f, t);
+    // Clock pictures are drawn at 2 px per dp (as sharp as the Sound widget's frames, and as light to send), the
+    // card's full 94 dp tall, at each cell's real width.
+    private static final float PXDP = 2f;
+    private static final int CH = Math.round(94 * PXDP);
+    private static final float OUTER_R = 28 * PXDP; // the card's own corners: the skies fill it to its edge
+
+    /** What a world clock needs to draw: its city, where it is, the sun's height there, its weather. */
+    static final class Clock {
+        String city;
+        ZoneId zone = ZoneId.systemDefault();
+        double lat = Double.NaN, lon = Double.NaN, elevation;
+        boolean morning;
+        int cloud = -1, code = -1, wind = -1;
+    }
+
+    /** The four world clocks at {@code ms}. */
+    static Clock[] clocks(Context ctx, long ms) {
+        Clock[] out = new Clock[4];
+        for (int i = 0; i < 4; i++) {
+            Clock k = new Clock();
+            k.city = Store.city(ctx, i);
+            JSONObject g = Store.geo(ctx, k.city);
+            if (g != null) {
+                try { k.zone = ZoneId.of(g.optString("tz", k.zone.getId())); } catch (Exception ignored) { }
+                k.lat = g.optDouble("lat", Double.NaN);
+                k.lon = g.optDouble("lon", Double.NaN);
+            }
+            ZonedDateTime now = java.time.Instant.ofEpochMilli(ms).atZone(k.zone);
+            double hr = now.getHour() + now.getMinute() / 60.0;
+            k.morning = hr < 12.5;
+            if (!Double.isNaN(k.lat) && !Double.isNaN(k.lon)) k.elevation = SunCalc.elevation(k.lat, k.lon, ms);
+            else k.elevation = 50 * Math.cos((hr - 12) / 12 * Math.PI) - 5; // no place known: a rough sun from the hour
+            int[] wx = Store.sky(ctx, k.city);
+            if (wx != null) {
+                k.cloud = wx[0];
+                k.code = wx[1];
+                k.wind = wx.length > 2 ? wx[2] : -1;
+            }
+            out[i] = k;
         }
         return out;
     }
 
-    // Clock cell pictures are drawn at 1.5 px per dp, the card's full 94 dp tall, at each cell's real width.
-    private static final float PXDP = 1.5f;
-    private static final int CH = Math.round(94 * PXDP);
-    private static final float INNER_R = 28 * PXDP; // the card's own corners: the skies fill it to its edge
-
-    /**
-     * A clock's sky ({@link Sky}), {@code cellDp} wide: side 0, a middle cell; 1, the left cell (the card's round corners
-     * on its left); 2, the right cell (on its right). The sun's height is taken to the nearest half degree, so a sky is
-     * drawn again only when it has visibly changed.
-     */
-    private static Bitmap skyCell(double elevation, int cloud, int code, long seed, int side, float cellDp) {
-        float el = Math.round(elevation * 2) / 2f;
-        int w = Math.max(8, Math.round(cellDp * PXDP));
-        String key = "s|" + el + "|" + (cloud < 0 ? -1 : cloud / 5) + "|" + code + "|" + seed + "|" + side + "|" + w;
-        Bitmap hit = PICS.get(key);
-        if (hit != null) return hit;
-        Bitmap b = Sky.draw(w, CH, PXDP, el, cloud, code, seed);
-        if (side != 0) b = corner(b, side == 1);
-        PICS.put(key, b);
-        return b;
+    /** Clock {@code i}'s picture-maker in a card {@code rowW} dp wide (four cells and the three 1 dp seams between). */
+    static SkyCell cell(Clock k, int i, int rowW) {
+        int w = Math.max(8, Math.round((rowW - 3) / 4f * PXDP));
+        return SkyCell.get(k.city, k.lat, k.zone, k.elevation, k.morning, k.cloud, k.code, k.wind, w, CH, PXDP,
+                i == 0 ? 1 : (i == 3 ? 2 : 0), OUTER_R);
     }
 
-    /** Clears the outside of the card's round corners, top and bottom (on the left if left, else on the right). */
-    private static Bitmap corner(Bitmap src, boolean left) {
-        Bitmap b = src.copy(Bitmap.Config.ARGB_8888, true);
-        Canvas c = new Canvas(b);
-        int w = b.getWidth(), h = b.getHeight();
-        float r = INNER_R;
-        Path outside = new Path();
-        outside.addRoundRect(new RectF(left ? 0 : -r, 0, left ? w + r : w, h),
-                left ? new float[]{r, r, 0, 0, 0, 0, r, r} : new float[]{0, 0, r, r, r, r, 0, 0}, Path.Direction.CW);
-        outside.setFillType(Path.FillType.INVERSE_WINDING);
-        Paint clear = new Paint(Paint.ANTI_ALIAS_FLAG);
-        clear.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
-        c.drawPath(outside, clear);
-        return b;
+    private static Clock[] liveClocks;
+    private static long liveClocksAt;
+    private static int[] bgIds;
+
+    /**
+     * Sends each Currency widget its four clocks' next frames (the live service's sky loop, while skies are animated):
+     * a partial update of just those four pictures. The clocks' places and weather are looked up again every 15 s.
+     */
+    static void pushSkies(Context ctx, int[] ids, long ms) {
+        if (liveClocks == null || ms - liveClocksAt > 15_000L || ms < liveClocksAt) {
+            liveClocks = clocks(ctx, ms);
+            liveClocksAt = ms;
+        }
+        if (bgIds == null) {
+            bgIds = new int[4];
+            for (int i = 0; i < 4; i++) bgIds[i] = id(ctx, "clk_bg_" + i);
+        }
+        android.appwidget.AppWidgetManager awm = android.appwidget.AppWidgetManager.getInstance(ctx);
+        for (int id : ids) {
+            int k = WidgetProvider.variant(ctx, awm, id), rowW = WidgetProvider.widthDp(ctx, awm, id);
+            RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
+            for (int i = 0; i < 4; i++) rv.setImageViewBitmap(bgIds[i], cell(liveClocks[i], i, rowW).frame(ms));
+            awm.partiallyUpdateAppWidget(id, rv);
+        }
     }
 
     /** Draws bmp scaled to cover dst (centre-crop) with anti-aliased rounded corners. */

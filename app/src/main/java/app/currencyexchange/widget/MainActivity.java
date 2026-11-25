@@ -184,6 +184,44 @@ public class MainActivity extends Activity {
         cp.topMargin = dp(12);
         rates.addView(conv, cp);
 
+        // ---- World clocks: animated or still skies (2.05) ----
+        LinearLayout skies = card(col, "WORLD CLOCK SKIES");
+        LinearLayout skyModes = hbox();
+        final TextView[] skyBtn = new TextView[2];
+        final String[] skyLabels = {"ANIMATED", "STILL"};
+        final Runnable paintSkies = () -> {
+            boolean animated = Store.animateSkies(this);
+            for (int i = 0; i < 2; i++) {
+                boolean on = (i == 0) == animated;
+                skyBtn[i].setTextColor(on ? Theme.onLit() : Theme.TEXT_SOFT);
+                skyBtn[i].setBackground(on ? Theme.lit(this, 12, false) : Theme.dark(this, 12, false));
+                skyBtn[i].setElevation(0);
+            }
+        };
+        for (int i = 0; i < 2; i++) {
+            final boolean animate = i == 0;
+            skyBtn[i] = text(skyLabels[i], 13, Theme.uiSemi(this), Theme.TEXT_SOFT);
+            Theme.label(this, skyBtn[i]);
+            skyBtn[i].setLetterSpacing(0.12f);
+            skyBtn[i].setGravity(Gravity.CENTER);
+            skyBtn[i].setPadding(dp(6), dp(14), dp(6), dp(14));
+            skyBtn[i].setClickable(true);
+            skyBtn[i].setOnClickListener(v -> {
+                Store.setAnimateSkies(this, animate);
+                paintSkies.run();
+                WidgetProvider.updateAll(getApplicationContext());
+                LiveService.ensure(getApplicationContext());
+            });
+            addWeighted(skyModes, skyBtn[i], i == 0 ? 0 : 8);
+        }
+        skies.addView(skyModes, matchWrap(0));
+        paintSkies.run();
+        TextView skyHint = text("Animated: the stars twinkle, the clouds drift, the trees sway with the wind and now and then a "
+                + "plane crosses far away, while the screen is on. It needs the same small notification as the Sound widget "
+                + "and uses a little more battery. Still: one picture a minute.", 12, Theme.uiMedium(this), Theme.DIM);
+        skyHint.setPadding(dp(2), dp(8), 0, 0);
+        skies.addView(skyHint);
+
         // ---- SBB clock: only the animation options ----
         LinearLayout sbb = card(col, "SBB CLOCK ANIMATION");
         sbbMode = Store.sbbMode(this);

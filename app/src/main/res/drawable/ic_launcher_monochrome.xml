@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The icon's globe as a single colour, for themed icons: its rim, a meridian and the equator (the far side fainter). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,27.5a26.5,26.5 0,1 1,0 53a26.5,26.5 0,1 1,0 -53z"
+        android:strokeWidth="3.2"
+        android:strokeColor="#FFFFFFFF" />
+    <path
+        android:pathData="M54,30.2a11,23.8 0,1 1,0 47.6a11,23.8 0,1 1,0 -47.6z"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFFFF" />
+    <path
+        android:pathData="M30.2,54a23.8,4.6 0,0 0,47.6 0"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFFFF" />
+    <path
+        android:pathData="M30.2,54a23.8,4.6 0,0 1,47.6 0"
+        android:strokeWidth="2"
+        android:strokeAlpha="0.45"
+        android:strokeColor="#FFFFFFFF" />
+</vector>
