@@ -38,6 +38,10 @@ final class SkyCell {
     private final Paint clear = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private static final LruCache<String, SkyCell> CELLS = new LruCache<>(12);
+    /** For test pictures: the moment the sun and moon are placed for, instead of now (0: now). */
+    static long clock = 0;
+
+    private static long now() { return clock > 0 ? clock : System.currentTimeMillis(); }
 
     /**
      * The cell for {@code city} (at {@code lat}, {@code lon}, in {@code zone}), the sun {@code elevation} degrees up, in the
@@ -49,7 +53,7 @@ final class SkyCell {
                                     int cloud, int code, int wind, int w, int h, float px, int side, float r) {
         float el = Math.round(elevation * 2) / 2f;
         // the moon where it really is, built again each time it has moved a degree or so (2.08)
-        double[] moon = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.moon(lat, lon, System.currentTimeMillis());
+        double[] moon = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.moon(lat, lon, now());
         String moonKey = moon == null || moon[0] < Math.toRadians(-2) ? "-"
                 : Math.round(Math.toDegrees(moon[0])) + "," + Math.round(Math.toDegrees(moon[1])) + "," + Math.round(moon[2] * 50);
         String spec = city + "|" + el + "|" + sunLeft + "|" + (cloud < 0 ? -1 : cloud / 5) + "|" + code + "|"
@@ -68,7 +72,7 @@ final class SkyCell {
         this.seed = city == null ? 0 : city.hashCode();
         this.px = px;
         this.wind = wind;
-        double[] sun = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.sun(lat, lon, System.currentTimeMillis());
+        double[] sun = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.sun(lat, lon, now());
         sky = Sky.layers(w, h, px, el, cloud, code, seed, sunLeft, moon, sun);
         light = CityScene.light(sky, sunLeft);
         built = CityScene.build(city, lat, w, h, px, light, seed);

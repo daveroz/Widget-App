@@ -115,8 +115,12 @@ final class Sky {
         L.seed = seed;
         float e = (float) Math.max(AT[0], Math.min(AT[AT.length - 1], elevation));
         L.e = e;
-        int[] sky = blend(sunLeft ? MORNING : EVENING, e);
-        int lit = blend1(sunLeft ? LIT_MORNING : LIT_EVENING, e), shade = blend1(sunLeft ? SHADE_MORNING : SHADE_EVENING, e);
+        // the morning's colours handing over to the evening's as the sun crosses the south (2.17: by its real direction,
+        // half and half at noon, so there's no step even on a short winter day whose sun stays low)
+        float morning = sun != null ? clamp(0.5f - (float) (sun[1] / (Math.PI / 3))) : (sunLeft ? 1f : 0f);
+        int[] sky = mixAll(blend(EVENING, e), blend(MORNING, e), morning);
+        int lit = Scene.mix(blend1(LIT_EVENING, e), blend1(LIT_MORNING, e), morning);
+        int shade = Scene.mix(blend1(SHADE_EVENING, e), blend1(SHADE_MORNING, e), morning);
         float cover = cloud < 0 ? 0.25f : Math.max(0f, Math.min(1f, cloud / 100f));
         L.rain = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
         L.snow = (code >= 71 && code <= 77) || code == 85 || code == 86;
@@ -257,85 +261,19 @@ final class Sky {
             int sw = 2 * w;
             L.clouds = Bitmap.createBitmap(sw, h, Bitmap.Config.ARGB_8888);
             Canvas cc = new Canvas(L.clouds);
-            Random r = new Random(seed);
-            boolean heaps = e > 10f && !L.rain && !L.snow; // midday: cumulus heaps; otherwise long bands
-            float rim = (e > 10f ? 1.4f : 1.5f) * px;
-            Paint body = new Paint(Paint.ANTI_ALIAS_FLAG);
-            body.setColor(lit);
-            java.util.List<float[]> ovals = new java.util.ArrayList<>(); // l, t, r, b
-            java.util.List<float[]> clips = new java.util.ArrayList<>(); // a heap's flat base
-            if (heaps) {
-                int count = 2 * (1 + Math.round(cover * 5));
-                for (int i = 0; i < count; i++) {
-                    ovals.add(null);
-                    clips.add(null);
-                    float cx = r.nextFloat() * sw, base = h * (0.22f + r.nextFloat() * 0.38f), size = w * (0.16f + r.nextFloat() * 0.16f);
-                    int puffs = 6 + r.nextInt(4);
-                    for (int k = 0; k < puffs; k++) {
-                        float px0 = cx + (r.nextFloat() - 0.5f) * size * 1.6f, rad = size * (0.22f + r.nextFloat() * 0.26f);
-                        float py0 = base - rad * (0.35f + r.nextFloat() * 0.5f) - (1 - Math.abs(px0 - cx) / size) * size * 0.25f;
-                        ovals.add(new float[]{px0 - rad, py0 - rad, px0 + rad, py0 + rad});
-                        clips.add(new float[]{base});
-                    }
-                }
-                int wisps = 2 + r.nextInt(3); // and a few thin streaks high up
-                for (int i = 0; i < wisps; i++) {
-                    ovals.add(null);
-                    clips.add(null);
-                    float cx = r.nextFloat() * sw, cy = h * (0.08f + r.nextFloat() * 0.18f), bw = w * (0.3f + r.nextFloat() * 0.4f);
-                    ovals.add(new float[]{cx - bw / 2, cy - h * 0.012f, cx + bw / 2, cy + h * 0.012f});
-                    clips.add(null);
-                }
-            } else {
-                boolean heavy = cover > 0.7f;
-                int bands = 2 * (2 + Math.round(cover * (heavy ? 11 : 6)));
-                for (int i = 0; i < bands; i++) {
-                    ovals.add(null);
-                    clips.add(null);
-                    float cx = r.nextFloat() * sw, cy = h * ((heavy ? 0f : 0.06f) + r.nextFloat() * (heavy ? 0.7f : 0.5f));
-                    float bw = w * (0.4f + r.nextFloat() * 0.55f) * (heavy ? 1.5f : 1f);
-                    float bh = h * (0.04f + r.nextFloat() * 0.035f) * (heavy ? 2.2f : 1f);
-                    int bits = 8 + r.nextInt(6);
-                    for (int k = 0; k < bits; k++) { // a band: lumps of all sizes along a gentle line, scalloped on top
-                        float t = k / (float) (bits - 1);
-                        float x = cx + (t - 0.5f) * bw + (r.nextFloat() - 0.5f) * bw * 0.06f;
-                        float rx = bw * (0.06f + r.nextFloat() * 0.08f);
-                        float ry = bh * (0.55f + r.nextFloat() * 0.75f) * (1f - 0.55f * Math.abs(t - 0.5f));
-                        float y = cy + (float) Math.sin(t * 3 + i) * bh * 0.35f - ry * 0.25f;
-                        ovals.add(new float[]{x - rx, y - ry, x + rx, y + ry * 0.5f});
-                        clips.add(null);
-                    }
-                }
-            }
-            // each cloud on its own, from the highest down, so each keeps its own lit edge over the ones behind it
-            Paint dark = new Paint(Paint.ANTI_ALIAS_FLAG);
-            dark.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP));
-            dark.setShader(new LinearGradient(0, 0, 0, h, Scene.mix(shade, sky[0], 0.15f), Scene.mix(shade, lit, heaps ? 0.15f : 0.05f),
-                    Shader.TileMode.CLAMP));
-            java.util.List<int[]> clouds = new java.util.ArrayList<>(); // each: its first and last lump
-            float[] bottom = new float[ovals.size()];
-            for (int i = 0; i < ovals.size(); i++) {
-                if (ovals.get(i) == null) { clouds.add(new int[]{i + 1, i}); continue; }
-                int[] cl = clouds.get(clouds.size() - 1);
-                cl[1] = i;
-            }
-            java.util.List<float[]> order = new java.util.ArrayList<>(); // cloud index, its lowest edge
-            for (int k = 0; k < clouds.size(); k++) {
-                float low = 0;
-                for (int i = clouds.get(k)[0]; i <= clouds.get(k)[1]; i++) low = Math.max(low, ovals.get(i)[3]);
-                order.add(new float[]{k, low});
-            }
-            java.util.Collections.sort(order, (a, b2) -> Float.compare(a[1], b2[1]));
+            // the long bands of a low sun fading into midday's heaps as the sun climbs from 6 to 14 degrees (2.17), each
+            // set always in its own places, so neither jumps while they cross
+            float heapy = L.rain || L.snow ? 0f : clamp((e - 6f) / 8f);
             int alpha = Math.round(255 * (0.85f + 0.13f * cover));
-            for (float[] o : order) {
-                int[] cl = clouds.get((int) o[0]);
-                if (cl[1] < cl[0]) continue;
-                java.util.List<float[]> ov = ovals.subList(cl[0], cl[1] + 1), cp = clips.subList(cl[0], cl[1] + 1);
-                cc.saveLayerAlpha(new RectF(0, 0, sw, h), alpha);
-                drawOvals(cc, ov, cp, body, sw, 0);
-                // its shade over its body, shifted off the lit edge (up when the sun is low, down at midday): a lit rim stays
-                drawOvals(cc, ov, cp, dark, sw, heaps ? rim : -rim);
-                cc.restore();
+            if (heapy < 1f) {
+                java.util.List<float[]> ovals = new java.util.ArrayList<>(), clips = new java.util.ArrayList<>();
+                bands(new Random(seed), ovals, clips, sw, w, h, cover);
+                paintClouds(cc, ovals, clips, sw, h, lit, shade, sky[0], false, Math.round(alpha * (1f - heapy)), 1.5f * px);
+            }
+            if (heapy > 0f) {
+                java.util.List<float[]> ovals = new java.util.ArrayList<>(), clips = new java.util.ArrayList<>();
+                heaps(new Random(seed ^ 0xC10D5L), ovals, clips, sw, w, h, cover);
+                paintClouds(cc, ovals, clips, sw, h, lit, shade, sky[0], true, Math.round(alpha * heapy), 1.4f * px);
             }
             if (cover > 0.6f) { // overcast: the clouds close over the sky
                 L.over = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
@@ -362,6 +300,99 @@ final class Sky {
         fc.drawRect(0, 0, w, h, p);
         p.setShader(null);
         return L;
+    }
+
+    /** Midday's cumulus heaps (lumps with flat bases) and a few thin streaks high up; a null starts each cloud. */
+    private static void heaps(Random r, java.util.List<float[]> ovals, java.util.List<float[]> clips, int sw, int w, int h,
+                              float cover) {
+        int count = 2 * (1 + Math.round(cover * 5));
+        for (int i = 0; i < count; i++) {
+            ovals.add(null);
+            clips.add(null);
+            float cx = r.nextFloat() * sw, base = h * (0.22f + r.nextFloat() * 0.38f), size = w * (0.16f + r.nextFloat() * 0.16f);
+            int puffs = 6 + r.nextInt(4);
+            for (int k = 0; k < puffs; k++) {
+                float px0 = cx + (r.nextFloat() - 0.5f) * size * 1.6f, rad = size * (0.22f + r.nextFloat() * 0.26f);
+                float py0 = base - rad * (0.35f + r.nextFloat() * 0.5f) - (1 - Math.abs(px0 - cx) / size) * size * 0.25f;
+                ovals.add(new float[]{px0 - rad, py0 - rad, px0 + rad, py0 + rad});
+                clips.add(new float[]{base});
+            }
+        }
+        int wisps = 2 + r.nextInt(3);
+        for (int i = 0; i < wisps; i++) {
+            ovals.add(null);
+            clips.add(null);
+            float cx = r.nextFloat() * sw, cy = h * (0.08f + r.nextFloat() * 0.18f), bw = w * (0.3f + r.nextFloat() * 0.4f);
+            ovals.add(new float[]{cx - bw / 2, cy - h * 0.012f, cx + bw / 2, cy + h * 0.012f});
+            clips.add(null);
+        }
+    }
+
+    /** A low sun's long bands of cloud, lumps of all sizes scalloped on top (heavier in rain); a null starts each. */
+    private static void bands(Random r, java.util.List<float[]> ovals, java.util.List<float[]> clips, int sw, int w, int h,
+                              float cover) {
+        boolean heavy = cover > 0.7f;
+        int bands = 2 * (2 + Math.round(cover * (heavy ? 11 : 6)));
+        for (int i = 0; i < bands; i++) {
+            ovals.add(null);
+            clips.add(null);
+            float cx = r.nextFloat() * sw, cy = h * ((heavy ? 0f : 0.06f) + r.nextFloat() * (heavy ? 0.7f : 0.5f));
+            float bw = w * (0.4f + r.nextFloat() * 0.55f) * (heavy ? 1.5f : 1f);
+            float bh = h * (0.04f + r.nextFloat() * 0.035f) * (heavy ? 2.2f : 1f);
+            int bits = 8 + r.nextInt(6);
+            for (int k = 0; k < bits; k++) {
+                float t = k / (float) (bits - 1);
+                float x = cx + (t - 0.5f) * bw + (r.nextFloat() - 0.5f) * bw * 0.06f;
+                float rx = bw * (0.06f + r.nextFloat() * 0.08f);
+                float ry = bh * (0.55f + r.nextFloat() * 0.75f) * (1f - 0.55f * Math.abs(t - 0.5f));
+                float y = cy + (float) Math.sin(t * 3 + i) * bh * 0.35f - ry * 0.25f;
+                ovals.add(new float[]{x - rx, y - ry, x + rx, y + ry * 0.5f});
+                clips.add(null);
+            }
+        }
+    }
+
+    /**
+     * Paints the clouds one by one, from the highest down, each keeping its own lit edge over the ones behind it: its
+     * body in the lit colour, then its shade shifted off the lit edge ({@code rim} pixels: up when the sun is low, down
+     * for midday's {@code heaps}), at {@code alpha}.
+     */
+    private static void paintClouds(Canvas cc, java.util.List<float[]> ovals, java.util.List<float[]> clips, int sw, int h,
+                                    int lit, int shade, int top, boolean heaps, int alpha, float rim) {
+        if (alpha <= 0) return;
+        Paint body = new Paint(Paint.ANTI_ALIAS_FLAG);
+        body.setColor(lit);
+        Paint dark = new Paint(Paint.ANTI_ALIAS_FLAG);
+        dark.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP));
+        dark.setShader(new LinearGradient(0, 0, 0, h, Scene.mix(shade, top, 0.15f), Scene.mix(shade, lit, heaps ? 0.15f : 0.05f),
+                Shader.TileMode.CLAMP));
+        java.util.List<int[]> clouds = new java.util.ArrayList<>();
+        for (int i = 0; i < ovals.size(); i++) {
+            if (ovals.get(i) == null) { clouds.add(new int[]{i + 1, i}); continue; }
+            clouds.get(clouds.size() - 1)[1] = i;
+        }
+        java.util.List<float[]> order = new java.util.ArrayList<>();
+        for (int k = 0; k < clouds.size(); k++) {
+            float low = 0;
+            for (int i = clouds.get(k)[0]; i <= clouds.get(k)[1]; i++) low = Math.max(low, ovals.get(i)[3]);
+            order.add(new float[]{k, low});
+        }
+        java.util.Collections.sort(order, (a, b) -> Float.compare(a[1], b[1]));
+        for (float[] o : order) {
+            int[] cl = clouds.get((int) o[0]);
+            if (cl[1] < cl[0]) continue;
+            java.util.List<float[]> ov = ovals.subList(cl[0], cl[1] + 1), cp = clips.subList(cl[0], cl[1] + 1);
+            cc.saveLayerAlpha(new RectF(0, 0, sw, h), alpha);
+            drawOvals(cc, ov, cp, body, sw, 0);
+            drawOvals(cc, ov, cp, dark, sw, heaps ? rim : -rim);
+            cc.restore();
+        }
+    }
+
+    private static int[] mixAll(int[] a, int[] b, float t) {
+        int[] out = new int[a.length];
+        for (int i = 0; i < a.length; i++) out[i] = Scene.mix(a[i], b[i], t);
+        return out;
     }
 
     /** The cloud lumps, each clipped to its heap's flat base when it has one, shifted {@code dy} down. */
