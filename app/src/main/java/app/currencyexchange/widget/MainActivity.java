@@ -320,8 +320,7 @@ public class MainActivity extends Activity {
                 LinearLayout t = tile(false);
                 t.setGravity(Gravity.START);
                 t.setPadding(dp(18), dp(18), dp(18), dp(16));
-                cityName[i] = text("", 16, Theme.uiMedium(this), Theme.TEXT);
-                cityName[i].setLetterSpacing(0.06f);
+                cityName[i] = text("", 17, Theme.uiMedium(this), Theme.TEXT);
                 cityName[i].setSingleLine(true);
                 cityName[i].setEllipsize(android.text.TextUtils.TruncateAt.END);
                 t.addView(cityName[i]);
@@ -787,15 +786,15 @@ public class MainActivity extends Activity {
     private void updateClockTiles() {
         if (cityName[0] == null) return;
         CurrencyView.Clock[] ks = CurrencyView.clocks(this, System.currentTimeMillis());
-        DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEE", Locale.getDefault());
+        DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault());
         DateTimeFormatter timeF = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
         for (int i = 0; i < 4; i++) {
             ZonedDateTime now = ZonedDateTime.now(ks[i].zone);
-            cityName[i].setText(ks[i].city.trim().toUpperCase(Locale.getDefault())); // as the widget's (2.23)
+            cityName[i].setText(Util.capWords(ks[i].city));
             int off = now.getOffset().getTotalSeconds() / 60;
             String utc = "UTC" + (off < 0 ? "−" : "+") + Math.abs(off) / 60 + (Math.abs(off) % 60 == 0 ? ""
                     : String.format(Locale.US, ":%02d", Math.abs(off) % 60));
-            cityWhen[i].setText(now.format(dayF).replace(".", "").toUpperCase(Locale.getDefault()) + " · " + utc);
+            cityWhen[i].setText(now.format(dayF) + " · " + utc);
             cityTime[i].setText(now.format(timeF));
         }
     }

@@ -10,8 +10,8 @@ android {
         applicationId 'app.currencyexchange.widget'
         minSdk 26
         targetSdk 34
-        versionCode 124
-        versionName '2.23'
+        versionCode 125
+        versionName '2.24'
     }
 
     compileOptions {
