@@ -129,6 +129,33 @@ final class Theme {
     }
 
     /**
+     * A tile on the settings screen (2.20): a card ({@link #card}); {@code lifted}, the one that stands out in a row of
+     * them, as the reference's "Next service" tile, a lighter grey glass.
+     */
+    static Drawable tile(Context c, float radiusDp, boolean lifted) {
+        Card k = new Card(dp(c, radiusDp), dp(c, 1), CARD);
+        k.lifted = lifted;
+        return k;
+    }
+
+    /** How strong the glass ring round the page's badge is along its length ({@link #glassEdge}). */
+    private static final float[] RING_RIM = {0.75f, 0.55f, 0.28f, 0.2f, 0.26f, 0.42f, 0.5f};
+
+    /** A ring of crystal round something round (2.20: the page's badge, as the car app's logo in its glass ring). */
+    static Drawable ring(Context c) {
+        return new GlassButton(0x00000000, 0, dp(c, 1.3f), Stage.ICE, RING_RIM, true);
+    }
+
+    /** A pill (2.20): fully round ends, {@code fill}, and a faint line of light along its top when {@code edged}. */
+    static GradientDrawable pill(Context c, int fill, boolean edged) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(fill);
+        g.setCornerRadius(dp(c, 100));
+        if (edged) g.setStroke(Math.max(1, Math.round(dp(c, 0.8f))), Scene.alpha(Stage.ICE, 0.12f));
+        return g;
+    }
+
+    /**
      * A well inside a card: inputs and pickers, a pane of the crystal's navy glass (2.06) with an icy hairline. The edge
      * turns to the key when it's focused or pressed.
      */
@@ -146,6 +173,8 @@ final class Theme {
     static final class Card extends Drawable {
         private final float radius, px;
         private final int fill;
+        /** The tile that stands out in a row (2.20): a lighter grey glass. */
+        boolean lifted;
         private final Scene scene = accent();
         private Bitmap picture;
 
@@ -170,6 +199,12 @@ final class Theme {
                 float r = Math.min(radius, b.height() / 2f), opacity = ((fill >>> 24) & 0xFF) / 255f;
                 RectF box = new RectF(0, 0, b.width(), b.height());
                 Stage.fill(c, box, Stage.round(r), scene, opacity, px, 0f, null); // the same card as the widgets'
+                if (lifted) {
+                    Paint lift = new Paint(Paint.DITHER_FLAG);
+                    lift.setShader(new android.graphics.LinearGradient(0, 0, 0, b.height(), Scene.alpha(0xFFA8B4C4, 0.13f),
+                            Scene.alpha(0xFFA8B4C4, 0.09f), android.graphics.Shader.TileMode.CLAMP));
+                    c.drawRect(box, lift);
+                }
                 c.restore();
                 Stage.rim(c, box, Stage.round(r), px);
             }
@@ -291,9 +326,11 @@ final class Theme {
             if (b.width() <= 0 || b.height() <= 0) return;
             box.set(b);
             float r = round ? Math.min(b.width(), b.height()) / 2f : Math.min(radius, b.height() / 2f);
-            paint.setStyle(Paint.Style.FILL);
-            paint.setShader(crystal(box, fill));
-            canvas.drawRoundRect(box, r, r, paint);
+            if ((fill >>> 24) != 0) { // a ring (2.20) has no fill: only its rim over what's under it
+                paint.setStyle(Paint.Style.FILL);
+                paint.setShader(crystal(box, fill));
+                canvas.drawRoundRect(box, r, r, paint);
+            }
             float in = stroke / 2;
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(stroke);
@@ -385,6 +422,31 @@ final class Theme {
         protected void onDraw(Canvas canvas) {
             Lens.text(this, canvas);
             super.onDraw(canvas);
+        }
+    }
+
+    /**
+     * Big numbers (2.20), as the reference's "89" and "54,320": polished metal, white at the top of the figures
+     * turning to a cool silver at their foot. No fringe, no glow.
+     */
+    static class Chrome extends TextView {
+        Chrome(Context c) {
+            super(c);
+        }
+
+        @Override
+        public void setTextSize(int unit, float size) {
+            super.setTextSize(unit, size * FONT_SCALE);
+        }
+
+        @Override
+        protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            super.onLayout(changed, l, t, r, b);
+            Paint.FontMetrics fm = getPaint().getFontMetrics();
+            float base = getBaseline(), top = base + fm.ascent * 0.78f;
+            getPaint().setShader(new android.graphics.LinearGradient(0, top, 0, base,
+                    new int[]{0xFFFFFFFF, 0xFFE6EAF0, 0xFFA3ACB8}, new float[]{0f, 0.42f, 1f},
+                    android.graphics.Shader.TileMode.CLAMP));
         }
     }
 

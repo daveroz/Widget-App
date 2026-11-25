@@ -31,11 +31,27 @@ the widgets and settings, so add them again afterwards.
 
 ## Install & set up
 1. Install the APK (allow "install unknown apps").
-2. Open **Worldly**, check cities / currencies / fee, tap **Save & refresh**.
-3. Tap **Use my location for weather** (or type a home city).
-4. Tap **Add widget to home screen**.
-The status text at the bottom of the settings screen shows what worked and what failed
-(cities, market rate, Visa, weather).
+2. Open **Worldly**: pick your cities under **Clocks** and your currencies and fee under **Rates**, then tap
+   **Refresh** (the pill over the tab bar).
+3. Under **Status**, allow location for the weather (and whatever else the widgets ask for).
+4. Under **Widgets**, tap one to add it to your home screen.
+The **Status** tab shows what worked and what failed (cities, market rate, Visa, weather, clock updates).
+
+### The app (since 2.20)
+Five tabs, after the segmented control, tab bar and car app references, in the dark:
+- **Tab bar**: frosted glass across the bottom (the pages blur through it, `GlassBar` docked), each tab a line icon
+  over its name (`Glyph`); the open tab's icon filled and white, the others slate. A light **Refresh** pill floats
+  just above it, as the reference's Map button; it shows what it's doing while it works.
+- **Pages** open as the car app's screen: the crystal globe in a glass ring, the page's name in big white letters and
+  a grey line under it. **Home**: the four world clocks' live skies as the hero (`SkyStrip`, moving while you look,
+  reflected on the dark as on a polished floor), the first rate in big polished figures ("3,921 COP per USD"), a row
+  of three tiles (Visa by card, minutes since the last update raised in the middle, the weather where you are) and an
+  amber pill for whatever needs your attention. **Clocks**: the four cities as tiles with their day, UTC offset and
+  time, and the skies' motion. **Rates**: your currencies as lines with their flags and rates, how many rows the
+  widget shows, what they convert to, your bank's fee (kept as you type). **Widgets**: a tile for each widget (tap to
+  add it), and the SBB clock's motion. **Status**: access (each with an Allow pill until it's allowed) and live data.
+- **Choices are segmented controls** (`Segmented`): a recessed track, the options side by side with their icons, the
+  chosen one white on a raised pill that slides across to whatever you pick.
 
 ## Widgets (5)
 
@@ -95,7 +111,7 @@ stays at Friday's close.
   fading almost to nothing across the top middle and the bottom left, and coming back, softer, at the bottom right
   (measured off the store's "Shop all" button; fuller on the lit buttons). Every control has the same 12 dp corners,
   on or off.
-- **The settings screen's header is a bar of frosted glass** (`GlassBar`), after the Justice store's header: it floats
+- **The settings screen's header was a bar of frosted glass** until 2.20 (now the tab bar is; see "The app"), after the Justice store's header: it floated
   at the top while the cards scroll under it, and they show through it heavily blurred, under a translucent dark grey
   with a faint sheen and the same glass rim as the buttons, brighter all round. Since 2.18 it really blurs what scrolls under it on every phone: on Android 12 and up the cards' frame is drawn again through the system's blur (`BackdropFrame`, `RenderEffect`); before that a small blurred picture of it is taken, and if that can't be done the glass is drawn nearly solid rather than showing the cards sharp through it. What's behind is drawn small, blurred and stretched back
   up, again after every scroll and now and then for the room's drifting light. Only in the app; the widgets can't see
@@ -174,7 +190,8 @@ from there, so one edit restyles everything.
 ## Code map (`app/src/main/java/app/currencyexchange/widget/`)
 `Renderer` draws everything onto one bitmap; `Trend` sets the rate history's window (no longer drawn since 2.01); `Fetcher` does all network calls; `Store` holds settings
 and cache; `SunCalc` offline sun times; `WidgetProvider` + `RefreshJobService` handle updates;
-`MainActivity` is the settings screen; `Util`, `Net`, `Flags` are helpers.
+`MainActivity` is the app (its five tabs; `Segmented` its choices, `Glyph` its icons, `SkyStrip` Home's live
+clocks); `Util`, `Net`, `Flags` are helpers.
 Sound widget: `NowPlaying` reads the playing media session (through `MediaListener`, the notification listener),
 `SoundWave` gives the sound's levels (audio visualizer, or made-up levels that move like music), `SoundLights` is the
 wall of lamps (`Airstream` its motion when nothing plays), `SoundRecord` the LP, `SoundPicture` lays out one widget's picture, `Scene` and `Colours` give its
@@ -182,8 +199,8 @@ light, and `SoundWidgetProvider` + `LiveService` send the frames. Music widget: 
 `PlayerWidgetProvider` (controls drawn by `SoundControls`), updated by `MediaListener`. `Words` writes what's playing
 for both; `Stage` the card every widget and the app sits on, `Look` how strong each
 effect is, `Ambience` the light they share, `Glow` the colours its text is drawn in, `Lens` the colour fringe on the
-brightest things, `Optics` the light strikes, glass reflections and halation, and `GlassBar` the settings screen's
-frosted header.
+brightest things, `Optics` the light strikes, glass reflections and halation, and `GlassBar` the app's
+frosted tab bar.
 Layout units are the 750-wide grid of the original preset.
 
 Layout note: the Calendar and Currency widgets are native views with weighted rows/columns (text drawn as small pictures in the app's font), so they follow the widget's real width and height; only flags, the Visa logo and clock backgrounds are small bitmaps.
