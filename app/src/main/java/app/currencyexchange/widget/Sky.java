@@ -77,15 +77,15 @@ final class Sky {
      * {@code seed}.
      */
     static Layers layers(int w, int h, float px, double elevation, int cloud, int code, long seed) {
-        return layers(w, h, px, elevation, cloud, code, seed, false, 0L, Float.NaN);
+        return layers(w, h, px, elevation, cloud, code, seed, false, null);
     }
 
     /**
-     * As above, with the sun on the left ({@code sunLeft}, the morning) or the right near the horizon, and, at {@code ms}
-     * (0: none), the moon in its phase on a clear night while it's up, {@code localHour} being the city's hour (2.06).
+     * As above, with the sun on the left ({@code sunLeft}, the morning) or the right near the horizon, and the moon where
+     * it really is ({@code moon}, from {@link SunCalc#moon}; null when unknown).
      */
     static Layers layers(int w, int h, float px, double elevation, int cloud, int code, long seed, boolean sunLeft,
-                         long ms, float localHour) {
+                         double[] moon) {
         Layers L = new Layers();
         L.w = w = Math.max(2, w);
         L.h = h = Math.max(2, h);
@@ -131,29 +131,43 @@ final class Sky {
             p.setColor(Scene.alpha(Scene.mix(sun, 0xFFFFFFFF, 0.45f), 0.95f * vis));
             c.drawCircle(sx, sy, 2.8f * px, p);
         }
-        // the moon on a clear night, in its phase (waxing lit on the right), away from the clock's text
-        if (ms > 0 && e < -3f && cover < 0.8f && !Float.isNaN(localHour)) {
-            double ph = ((ms / 86400000.0 - 10962.76) / 29.530588) % 1.0;
-            if (ph < 0) ph += 1;
-            float lit = (float) ((1 - Math.cos(2 * Math.PI * ph)) / 2);
-            // it crosses the sky about six hours either side of its highest, which comes at noon at the new moon and
-            // at midnight at the full: up from the left (east), highest over the middle (above the clock), down right
-            double ha = ((localHour - (12 + ph * 24)) % 24 + 36) % 24 - 12;
-            float vis = clamp((-3f - e) / 4f) * (1f - cover) * clamp((6.2f - (float) Math.abs(ha)) / 0.8f);
-            if (lit > 0.04f && vis > 0.02f) {
-                double a = ha / 6 * Math.PI / 2;
-                float mr = 2.9f * px, mx = w * (0.5f + 0.4f * (float) Math.sin(a)), my = h * (0.075f + 0.3f * (1 - (float) Math.cos(a)));
-                p.setShader(new RadialGradient(mx, my, mr * 5, Scene.alpha(0xFFE8ECF6, 0.16f * vis * lit), 0x00E8ECF6,
-                        Shader.TileMode.CLAMP));
-                c.drawCircle(mx, my, mr * 5, p);
-                p.setShader(null);
-                c.saveLayer(mx - mr * 2, my - mr * 2, mx + mr * 2, my + mr * 2, null);
-                p.setColor(Scene.alpha(0xFFF1EEE2, 0.95f * vis));
+        // the moon where it really is (2.08): only while it's above this city's horizon, east on the left and west on
+        // the right, as high as it stands; lit as much as it is, its bright side turned towards the sun, the dark part
+        // faintly there (earthshine); pale by day, bright at night, dimmed by the clouds; behind the buildings
+        if (moon != null && cover < 0.85f) {
+            float altD = (float) Math.toDegrees(moon[0]), lit = (float) moon[2];
+            float dark = clamp((1f - e) / 7f);
+            float vis = clamp((altD + 0.5f) / 1.5f) * (1f - cover) * (0.38f + 0.6f * dark);
+            if (lit > 0.03f && vis > 0.02f) {
+                float mx = w * (0.5f + 0.42f * (float) Math.sin(moon[1])), my = h * (0.8f - 0.72f * clamp(altD / 60f));
+                float mr = 2.9f * px;
+                int pale = 0xFFF1EEE2;
+                if (dark > 0.3f) {
+                    p.setShader(new RadialGradient(mx, my, mr * 5, Scene.alpha(0xFFE8ECF6, 0.16f * vis * lit), 0x00E8ECF6,
+                            Shader.TileMode.CLAMP));
+                    c.drawCircle(mx, my, mr * 5, p);
+                    p.setShader(null);
+                }
+                p.setColor(Scene.alpha(pale, 0.1f * vis * dark));
                 c.drawCircle(mx, my, mr, p);
-                Paint cut = new Paint(Paint.ANTI_ALIAS_FLAG);
-                cut.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT));
-                float off = 2 * mr * lit * (ph < 0.5 ? -1 : 1);
-                if (lit < 0.97f) c.drawCircle(mx + off, my, mr, cut);
+                double zen = moon[3];
+                c.save();
+                c.translate(mx, my);
+                c.rotate((float) Math.toDegrees(Math.atan2(-Math.cos(zen), -Math.sin(zen)))); // its bright limb along +x
+                android.graphics.Path litPart = new android.graphics.Path();
+                float k = mr * (1 - 2 * lit);
+                for (int i = 0; i <= 24; i++) { // the bright limb, top to bottom round the lit side
+                    double t = Math.toRadians(-90 + i * 7.5);
+                    float x = mr * (float) Math.cos(t), y = mr * (float) Math.sin(t);
+                    if (i == 0) litPart.moveTo(x, y); else litPart.lineTo(x, y);
+                }
+                for (int i = 24; i >= 0; i--) { // the terminator back up: half an ellipse, its bulge set by the phase
+                    double t = Math.toRadians(-90 + i * 7.5);
+                    litPart.lineTo(k * (float) Math.cos(t), mr * (float) Math.sin(t));
+                }
+                litPart.close();
+                p.setColor(Scene.alpha(pale, 0.95f * vis));
+                c.drawPath(litPart, p);
                 c.restore();
             }
         }

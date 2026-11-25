@@ -40,33 +40,35 @@ final class SkyCell {
     private static final LruCache<String, SkyCell> CELLS = new LruCache<>(12);
 
     /**
-     * The cell for {@code city} (latitude {@code lat}, in {@code zone}), the sun {@code elevation} degrees up, in the
+     * The cell for {@code city} (at {@code lat}, {@code lon}, in {@code zone}), the sun {@code elevation} degrees up, in the
      * morning ({@code sunLeft}) or afternoon, with {@code cloud} % cover, WMO weather {@code code} and {@code wind}
      * km/h (-1 each when unknown); {@code w} × {@code h} pixels at {@code px} per dp; {@code side} 0 for a middle cell,
      * 1 for the left one (the card's round corners on its left, radius {@code r} pixels), 2 for the right one.
      */
-    static synchronized SkyCell get(String city, double lat, ZoneId zone, double elevation, boolean sunLeft, int cloud,
-                                    int code, int wind, int w, int h, float px, int side, float r) {
+    static synchronized SkyCell get(String city, double lat, double lon, ZoneId zone, double elevation, boolean sunLeft,
+                                    int cloud, int code, int wind, int w, int h, float px, int side, float r) {
         float el = Math.round(elevation * 2) / 2f;
+        // the moon where it really is, built again each time it has moved a degree or so (2.08)
+        double[] moon = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.moon(lat, lon, System.currentTimeMillis());
+        String moonKey = moon == null || moon[0] < Math.toRadians(-2) ? "-"
+                : Math.round(Math.toDegrees(moon[0])) + "," + Math.round(Math.toDegrees(moon[1])) + "," + Math.round(moon[2] * 50);
         String spec = city + "|" + el + "|" + sunLeft + "|" + (cloud < 0 ? -1 : cloud / 5) + "|" + code + "|"
-                + (wind < 0 ? -1 : wind / 5) + "|" + w + "x" + h + "|" + px + "|" + side;
+                + (wind < 0 ? -1 : wind / 5) + "|" + w + "x" + h + "|" + px + "|" + side + "|" + moonKey;
         SkyCell hit = CELLS.get(spec);
         if (hit != null) return hit;
-        SkyCell made = new SkyCell(spec, city, lat, zone, el, sunLeft, cloud, code, wind, w, h, px, side, r);
+        SkyCell made = new SkyCell(spec, city, lat, zone, el, sunLeft, cloud, code, wind, w, h, px, side, r, moon);
         CELLS.put(spec, made);
         return made;
     }
 
     private SkyCell(String spec, String city, double lat, ZoneId zone, float el, boolean sunLeft, int cloud, int code,
-                    int wind, int w, int h, float px, int side, float r) {
+                    int wind, int w, int h, float px, int side, float r, double[] moon) {
         this.spec = spec;
         this.zone = zone;
         this.seed = city == null ? 0 : city.hashCode();
         this.px = px;
         this.wind = wind;
-        long now = System.currentTimeMillis();
-        java.time.ZonedDateTime local = Instant.ofEpochMilli(now).atZone(zone);
-        sky = Sky.layers(w, h, px, el, cloud, code, seed, sunLeft, now, local.getHour() + local.getMinute() / 60f);
+        sky = Sky.layers(w, h, px, el, cloud, code, seed, sunLeft, moon);
         light = CityScene.light(sky, sunLeft);
         built = CityScene.build(city, lat, w, h, px, light, seed);
         // the clouds cross their strip (twice the cell) in about eight minutes in a breeze, faster in a wind
