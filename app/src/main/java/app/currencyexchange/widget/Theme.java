@@ -261,10 +261,8 @@ final class Theme {
     static android.graphics.Shader glassEdge(RectF box, int colour, float[] alphas) {
         float cx = box.centerX(), cy = box.centerY(), q = (box.width() + box.height()) / 4f;
         int[] colours = new int[alphas.length];
-        // icy where the light catches it at the top left, warming towards the bottom right, as the crystal logo (2.06)
-        for (int i = 0; i < alphas.length; i++) {
-            colours[i] = Scene.alpha(Scene.mix(colour, Stage.WARM, 0.4f * RIM_AT[i] * RIM_AT[i]), alphas[i]);
-        }
+        // one colour all round: the bottom right's light the same as the top left's (2.10)
+        for (int i = 0; i < alphas.length; i++) colours[i] = Scene.alpha(colour, alphas[i]);
         return new android.graphics.LinearGradient(cx - q, cy - q, cx + q, cy + q, colours, RIM_AT,
                 android.graphics.Shader.TileMode.CLAMP);
     }

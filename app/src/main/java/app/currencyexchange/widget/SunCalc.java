@@ -65,6 +65,37 @@ final class SunCalc {
         return Math.toDegrees(Math.asin(Math.sin(latR) * Math.sin(dec) + Math.cos(latR) * Math.cos(dec) * Math.cos(h)));
     }
 
+    /**
+     * The moon at this place and instant (2.08; Meeus' "Astronomical Algorithms", as in V. Agafonkin's SunCalc, good to a
+     * degree or two): {altitude, azimuth (radians, from the south, westward; refraction included), the share of its disc
+     * that's lit, the angle of its bright limb from the zenith (radians, anticlockwise as seen)}.
+     */
+    static double[] moon(double lat, double lon, long epochMs) {
+        double rad = Math.PI / 180, d = epochMs / 86400000.0 + 2440587.5 - 2451545.0, e = rad * 23.4397;
+        // the moon's ecliptic longitude, latitude and distance (km), then its right ascension and declination
+        double L = rad * (218.316 + 13.176396 * d), M = rad * (134.963 + 13.064993 * d), F = rad * (93.272 + 13.229350 * d);
+        double l = L + rad * 6.289 * Math.sin(M), b = rad * 5.128 * Math.sin(F), dist = 385001 - 20905 * Math.cos(M);
+        double mra = Math.atan2(Math.sin(l) * Math.cos(e) - Math.tan(b) * Math.sin(e), Math.cos(l));
+        double mdec = Math.asin(Math.sin(b) * Math.cos(e) + Math.cos(b) * Math.sin(e) * Math.sin(l));
+        // where that is in this place's sky
+        double phi = rad * lat, H = rad * (280.16 + 360.9856235 * d) + rad * lon - mra;
+        double alt = Math.asin(Math.sin(phi) * Math.sin(mdec) + Math.cos(phi) * Math.cos(mdec) * Math.cos(H));
+        double az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(mdec) * Math.cos(phi));
+        double pa = Math.atan2(Math.sin(H), Math.tan(phi) * Math.cos(mdec) - Math.sin(mdec) * Math.cos(H));
+        double h0 = Math.max(0, alt);
+        alt += 0.0002967 / Math.tan(h0 + 0.00312536 / (h0 + 0.08901179));
+        // its phase, from where the sun is
+        double sm = rad * (357.5291 + 0.98560028 * d);
+        double sl = sm + rad * (1.9148 * Math.sin(sm) + 0.02 * Math.sin(2 * sm) + 0.0003 * Math.sin(3 * sm)) + rad * 102.9372 + Math.PI;
+        double sra = Math.atan2(Math.sin(sl) * Math.cos(e), Math.cos(sl)), sdec = Math.asin(Math.sin(e) * Math.sin(sl));
+        double sun = 149598000;
+        double ph = Math.acos(Math.sin(sdec) * Math.sin(mdec) + Math.cos(sdec) * Math.cos(mdec) * Math.cos(sra - mra));
+        double inc = Math.atan2(sun * Math.sin(ph), dist - sun * Math.cos(ph));
+        double angle = Math.atan2(Math.cos(sdec) * Math.sin(sra - mra),
+                Math.sin(sdec) * Math.cos(mdec) - Math.cos(sdec) * Math.sin(mdec) * Math.cos(sra - mra));
+        return new double[]{alt, az, (1 + Math.cos(inc)) / 2, angle - pa};
+    }
+
     /** DAY (sun above 6 deg), SUNSET (golden hour, sunrise or sunset, 6 to -0.8 deg), BLUE (blue hour, -0.8 to -8 deg), NIGHT. */
     static int phase(double lat, double lon, ZoneId zone, ZonedDateTime now) {
         if (Double.isNaN(lat) || Double.isNaN(lon)) return isDay(lat, lon, zone, now) ? DAY : NIGHT;

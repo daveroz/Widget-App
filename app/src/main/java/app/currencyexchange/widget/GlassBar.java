@@ -138,7 +138,7 @@ final class GlassBar extends LinearLayout {
         paint.setStyle(Paint.Style.FILL);
         float in = Math.max(1f, px) / 2;
         Optics.catchlight(canvas, box, edge, radius - in, in, px, Stage.ICE, 0xFF8CC4FF, 0.5f, false);
-        Optics.catchlight(canvas, box, edge, radius - in, in, px, Stage.WARM, 0xFFFFC890, 0.4f, true);
+        Optics.bendLight(canvas, box, edge, radius - in, in, px, Stage.ICE, 0.4f, true); // no glint there (2.10)
     }
 
     /** The room round the bar taken in too, so the blur at its edges has something to draw from. */

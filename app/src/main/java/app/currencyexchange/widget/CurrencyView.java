@@ -261,7 +261,7 @@ final class CurrencyView {
     /** Clock {@code i}'s picture-maker in a card {@code rowW} dp wide (four cells and the three 1 dp seams between). */
     static SkyCell cell(Clock k, int i, int rowW) {
         int w = Math.max(8, Math.round((rowW - 3) / 4f * PXDP));
-        return SkyCell.get(k.city, k.lat, k.zone, k.elevation, k.morning, k.cloud, k.code, k.wind, w, CH, PXDP,
+        return SkyCell.get(k.city, k.lat, k.lon, k.zone, k.elevation, k.morning, k.cloud, k.code, k.wind, w, CH, PXDP,
                 i == 0 ? 1 : (i == 3 ? 2 : 0), OUTER_R);
     }
 
