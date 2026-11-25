@@ -18,7 +18,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
             <!-- the skies run to the card's very edge (2.02), so no strip of the card shows round them -->
+            <!-- 94 dp by default; on Android 12 and up as tall as a clock is wide, so each clock is square (2.15) -->
             <LinearLayout
+                android:id="@+id/clk_row"
                 android:layout_width="match_parent"
                 android:layout_height="94dp"
                 android:background="@drawable/cur_clocks"

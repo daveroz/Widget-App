@@ -66,6 +66,21 @@ final class SunCalc {
     }
 
     /**
+     * The sun at this place and instant (2.15): {altitude, azimuth} in radians, the azimuth from the south, westward (as
+     * {@link #moon}'s), so a clock can paint it where it really is.
+     */
+    static double[] sun(double lat, double lon, long epochMs) {
+        double rad = Math.PI / 180, d = epochMs / 86400000.0 + 2440587.5 - 2451545.0, e = rad * 23.4397;
+        double sm = rad * (357.5291 + 0.98560028 * d);
+        double sl = sm + rad * (1.9148 * Math.sin(sm) + 0.02 * Math.sin(2 * sm) + 0.0003 * Math.sin(3 * sm)) + rad * 102.9372 + Math.PI;
+        double ra = Math.atan2(Math.sin(sl) * Math.cos(e), Math.cos(sl)), dec = Math.asin(Math.sin(e) * Math.sin(sl));
+        double phi = rad * lat, H = rad * (280.16 + 360.9856235 * d) + rad * lon - ra;
+        double alt = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+        double az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi));
+        return new double[]{alt, az};
+    }
+
+    /**
      * The moon at this place and instant (2.08; Meeus' "Astronomical Algorithms", as in V. Agafonkin's SunCalc, good to a
      * degree or two): {altitude, azimuth (radians, from the south, westward; refraction included), the share of its disc
      * that's lit, the angle of its bright limb from the zenith (radians, anticlockwise as seen)}.

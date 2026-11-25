@@ -30,8 +30,8 @@ final class CityScene {
 
     /** The colours the scene takes from the hour's sky. */
     static final class Light {
-        /** Far away (hazy), the landmark, and the darkest in front (trees). */
-        int far, near, front;
+        /** Far away (hazy), the landmark, the near streets' buildings, and the darkest in front (trees). */
+        int far, near, street, front;
         /** The landmark's side facing the sun. */
         int lit;
         /** 0 by day, 1 at night; how far the windows have lit up (from late afternoon). */
@@ -50,10 +50,13 @@ final class CityScene {
         l.e = e;
         l.night = Sky.clamp((2f - e) / 8f);
         l.lights = Sky.clamp((7f - e) / 10f);
-        int base = 0xFF070A13;
-        l.near = Scene.mix(L.sky[1], base, 0.66f + 0.24f * l.night);
-        l.far = Scene.mix(L.sky[2], l.near, 0.5f + 0.2f * l.night);
-        l.front = Scene.mix(l.near, 0xFF020306, 0.5f);
+        // the references' city (2.15): tinted by the sky, not black: blue by day, purple at dusk, navy at night; the
+        // landmark a middle tone, the far city hazy and pale, the near streets darkest
+        int base = 0xFF141C3A;
+        l.near = Scene.mix(Scene.mix(L.sky[1], L.sky[0], 0.5f), base, 0.38f + 0.3f * l.night);
+        l.street = Scene.mix(L.sky[0], base, 0.5f + 0.25f * l.night);
+        l.far = Scene.mix(L.sky[2], l.near, 0.42f + 0.25f * l.night);
+        l.front = Scene.mix(l.street, 0xFF05070F, 0.35f);
         float day = 1f - l.night;
         boolean low = e < 8f;
         l.lit = Scene.mix(l.near, low ? 0xFFFFB27A : 0xFFFFF1DE, (low ? 0.3f : 0.2f) * day);
@@ -88,12 +91,15 @@ final class CityScene {
         Built b = new Built();
         b.still = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
         float u = h / 100f, wide = 100f * w / h;
-        Pen pen = new Pen(new Canvas(b.still), u, wide - 100f, l, seed);
-        List<float[]> beacons = new ArrayList<>();
         String key = key(city);
-        boolean own = MOUNTAINS.contains(key);
-        if (!own) pen.farCity(wide);
+        Float centre = CENTRE.get(key);
+        Pen pen = new Pen(new Canvas(b.still), u, wide, centre == null ? 73f : centre, l, seed);
+        List<float[]> beacons = new ArrayList<>();
+        // the references' layout (2.15): the far city across the whole width, the landmark in the middle, the near
+        // streets in front of its foot
+        if (!MOUNTAINS.contains(key)) skyline(pen.c, u, wide, l, seed, false);
         if (!landmark(key, pen, b, beacons, l, wide)) generic(pen, b, beacons, l, lat, wide, key.hashCode());
+        if (!"cairo".equals(key) && !"giza".equals(key)) skyline(pen.c, u, wide, l, seed, true);
         finish(pen.c, b.still.getWidth(), b.still.getHeight(), l);
         b.beacons = new float[beacons.size() * 2];
         for (int i = 0; i < beacons.size(); i++) {
@@ -103,9 +109,83 @@ final class CityScene {
         for (Tree t : b.trees) { // trees were placed in units from the left edge: into pixels
             t.x *= u;
             t.ground *= u;
-            t.height *= u * 1.2f; // zoomed in with the landmark (2.09, 2.12)
+            t.height *= u * 0.85f; // small, in front of the streets (2.15)
         }
         return b;
+    }
+
+    /** Where each landmark's middle is in its design units: it's drawn at the middle of the clock (2.15). */
+    private static final java.util.Map<String, Float> CENTRE = new java.util.HashMap<>();
+    static {
+        Object[][] c = {{"mexico city", 83f}, {"ciudad de mexico", 83f}, {"cdmx", 83f}, {"mexico df", 83f}, {"mexico", 83f},
+                {"bucharest", 73.5f}, {"bucuresti", 73.5f}, {"brussels", 76f}, {"bruxelles", 76f}, {"brussel", 76f},
+                {"charlotte", 76f}, {"bogota", 74f}, {"bogota dc", 74f}, {"santa fe de bogota", 74f}, {"paris", 80f},
+                {"london", 78f}, {"new york", 80f}, {"new york city", 80f}, {"nyc", 80f}, {"manhattan", 80f},
+                {"brooklyn", 80f}, {"tokyo", 80f}, {"sydney", 73f}, {"dubai", 82f}, {"berlin", 80f}, {"toronto", 80f},
+                {"seattle", 80f}, {"rio de janeiro", 80f}, {"rio", 80f}, {"cairo", 70f}, {"giza", 70f},
+                {"san francisco", 80f}, {"rome", 74f}, {"roma", 74f}, {"barcelona", 76f}, {"chicago", 79f},
+                {"los angeles", 80f}, {"la", 80f}, {"hollywood", 80f}, {"miami", 72f}, {"miami beach", 72f},
+                {"buenos aires", 80f}, {"washington", 72f}, {"washington dc", 72f}, {"singapore", 76f},
+                {"kuala lumpur", 78f}, {"istanbul", 74f}, {"amsterdam", 72f}, {"moscow", 76f}, {"moskva", 76f}};
+        for (Object[] e : c) CENTRE.put((String) e[0], (Float) e[1]);
+    }
+
+    /**
+     * A layer of the city across the whole cell, in the references' manner (2.15): far ({@code near} false) a hazy, pale
+     * crowd of towers behind the landmark; near, the darkest streets in front of its foot, low in the middle so the
+     * landmark stands clear, with a tall tower to either side; every block with its grid of windows (lit at dusk and
+     * night, catching the sky by day).
+     */
+    private static void skyline(Canvas c, float u, float wide, Light l, long seed, boolean near) {
+        Random r = new Random(seed ^ (near ? 0x5EA1L : 0xFA4L));
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
+        int base = near ? l.street : l.far;
+        float x = -1;
+        float towerL = wide * (0.12f + r.nextFloat() * 0.08f), towerR = wide * (0.74f + r.nextFloat() * 0.1f);
+        boolean doneL = false, doneR = false;
+        while (x < wide + 1) {
+            float w = near ? 4 + r.nextFloat() * 6 : 3 + r.nextFloat() * 5, hgt;
+            float mid = Math.abs(x + w / 2 - wide / 2) / (wide / 2); // 0 in the middle, 1 at the edges
+            if (near) {
+                if (!doneL && x + w > towerL) { w = 7 + r.nextFloat() * 3; hgt = 34 + r.nextFloat() * 8; doneL = true; }
+                else if (!doneR && x + w > towerR) { w = 7 + r.nextFloat() * 3; hgt = 36 + r.nextFloat() * 10; doneR = true; }
+                else hgt = (mid < 0.3f ? 5 + r.nextFloat() * 6 : 9 + r.nextFloat() * 15);
+            } else {
+                hgt = 14 + r.nextFloat() * 20;
+            }
+            float l0 = x, r0 = x + w, top = 100 - hgt;
+            int col = Scene.mix(base, near ? 0xFF000000 : l.horizon, r.nextFloat() * 0.12f);
+            p.setColor(col);
+            c.drawRect(l0 * u, top * u, r0 * u, 100 * u, p);
+            if (near) { // the side facing the sun catching it, and the roof's edge
+                p.setColor(Scene.alpha(Scene.mix(l.lit, 0xFFFFFFFF, 0.15f), 0.3f * (1 - l.night) + 0.08f));
+                float sw = 0.6f;
+                if (l.sunLeft) c.drawRect(l0 * u, top * u, (l0 + sw) * u, 100 * u, p);
+                else c.drawRect((r0 - sw) * u, top * u, r0 * u, 100 * u, p);
+                c.drawRect(l0 * u, top * u, r0 * u, (top + 0.45f) * u, p);
+                if (hgt > 30 && l.night > 0.3f) { // a red light on top of the tall ones
+                    p.setColor(Scene.alpha(BEACON, 0.7f * l.night));
+                    c.drawCircle((l0 + w / 2) * u, (top - 0.8f) * u, 0.55f * u, p);
+                }
+            }
+            // its windows, in a regular grid
+            float sx = near ? 2.2f : 1.9f, sy = near ? 2.4f : 2.2f, ww = near ? 1.1f : 0.8f, wh = near ? 0.9f : 0.7f;
+            for (float y = top + 1.6f; y + wh < 99.2f; y += sy) {
+                for (float wx = l0 + 0.9f; wx + ww < r0 - 0.5f; wx += sx) {
+                    float on = r.nextFloat(), kind = r.nextFloat();
+                    if (l.lights > 0.04f && on < (near ? 0.42f : 0.28f)) {
+                        int wc = kind < 0.15f ? 0xFFDCE8FF : kind < 0.28f ? 0xFFFFB866 : WINDOW;
+                        wp.setColor(Scene.alpha(wc, l.lights * (near ? 0.85f : 0.45f) * (0.5f + 0.5f * r.nextFloat())));
+                        c.drawRect(wx * u, y * u, (wx + ww) * u, (y + wh) * u, wp);
+                    } else if (l.lights < 0.9f && kind < 0.6f) {
+                        wp.setColor(Scene.alpha(Scene.mix(l.horizon, 0xFFFFFFFF, 0.25f), (near ? 0.12f : 0.08f) * (1 - l.lights)));
+                        c.drawRect(wx * u, y * u, (wx + ww) * u, (y + wh) * u, wp);
+                    }
+                }
+            }
+            x = r0 + (near ? r.nextFloat() * 0.4f : r.nextFloat() * 0.8f);
+        }
     }
 
     /** Cities whose landmark stands before mountains or desert: they draw the far city (or none) themselves. */
@@ -120,11 +200,7 @@ final class CityScene {
     private static void finish(Canvas c, int w, int h, Light l) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
         p.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_ATOP));
-        p.setShader(new LinearGradient(0, h * 0.5f, 0, h, 0x00000000, 0x55000000, Shader.TileMode.CLAMP));
-        c.drawRect(0, 0, w, h, p);
-        p.setShader(Stage.grainShader());
-        c.drawRect(0, 0, w, h, p);
-        p.setShader(Stage.grainShader()); // twice: a little more texture than the glass has
+        p.setShader(Stage.grainShader()); // a fine grain on the buildings, as on painted board
         c.drawRect(0, 0, w, h, p);
         p.setXfermode(null);
         float day = 1 - l.night;
@@ -159,20 +235,25 @@ final class CityScene {
         /** How big a landmark is drawn: zoomed in (2.09, eased a little in 2.12), so its details and motion show. */
         static final float K = 1.15f;
         final Canvas c;
-        final float u, ox;
+        final float u, wide, cx;
         final Light l;
         final Random r;
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
 
-        Pen(Canvas c, float u, float ox, Light l, long seed) {
+        /** {@code cx}: the landmark's middle in its design units, drawn at the middle of the cell (2.15). */
+        Pen(Canvas c, float u, float wide, float cx, Light l, long seed) {
             this.c = c;
             this.u = u;
-            this.ox = ox;
+            this.wide = wide;
+            this.cx = cx;
             this.l = l;
             this.r = new Random(seed);
         }
 
-        float X(float x) { return (100f + ox - (100f - x) * K) * u; }
+        float X(float x) { return (wide / 2f + (x - cx) * K) * u; }
+        /** The cell's left and right edges, in design units. */
+        float left() { return cx - wide / (2f * K); }
+        float right() { return cx + wide / (2f * K); }
         float Y(float y) { return (100f - (100f - y) * K) * u; }
         /** A length in units, in pixels. */
         float S(float v) { return v * K * u; }
@@ -272,28 +353,6 @@ final class CityScene {
             c.drawRect(X(l0), Y(t), X(r0), Y(t + 0.5f), e);
         }
 
-        /** The rest of the city far behind, low and hazy, across the whole cell (2.06): it gives the corner depth. */
-        void farCity(float wide) {
-            Random fr = new Random(r.nextLong());
-            int col = Scene.mix(l.far, l.horizon, 0.22f);
-            Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
-            float x = 100 - wide / K - 1;
-            while (x < 101) {
-                float w = 3 + fr.nextFloat() * 5, hgt = 5 + fr.nextFloat() * 11;
-                solid(col).rect(x, 100 - hgt, x + w, 100);
-                if (fr.nextFloat() < 0.15f) line(x + w / 2, 100 - hgt, x + w / 2, 100 - hgt - 3, 0.3f);
-                if (l.lights > 0.05f) {
-                    for (float y = 100 - hgt + 1.5f; y < 99; y += 2.6f) {
-                        for (float wx = x + 0.8f; wx < x + w - 0.8f; wx += 1.8f) {
-                            if (fr.nextFloat() > 0.3f) continue;
-                            wp.setColor(Scene.alpha(WINDOW, 0.3f * l.lights));
-                            c.drawRect(X(wx), Y(y), X(wx + 0.7f), Y(y + 0.9f), wp);
-                        }
-                    }
-                }
-                x += w + fr.nextFloat() * 0.6f;
-            }
-        }
 
         /** A floodlit glow round a monument at night, centred at (x, y), {@code rad} units wide. */
         void glow(float x, float y, float rad, int colour, float a) {
@@ -441,8 +500,7 @@ final class CityScene {
             }
             case "bogota": case "bogota dc": case "santa fe de bogota": {
                 // Monserrate behind, its sanctuary on the top, and the Colpatria and Bacatá towers
-                p.solid(l.far).poly(18, 100, 40, 78, 56, 62, 66, 53.5f, 72, 56, 86, 64, 100 + 8, 74, 100 + 8, 100);
-                p.farCity(wide);
+                p.solid(l.far).poly(p.left() - 2, 100, p.left() + 10, 90, 40, 78, 56, 62, 66, 53.5f, 72, 56, 86, 64, p.right() + 2, 74, p.right() + 2, 100);
                 int church = Scene.mix(Scene.mix(l.far, 0xFFFFFFFF, 0.45f * (1 - night)), FLOOD, 0.8f * night);
                 p.solid(church).rect(64.2f, 50, 68.4f, 54);
                 p.poly(64, 50.2f, 66.3f, 48.2f, 68.6f, 50.2f);
@@ -641,7 +699,6 @@ final class CityScene {
                 // Mount Rainier far behind and the Space Needle
                 p.solid(l.far).poly(14, 100, 38, 74, 44, 70, 50, 75, 74, 100);
                 p.solid(Scene.mix(l.far, 0xFFFFFFFF, 0.5f * (1 - night) + 0.15f)).poly(38.8f, 73.4f, 44, 70, 48.6f, 74, 46, 75, 43.5f, 73.8f, 41, 75.6f);
-                p.farCity(wide);
                 p.body(74, 86).poly(74.5f, 100, 79.3f, 71, 76.6f, 53.5f, 78.2f, 53.5f, 80, 68, 81.8f, 53.5f, 83.4f, 53.5f, 80.7f, 71, 85.5f, 100, 84, 100, 80, 75, 76, 100);
                 p.body(72, 88).oval(72, 48, 88, 54);
                 if (l.lights > 0.05f) p.solid(Scene.alpha(WINDOW, 0.75f * l.lights)).rect(73, 50.6f, 87, 51.6f);
@@ -655,7 +712,7 @@ final class CityScene {
             case "rio de janeiro": case "rio": {
                 // Sugarloaf far off, Corcovado with Christ the Redeemer, white and floodlit at night
                 p.solid(l.far).poly(26, 100, 30, 82, 36, 74, 42, 73, 47, 80, 52, 100);
-                p.body(54, 100).poly(54, 100, 66, 80, 74, 67, 79, 62.5f, 82, 62.5f, 88, 70, 100 + 8, 86, 100 + 8, 100);
+                p.body(54, 100).poly(54, 100, 66, 80, 74, 67, 79, 62.5f, 82, 62.5f, 88, 70, p.right() + 2, 86, p.right() + 2, 100);
                 int stone = Scene.mix(Scene.mix(l.lit, 0xFFFFFFFF, 0.4f * (1 - night)), 0xFFFFF4E0, 0.85f * night);
                 p.glow(80.5f, 56, 9, 0xFFFFF4E0, 0.35f * night);
                 p.solid(stone).rect(79.9f, 53, 81.1f, 62.6f);
@@ -757,8 +814,7 @@ final class CityScene {
             }
             case "los angeles": case "la": case "hollywood": {
                 // hills far behind, the US Bank Tower's crown, and tall thin palms
-                p.solid(l.far).poly(100 - wide / Pen.K - 1, 100, 20, 80, 40, 76, 60, 82, 80, 77, 100, 84, 100, 100);
-                p.farCity(wide);
+                p.solid(l.far).poly(p.left() - 1, 100, p.left() + 6, 82, 40, 76, 60, 82, 80, 77, 100, 84, p.right() + 1, 86, p.right() + 1, 100);
                 p.tower(76, 54, 84, 100);
                 p.body(76, 84).poly(76, 54.2f, 77, 51.5f, 83, 51.5f, 84, 54.2f);
                 beacons.add(new float[]{80, 51.5f});

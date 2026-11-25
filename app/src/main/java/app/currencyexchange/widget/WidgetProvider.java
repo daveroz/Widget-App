@@ -114,7 +114,7 @@ public class WidgetProvider extends AppWidgetProvider {
                 for (int k = 1; k <= max; k++) {
                     RemoteViews v = CurrencyView.build(ctx, k, wdp);
                     v.setOnClickPendingIntent(R.id.root, open);
-                    map.put(new android.util.SizeF(110f, CurrencyView.heightFor(k)), v);
+                    map.put(new android.util.SizeF(110f, CurrencyView.heightFor(k, wdp)), v);
                 }
                 rv = new RemoteViews(map);
             } else {
@@ -133,7 +133,8 @@ public class WidgetProvider extends AppWidgetProvider {
         int hdp = o == null ? 400 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
                 : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 400);
         int max = Math.min(CurrencyView.LAYOUTS.length, Store.count(ctx)), k = 1;
-        for (int i = 1; i <= max; i++) if (CurrencyView.heightFor(i) <= hdp) k = i;
+        int wdp = widthDp(ctx, awm, id);
+        for (int i = 1; i <= max; i++) if (CurrencyView.heightFor(i, wdp) <= hdp) k = i;
         return k;
     }
 
