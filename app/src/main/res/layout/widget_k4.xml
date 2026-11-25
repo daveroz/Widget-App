@@ -191,11 +191,11 @@
                 android:importantForAccessibility="no"
                 android:scaleType="fitXY" />
         </FrameLayout>
-        <!-- the currency rows, on one card -->
+        <!-- the currency rows, on one card, 16 dp under the clocks (2.21; 12 dp before) -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp">
+            android:layout_marginTop="16dp">
             <ImageView
                 android:id="@+id/rates_bg"
                 android:layout_width="match_parent"
@@ -239,13 +239,15 @@
                             android:layout_height="22dp"
                             android:layout_marginStart="12dp"
                             android:scaleType="fitStart" />
+                        <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
+                             4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
                         <ImageView
                             android:id="@+id/arrow_0"
-                            android:layout_width="8dp"
-                            android:layout_height="11dp"
+                            android:layout_width="16dp"
+                            android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="10dp"
-                            android:layout_marginEnd="16dp"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="12dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_0"
@@ -356,13 +358,15 @@
                             android:layout_height="22dp"
                             android:layout_marginStart="12dp"
                             android:scaleType="fitStart" />
+                        <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
+                             4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
                         <ImageView
                             android:id="@+id/arrow_1"
-                            android:layout_width="8dp"
-                            android:layout_height="11dp"
+                            android:layout_width="16dp"
+                            android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="10dp"
-                            android:layout_marginEnd="16dp"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="12dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_1"
@@ -473,13 +477,15 @@
                             android:layout_height="22dp"
                             android:layout_marginStart="12dp"
                             android:scaleType="fitStart" />
+                        <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
+                             4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
                         <ImageView
                             android:id="@+id/arrow_2"
-                            android:layout_width="8dp"
-                            android:layout_height="11dp"
+                            android:layout_width="16dp"
+                            android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="10dp"
-                            android:layout_marginEnd="16dp"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="12dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_2"
@@ -590,13 +596,15 @@
                             android:layout_height="22dp"
                             android:layout_marginStart="12dp"
                             android:scaleType="fitStart" />
+                        <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
+                             4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
                         <ImageView
                             android:id="@+id/arrow_3"
-                            android:layout_width="8dp"
-                            android:layout_height="11dp"
+                            android:layout_width="16dp"
+                            android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="10dp"
-                            android:layout_marginEnd="16dp"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="12dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_3"

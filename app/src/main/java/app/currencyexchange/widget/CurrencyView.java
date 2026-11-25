@@ -52,10 +52,10 @@ final class CurrencyView {
             R.layout.widget_k4, R.layout.widget_k5, R.layout.widget_k6};
 
     /**
-     * Widget height (dp) from which the variant with k rows fits: the clocks card (94), the 12 dp gap, and the rates card (its
-     * 4 dp paddings, k rows of 54 and the k - 1 lines between them).
+     * Widget height (dp) from which the variant with k rows fits: the clocks card (94), the 16 dp gap (2.21; 12 before), and
+     * the rates card (its 4 dp paddings, k rows of 54 and the k - 1 lines between them).
      */
-    static int heightFor(int k) { return 113 + 55 * k; }
+    static int heightFor(int k) { return 117 + 55 * k; }
 
     /** As above for a widget {@code widthDp} wide: its clocks card as tall as a clock is wide (2.15). */
     static int heightFor(int k, int widthDp) { return heightFor(k) + clocksDp(widthDp) - 94; }
@@ -127,6 +127,7 @@ final class CurrencyView {
         Bitmap visaLogo = visaLogo(ctx);
         Bitmap marketLbl = marketLabel(reg, scene.quiet);
         Bitmap toFlag = flagOrLabel(ctx, Util.countryOfCurrency(to), to);
+        Bitmap arrow = arrow(scene);
         // their one card (its 4 dp paddings, the rows and the lines between them), with its edge
         rv.setImageViewBitmap(R.id.rates_bg, Stage.panel(scene, rowW, 8 + ROW_DP * k + (k - 1), 1.5f, Stage.round(28), null, true));
         for (int i = 0; i < k; i++) {
@@ -137,7 +138,7 @@ final class CurrencyView {
             rv.setImageViewBitmap(id(ctx, "fl_b_" + i), toFlag);
             txt(ctx, rv, id(ctx, "code_b_" + i), to, reg, white, 15);
             double market = Store.rate(ctx, from, to);
-            rv.setInt(id(ctx, "arrow_" + i), "setColorFilter", scene.key);
+            rv.setImageViewBitmap(id(ctx, "arrow_" + i), arrow);
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), marketLbl);
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), tight(reg, HEADER_SP, Util.fmt0(market), white));
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
@@ -185,6 +186,42 @@ final class CurrencyView {
             c.drawText(cc == null ? "" : cc.toUpperCase(Locale.ROOT), 60, 60 - (t.ascent() + t.descent()) / 2f, t);
         }
         return out;
+    }
+
+    /**
+     * The arrow between a row's two currencies (2.21): solid in the light, with the same very faint haze round it as the
+     * music player's progress line has (its bloom, in the light's deep shade), on a picture 4 dp bigger all round than
+     * the 8 x 11 dp arrow so the haze has room.
+     */
+    static Bitmap arrow(Scene scene) {
+        String key = "a|" + scene.tag();
+        Bitmap hit = PICS.get(key);
+        if (hit != null) return hit;
+        float px = 3f, u = 0.4f * px; // the old 20 x 26 unit arrow at 0.4 dp a unit
+        int w = Math.round(16 * px), h = Math.round(19 * px);
+        Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        float x0 = (w - 20 * u) / 2f, y0 = (h - 26 * u) / 2f;
+        android.graphics.Path tri = new android.graphics.Path();
+        tri.moveTo(x0 + u, y0);
+        tri.lineTo(x0 + u, y0 + 26 * u);
+        tri.lineTo(x0 + 19 * u, y0 + 13 * u);
+        tri.close();
+        Look look = Look.get();
+        float mist = Math.min(1.25f, (float) Math.sqrt(look.haze));
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.FILL_AND_STROKE);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        p.setStrokeWidth(1.2f * px * mist);
+        p.setColor(Scene.alpha(scene.deep, 0.5f * look.bloom));
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(1.75f * px * mist, android.graphics.BlurMaskFilter.Blur.NORMAL));
+        c.drawPath(tri, p); // its haze, as the progress line's bloom
+        p.setMaskFilter(null);
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(scene.key);
+        c.drawPath(tri, p);
+        PICS.put(key, b);
+        return b;
     }
 
     /** "Market", without the clear margins round its ink, so centred in the labels' column it sits exactly over the badge. */

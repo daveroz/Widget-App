@@ -294,8 +294,33 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int h = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
         if (w <= 0) w = 320;
         if (h <= 0) h = fallbackHeightDp;
-        // today's tile sits flat on the glass: no glow of its light round it (2.03)
-        return Stage.panel(Ambience.scene(), w, h, 1.25f, Stage.round(28), null, true);
+        // today's tile: no wide glow of its light round it (2.03), only the very faint haze the music player's progress
+        // line has, hugging its edge (2.21)
+        Scene scene = Ambience.scene();
+        android.graphics.Bitmap panel = Stage.panel(scene, w, h, 1.25f, Stage.round(28), null, true);
+        return todayHaze(panel, scene, w);
+    }
+
+    /**
+     * The calendar's card picture with a very faint haze round today's tile (2.21), in the light's deep shade, as the
+     * progress line's bloom: the tile in its column of the week row (20 dp side padding, seven 40 dp columns spread
+     * across it), 73.1 dp down (13 dp padding, the 51 dp header, 9.1 dp), 54 dp tall, its corners 12 dp.
+     */
+    private static android.graphics.Bitmap todayHaze(android.graphics.Bitmap panel, Scene scene, int wDp) {
+        float px = 1.25f;
+        android.graphics.Bitmap out = panel.copy(android.graphics.Bitmap.Config.ARGB_8888, true);
+        int col = LocalDate.now().getDayOfWeek().getValue() % 7;
+        float gap = Math.max(0, (wDp - 40 - 7 * 40) / 6f), left = 20 + col * (40 + gap), top = 73.1f;
+        android.graphics.RectF tile = new android.graphics.RectF(left * px, top * px, (left + 40) * px, (top + 54) * px);
+        Look look = Look.get();
+        float mist = Math.min(1.25f, (float) Math.sqrt(look.haze));
+        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(android.graphics.Paint.Style.FILL_AND_STROKE);
+        p.setStrokeWidth(1.2f * px * mist);
+        p.setColor(Scene.alpha(scene.deep, 0.42f * look.bloom));
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(2.2f * px * mist, android.graphics.BlurMaskFilter.Blur.NORMAL));
+        new android.graphics.Canvas(out).drawRoundRect(tile, 12 * px, 12 * px, p);
+        return out;
     }
 
     private static PendingIntent broadcast(Context ctx, String action, int code) {

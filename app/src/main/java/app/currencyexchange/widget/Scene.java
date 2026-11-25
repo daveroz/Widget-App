@@ -69,11 +69,11 @@ final class Scene {
     }
 
     /**
-     * Worldly's own light, while nothing plays (since 1.89): the glowing orange of the filaments in the reference
-     * picture, measured off its pixels: #F37613 where they're lit, a deeper red-orange where the glow fades into the
-     * dark (its haze), and yellow at the white-hot cores (its hot shade).
+     * Worldly's own light, while nothing plays (since 2.21): the frosted ice of the crystal logo and the cards' glass, a
+     * cool, pale blue (#8FCBFF) where it's lit, a deeper cobalt where its glow fades into the dark (its haze), and an
+     * icy white at the hot cores. Until 2.21 it was the reference filaments' glowing orange (#F37613).
      */
-    static final int IDLE = 0xFFF37613, IDLE_DEEP = 0xFFE05A10, IDLE_HOT = 0xFFFCD467;
+    static final int IDLE = 0xFF8FCBFF, IDLE_DEEP = 0xFF2F7FE8, IDLE_HOT = 0xFFE9F6FF;
 
     /** Worldly's own light: the light while nothing plays ({@link #IDLE}). */
     static Scene idle() {
