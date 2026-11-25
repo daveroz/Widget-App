@@ -56,19 +56,20 @@ final class SkyCell {
                 + (wind < 0 ? -1 : wind / 5) + "|" + w + "x" + h + "|" + px + "|" + side + "|" + moonKey;
         SkyCell hit = CELLS.get(spec);
         if (hit != null) return hit;
-        SkyCell made = new SkyCell(spec, city, lat, zone, el, sunLeft, cloud, code, wind, w, h, px, side, r, moon);
+        SkyCell made = new SkyCell(spec, city, lat, lon, zone, el, sunLeft, cloud, code, wind, w, h, px, side, r, moon);
         CELLS.put(spec, made);
         return made;
     }
 
-    private SkyCell(String spec, String city, double lat, ZoneId zone, float el, boolean sunLeft, int cloud, int code,
-                    int wind, int w, int h, float px, int side, float r, double[] moon) {
+    private SkyCell(String spec, String city, double lat, double lon, ZoneId zone, float el, boolean sunLeft, int cloud,
+                    int code, int wind, int w, int h, float px, int side, float r, double[] moon) {
         this.spec = spec;
         this.zone = zone;
         this.seed = city == null ? 0 : city.hashCode();
         this.px = px;
         this.wind = wind;
-        sky = Sky.layers(w, h, px, el, cloud, code, seed, sunLeft, moon);
+        double[] sun = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.sun(lat, lon, System.currentTimeMillis());
+        sky = Sky.layers(w, h, px, el, cloud, code, seed, sunLeft, moon, sun);
         light = CityScene.light(sky, sunLeft);
         built = CityScene.build(city, lat, w, h, px, light, seed);
         // the clouds cross their strip (twice the cell) in about eight minutes in a breeze, faster in a wind

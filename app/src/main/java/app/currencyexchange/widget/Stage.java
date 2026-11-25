@@ -60,13 +60,10 @@ final class Stage {
         p.setShader(new LinearGradient(0, box.top, 0, box.top + Math.min(h, 44 * px), 0x0FFFFFFF, 0x00FFFFFF,
                 Shader.TileMode.CLAMP));
         c.drawRect(box, p); // the sheen
-        // the crystal's own light, as in the logo (2.06): an icy sheen in its top left, a warm glow inside its bottom right
+        // the crystal's own light, as in the logo (2.06): an icy sheen in its top left (no glow at the bottom right, 2.15)
         float big = Math.max(w, h);
         p.setShader(new RadialGradient(box.left + w * 0.1f, box.top + h * 0.08f, big * 0.55f,
                 Scene.alpha(ICE, 0.055f * opacity), ICE & 0x00FFFFFF, Shader.TileMode.CLAMP));
-        c.drawRect(box, p);
-        p.setShader(new RadialGradient(box.right - w * 0.08f, box.bottom - h * 0.06f, big * 0.42f,
-                Scene.alpha(ICE, 0.04f * opacity), ICE & 0x00FFFFFF, Shader.TileMode.CLAMP)); // icy too since 2.10
         c.drawRect(box, p);
         p.setShader(null);
         grain(c, box); // the frost in the glass
@@ -131,10 +128,9 @@ final class Stage {
     /**
      * A card's edge, just inside {@code box}, as a pane of crystal lit from two sides shows it (2.05, after the crystal
      * logo): a hairline ({@code px} pixels per dp) that's almost nothing along the straight sides (clear glass, never
-     * a line in the song's colour), lit icy white round the top left corner and, shorter, round the bottom right (the
-     * same icy white since 2.10); a fainter line a little inside near each, the glass's other face seen through its
-     * bevel; and a glint at the top left ({@link Optics#catchlight}): the only flare there is. All in fixed colours,
-     * whatever is playing.
+     * a line in the song's colour), lit icy white round the top left corner (since 2.15 nothing glows at the bottom
+     * right); a fainter line a little inside there, the glass's other face seen through its bevel; and a glint at the
+     * top left ({@link Optics#catchlight}): the only flare there is. All in fixed colours, whatever is playing.
      */
     static void rim(Canvas c, RectF box, float[] radii, float px) {
         float line = Math.max(1f, px), in = line / 2;
@@ -147,14 +143,9 @@ final class Stage {
         p.setColor(Scene.alpha(ICE, 0.035f));
         c.drawPath(path, p);
         // the top left catches the light, icy, along both edges away from the corner
-        float near = Math.min(reach * 0.6f, 7 * r), far = Math.min(reach * 0.4f, 4 * r);
-        int warmIce = ICE; // since 2.10 the bottom right's light is the same icy white as the top left's
+        float near = Math.min(reach * 0.6f, 7 * r);
         p.setShader(new RadialGradient(box.left, box.top, near, new int[]{Scene.alpha(ICE, 0.5f), Scene.alpha(ICE, 0.16f),
                 ICE & 0x00FFFFFF}, new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
-        c.drawPath(path, p);
-        // the bottom right, the far corner: a shorter, warmer light
-        p.setShader(new RadialGradient(box.right, box.bottom, far, new int[]{Scene.alpha(warmIce, 0.38f),
-                Scene.alpha(warmIce, 0.1f), warmIce & 0x00FFFFFF}, new float[]{0f, 0.4f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(path, p);
         // the bevel's polished slope (2.06, as the logo's): a soft band of light just inside the edge near each lit corner
         Paint slope = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -165,21 +156,14 @@ final class Stage {
         slope.setShader(new RadialGradient(box.left, box.top, near * 0.8f, new int[]{Scene.alpha(ICE, 0.13f),
                 Scene.alpha(ICE, 0.04f), ICE & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(band, slope);
-        slope.setShader(new RadialGradient(box.right, box.bottom, far * 0.8f, new int[]{Scene.alpha(warmIce, 0.1f),
-                Scene.alpha(warmIce, 0.03f), warmIce & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
-        c.drawPath(band, slope);
         // the bevel: the glass's other face, a fainter line inside near each lit corner
         Path bevel = inset(box, radii, in + 2.5f * px);
         p.setStrokeWidth(Math.max(1f, 0.7f * px));
         p.setShader(new RadialGradient(box.left, box.top, near * 0.6f, new int[]{Scene.alpha(ICE, 0.16f),
                 Scene.alpha(ICE, 0.05f), ICE & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(bevel, p);
-        p.setShader(new RadialGradient(box.right, box.bottom, far * 0.7f, new int[]{Scene.alpha(warmIce, 0.12f),
-                Scene.alpha(warmIce, 0.03f), warmIce & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
-        c.drawPath(bevel, p);
-        // the glint at the top left; the bottom right corner keeps only its edge catching the light (2.10), the same colour
+        // the glint at the top left; since 2.15 the bottom right has no glow at all, just the faint edge all round
         Optics.catchlight(c, box, path, Math.max(0, radii[0] - in), in, px, ICE, 0xFF8CC4FF, CATCH, false);
-        Optics.bendLight(c, box, path, Math.max(0, radii[4] - in), in, px, ICE, CATCH * 0.8f, true);
     }
 
     private static Bitmap grainTile;

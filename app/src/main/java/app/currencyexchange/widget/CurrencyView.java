@@ -57,6 +57,19 @@ final class CurrencyView {
      */
     static int heightFor(int k) { return 113 + 55 * k; }
 
+    /** As above for a widget {@code widthDp} wide: its clocks card as tall as a clock is wide (2.15). */
+    static int heightFor(int k, int widthDp) { return heightFor(k) + clocksDp(widthDp) - 94; }
+
+    /**
+     * The clocks card's height (dp) in a widget {@code widthDp} wide: on Android 12 and up as tall as each of its four
+     * clocks is wide, so they're square (2.15); before that its layout's fixed 94 dp.
+     */
+    static int clocksDp(int widthDp) {
+        if (android.os.Build.VERSION.SDK_INT < 31) return 94;
+        int w = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
+        return Math.max(72, Math.min(140, Math.round((w - 3) / 4f)));
+    }
+
     private static final android.util.LruCache<String, Bitmap> PICS = new android.util.LruCache<>(60);
 
     /** Variant with k currency rows (1..6). */
@@ -82,8 +95,12 @@ final class CurrencyView {
         // The text is plain, in its own colours (no glow, no tint).
         int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED;
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
-        // the clocks card's edge (94 dp tall), over the skies, which fill it to its edge
-        rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(Math.round(rowW * 1.5f), Math.round(94 * 1.5f),
+        // the clocks card: square clocks (2.15), its edge over the skies, which fill it to its edge
+        int clocksH = clocksDp(rowW);
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            rv.setViewLayoutHeight(R.id.clk_row, clocksH, android.util.TypedValue.COMPLEX_UNIT_DIP);
+        }
+        rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(Math.round(rowW * 1.5f), Math.round(clocksH * 1.5f),
                 Stage.round(28 * 1.5f), 1.5f));
 
         // world clocks, each on its city's sky right now (Sky): the light of the hour there, its clouds and weather
@@ -216,9 +233,8 @@ final class CurrencyView {
     }
 
     // Clock pictures are drawn at 2 px per dp (as sharp as the Sound widget's frames, and as light to send), the
-    // card's full 94 dp tall, at each cell's real width.
+    // card's full height (square since 2.15), at each cell's real width.
     private static final float PXDP = 2f;
-    private static final int CH = Math.round(94 * PXDP);
     private static final float OUTER_R = 28 * PXDP; // the card's own corners: the skies fill it to its edge
 
     /** What a world clock needs to draw: its city, where it is, the sun's height there, its weather. */
@@ -260,8 +276,8 @@ final class CurrencyView {
 
     /** Clock {@code i}'s picture-maker in a card {@code rowW} dp wide (four cells and the three 1 dp seams between). */
     static SkyCell cell(Clock k, int i, int rowW) {
-        int w = Math.max(8, Math.round((rowW - 3) / 4f * PXDP));
-        return SkyCell.get(k.city, k.lat, k.lon, k.zone, k.elevation, k.morning, k.cloud, k.code, k.wind, w, CH, PXDP,
+        int w = Math.max(8, Math.round((rowW - 3) / 4f * PXDP)), h = Math.round(clocksDp(rowW) * PXDP);
+        return SkyCell.get(k.city, k.lat, k.lon, k.zone, k.elevation, k.morning, k.cloud, k.code, k.wind, w, h, PXDP,
                 i == 0 ? 1 : (i == 3 ? 2 : 0), OUTER_R);
     }
 
