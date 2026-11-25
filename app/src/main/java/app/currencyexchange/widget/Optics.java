@@ -50,6 +50,12 @@ final class Optics {
 
     /** As {@link #star}, its horizontal (anamorphic) streak fading to {@code streak} instead of the usual blue. */
     static void star(Canvas c, float x, float y, float reach, float px, int colour, int streak, float strength) {
+        star(c, x, y, reach, px, colour, streak, strength, true);
+    }
+
+    /** As {@link #star}; without its four spikes (just its core, mist and halation) unless {@code spikes}. */
+    static void star(Canvas c, float x, float y, float reach, float px, int colour, int streak, float strength,
+                     boolean spikes) {
         Look look = Look.get();
         if (strength <= 0f || reach <= 0f || look.flares <= 0f) return;
         strength = Math.min(1.2f, strength * look.flares); // the look's flares: brighter, and reaching a little further
@@ -67,11 +73,13 @@ final class Optics {
                 Scene.alpha(HALATION, Math.min(1f, 0.16f * strength * look.halation)),
                 HALATION & 0x00FFFFFF}, new float[]{0.3f, 0.55f, 1f}, Shader.TileMode.CLAMP));
         c.drawCircle(x, y, ring, p);
-        float thick = Math.max(0.8f, 0.9f * px);
-        spike(c, p, x, y, reach * 1.5f, 0, thick, pale, streak, strength);
-        spike(c, p, x, y, -reach * 1.5f, 0, thick, pale, streak, strength);
-        spike(c, p, x, y, 0, reach, thick, pale, colour, strength * 0.8f);
-        spike(c, p, x, y, 0, -reach, thick, pale, colour, strength * 0.8f);
+        if (spikes) {
+            float thick = Math.max(0.8f, 0.9f * px);
+            spike(c, p, x, y, reach * 1.5f, 0, thick, pale, streak, strength);
+            spike(c, p, x, y, -reach * 1.5f, 0, thick, pale, streak, strength);
+            spike(c, p, x, y, 0, reach, thick, pale, colour, strength * 0.8f);
+            spike(c, p, x, y, 0, -reach, thick, pale, colour, strength * 0.8f);
+        }
         p.setShader(null);
     }
 
@@ -141,20 +149,33 @@ final class Optics {
         p.setShader(new RadialGradient(gx, gy, r * 1.25f, new int[]{Scene.alpha(pale, 0.7f * strength),
                 Scene.alpha(pale, 0.22f * strength), pale & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
         c.drawPath(edge, p);
-        // the strike stays inside the pane's picture: its arms no longer than the way to the edges...
+        // the glint: its core, mist and halation (2.09: its rays drawn below, at the mockup's angle)
         float room = (far ? box.right - gx : gx - box.left) * 0.92f;
         float reach = Math.min(6 * px, room / 1.5f);
-        star(c, gx, gy, reach, px, colour, streak, 0.55f * strength);
-        // ...but the two pointing into the pane run on along its edges, as the mockup's long rays (2.05)
+        star(c, gx, gy, reach, px, colour, streak, 0.55f * strength, false);
         Look look = Look.get();
         if (look.flares <= 0f) return;
-        float s = Math.min(1.2f, 0.55f * strength * look.flares), sign = far ? -1f : 1f;
-        float ray = 16 * px * (0.55f + 0.45f * look.flares);
+        float s = Math.min(1.2f, 0.55f * strength * look.flares), sign = far ? -1f : 1f, grow = 0.55f + 0.45f * look.flares;
         int rayPale = Scene.mix(colour, 0xFFFFFFFF, 0.6f);
         float thick = Math.max(0.8f, 0.9f * px);
         Paint rp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-        spike(c, rp, gx, gy, sign * ray * 1.5f, 0, thick, rayPale, streak, s * 0.8f);
-        spike(c, rp, gx, gy, 0, sign * ray, thick, rayPale, colour, s * 0.65f);
+        final float q = 0.7071f; // cos 45°
+        // the long pair along the bend's tangent (up to the right, down to the left), as far as the picture allows
+        float up = Math.min(gy - box.top, box.right - gx) / q * 0.95f, down = Math.min(box.bottom - gy, gx - box.left) / q * 0.95f;
+        float longRay = 34 * px * grow;
+        float a1 = Math.min(longRay, up), a2 = Math.min(longRay, down);
+        float main = Math.min(1.2f, s * 1.3f);
+        spike(c, rp, gx, gy, a1 * q, -a1 * q, thick * 1.6f, rayPale, streak, main);
+        spike(c, rp, gx, gy, -a2 * q, a2 * q, thick * 1.6f, rayPale, streak, main);
+        // a shorter pair across it: out past the corner, and in across the card
+        float out = Math.min(far ? Math.min(box.right - gx, box.bottom - gy) : Math.min(gx - box.left, gy - box.top), 14 * px) / q * 0.9f;
+        float inward = 28 * px * grow;
+        spike(c, rp, gx, gy, -sign * out * q, -sign * out * q, thick * 1.2f, rayPale, colour, s * 0.75f);
+        spike(c, rp, gx, gy, sign * inward * q, sign * inward * q, thick * 1.2f, rayPale, colour, s * 0.6f);
+        // faint rays square to the card, along its edges
+        float ray = 16 * px * grow;
+        spike(c, rp, gx, gy, sign * ray * 1.5f, 0, thick * 0.8f, rayPale, streak, s * 0.35f);
+        spike(c, rp, gx, gy, 0, sign * ray, thick * 0.8f, rayPale, colour, s * 0.25f);
         // the logo's anamorphic streak (2.06): from the top left glint, a long faint line of blue light along the top
         if (!far) spike(c, rp, gx, gy, Math.min(box.width() * 0.6f, 170 * px), 0, thick * 0.8f, rayPale, streak, s * 0.32f);
     }

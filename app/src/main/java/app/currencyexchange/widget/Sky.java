@@ -25,6 +25,9 @@ import java.util.Random;
 final class Sky {
     private Sky() {}
 
+    /** How far the sky is zoomed in (2.09): its clouds, stars, sun and moon drawn this much bigger. */
+    static final float ZOOM = 1.3f;
+
     /** The sun's heights (degrees) at which the sky's colours below are set; in between, they blend. */
     private static final float[] AT = {-18f, -9f, -5f, -2f, 1f, 5f, 12f, 25f};
     /** The sky at each height: its top, its middle and its horizon. */
@@ -123,13 +126,13 @@ final class Sky {
             float sx = (sunLeft ? 0.2f : 0.8f) * w, sy = h * (0.99f - clamp(e / 24f) * 0.66f);
             float vis = 1f - Math.min(0.85f, cover);
             int sun = e < 5f ? Scene.mix(0xFFFF9C55, 0xFFFFE2B0, clamp(e / 5f)) : 0xFFFFF4DE;
-            p.setShader(new RadialGradient(sx, sy, 26 * px, Scene.alpha(sun, 0.38f * vis), sun & 0x00FFFFFF, Shader.TileMode.CLAMP));
-            c.drawCircle(sx, sy, 26 * px, p);
-            p.setShader(new RadialGradient(sx, sy, 8 * px, Scene.alpha(sun, 0.55f * vis), sun & 0x00FFFFFF, Shader.TileMode.CLAMP));
-            c.drawCircle(sx, sy, 8 * px, p);
+            p.setShader(new RadialGradient(sx, sy, 32 * px, Scene.alpha(sun, 0.38f * vis), sun & 0x00FFFFFF, Shader.TileMode.CLAMP));
+            c.drawCircle(sx, sy, 32 * px, p);
+            p.setShader(new RadialGradient(sx, sy, 10 * px, Scene.alpha(sun, 0.55f * vis), sun & 0x00FFFFFF, Shader.TileMode.CLAMP));
+            c.drawCircle(sx, sy, 10 * px, p);
             p.setShader(null);
             p.setColor(Scene.alpha(Scene.mix(sun, 0xFFFFFFFF, 0.45f), 0.95f * vis));
-            c.drawCircle(sx, sy, 2.8f * px, p);
+            c.drawCircle(sx, sy, 3.5f * px, p);
         }
         // the moon where it really is (2.08): only while it's above this city's horizon, east on the left and west on
         // the right, as high as it stands; lit as much as it is, its bright side turned towards the sun, the dark part
@@ -140,7 +143,7 @@ final class Sky {
             float vis = clamp((altD + 0.5f) / 1.5f) * (1f - cover) * (0.38f + 0.6f * dark);
             if (lit > 0.03f && vis > 0.02f) {
                 float mx = w * (0.5f + 0.42f * (float) Math.sin(moon[1])), my = h * (0.8f - 0.72f * clamp(altD / 60f));
-                float mr = 2.9f * px;
+                float mr = 3.7f * px; // zoomed in (2.09)
                 int pale = 0xFFF1EEE2;
                 if (dark > 0.3f) {
                     p.setShader(new RadialGradient(mx, my, mr * 5, Scene.alpha(0xFFE8ECF6, 0.16f * vis * lit), 0x00E8ECF6,
@@ -174,14 +177,14 @@ final class Sky {
 
         // the stars, on a night clear enough to see them (drawn with each frame, so they can twinkle)
         float stars = clamp((-6f - e) / 6f) * clamp(1f - cover / 0.6f);
-        int n = stars > 0f ? Math.round(46 * stars) : 0;
+        int n = stars > 0f ? Math.round(34 * stars) : 0; // fewer, bigger: zoomed in
         L.sx = new float[n]; L.sy = new float[n]; L.ss = new float[n]; L.sa = new float[n];
         L.sf = new float[n]; L.sp = new float[n]; L.sb = new boolean[n];
         Random sr = new Random(seed ^ 0x5EEDL);
         for (int i = 0; i < n; i++) {
             L.sx[i] = sr.nextFloat() * w;
             L.sy[i] = sr.nextFloat() * h * 0.92f;
-            L.ss[i] = (0.35f + sr.nextFloat() * 0.6f) * px;
+            L.ss[i] = (0.35f + sr.nextFloat() * 0.6f) * px * 1.25f;
             L.sa[i] = (0.3f + sr.nextFloat() * 0.7f) * stars;
             L.sb[i] = sr.nextFloat() < 0.08f; // a few brighter ones, with a faint glow round them
             L.sf[i] = 0.25f + sr.nextFloat() * 0.9f; // twinkles per second
@@ -198,21 +201,21 @@ final class Sky {
             int puffsN = 2 * (1 + Math.round(cover * 13));
             Paint cp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
             cp.setShader(new LinearGradient(0, 0, 0, h, cl[0], cl[1], Shader.TileMode.CLAMP));
-            cp.setMaskFilter(new BlurMaskFilter(Math.max(1.5f, h * 0.045f), BlurMaskFilter.Blur.NORMAL));
+            cp.setMaskFilter(new BlurMaskFilter(Math.max(1.5f, h * 0.045f * ZOOM), BlurMaskFilter.Blur.NORMAL));
             cc.saveLayerAlpha(new RectF(0, 0, sw, h), Math.round(255 * (0.38f + 0.47f * cover)));
             if (cover > 0.45f) { // a heavier sky: long bands of cloud under the heaps, a shade darker, for its texture
                 Paint bp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
                 bp.setMaskFilter(new BlurMaskFilter(Math.max(2f, h * 0.06f), BlurMaskFilter.Blur.NORMAL));
                 int bands = 2 * (3 + Math.round((cover - 0.45f) * 8));
                 for (int i = 0; i < bands; i++) {
-                    float y = h * (0.05f + r.nextFloat() * 0.9f), bh = h * (0.07f + r.nextFloat() * 0.09f);
-                    float x = r.nextFloat() * sw, bw = w * (0.9f + r.nextFloat() * 0.8f);
+                    float y = h * (0.05f + r.nextFloat() * 0.9f), bh = h * (0.07f + r.nextFloat() * 0.09f) * ZOOM;
+                    float x = r.nextFloat() * sw, bw = w * (0.9f + r.nextFloat() * 0.8f) * ZOOM;
                     bp.setColor(Scene.mix(Scene.mix(cl[0], cl[1], y / h), sky[1], 0.25f + 0.3f * r.nextFloat()));
                     for (int k = -1; k <= 1; k++) cc.drawOval(x + k * sw, y - bh / 2, x + bw + k * sw, y + bh / 2, bp);
                 }
             }
             for (int i = 0; i < puffsN; i++) {
-                float cw = w * (0.4f + r.nextFloat() * 0.45f) * (0.75f + 0.5f * cover);
+                float cw = w * (0.4f + r.nextFloat() * 0.45f) * (0.75f + 0.5f * cover) * ZOOM;
                 float ch = cw * (0.2f + r.nextFloat() * 0.14f);
                 float cx = r.nextFloat() * sw, cy = h * (0.08f + r.nextFloat() * 0.7f);
                 int puffs = 5 + r.nextInt(4);
@@ -300,7 +303,7 @@ final class Sky {
             p.setColor(Scene.alpha(Scene.mix(L.cloud[1], 0xFFFFFFFF, 0.4f), 0.18f));
             p.setStrokeWidth(Math.max(1f, 0.5f * L.px));
             for (int i = 0; i < 26; i++) {
-                float len = h * (0.08f + r.nextFloat() * 0.08f), speed = h * (1.1f + r.nextFloat() * 0.5f);
+                float len = h * (0.08f + r.nextFloat() * 0.08f) * 1.2f, speed = h * (1.1f + r.nextFloat() * 0.5f);
                 float y = (r.nextFloat() * h + t * speed) % (h + len) - len;
                 float x = (r.nextFloat() * (w + h * 0.3f) - (y + len) * 0.3f + w * 2f) % (w + h * 0.3f);
                 c.drawLine(x, y, x - len * 0.3f, y + len, p);
@@ -309,7 +312,7 @@ final class Sky {
             Random r = new Random(L.seed ^ 0x5A0L);
             p.setColor(0xB3FFFFFF);
             for (int i = 0; i < 30; i++) {
-                float size = (0.5f + r.nextFloat() * 0.6f) * L.px, speed = h * (0.08f + r.nextFloat() * 0.06f);
+                float size = (0.5f + r.nextFloat() * 0.6f) * L.px * 1.25f, speed = h * (0.08f + r.nextFloat() * 0.06f);
                 float y = (r.nextFloat() * h + t * speed) % (h + 4 * size) - 2 * size;
                 float x = r.nextFloat() * w + (float) Math.sin(t * 0.7f + i) * 3f * L.px;
                 c.drawCircle(x, y, size, p);
