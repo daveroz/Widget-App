@@ -21,8 +21,8 @@ final class Words {
     private Words() {}
 
     // the sizes of the other widgets' words (2.09): the Calendar's weekday capitals, event titles and their times
-    // (2.13: a touch larger)
-    static final float LABEL_DP = 9.9f, TITLE_DP = 14.8f, DETAIL_DP = 10.4f;
+    // (2.13: a touch larger; 2.14: a bit larger again)
+    static final float LABEL_DP = 10.7f, TITLE_DP = 16f, DETAIL_DP = 11.2f;
 
     /** The three lines for what's playing (or for nothing: {@code idle}, or for no access). */
     static String[] of(NowPlaying.Track track, boolean access, String what, String idle) {
@@ -37,7 +37,7 @@ final class Words {
                      float width, float dp) {
         String label = w[0], source = w[1], title = w[2], detail = w[3];
         boolean three = detail != null && !detail.isEmpty() && band >= 42 * dp;
-        float block = (three ? 42 : 28) * dp;
+        float block = (three ? 45 : 30) * dp;
         float y = top + Math.max(0, (band - block) / 2) + 8 * dp;
         Typeface bold = Theme.uiBold(ctx), regular = Theme.uiMedium(ctx);
 
@@ -62,7 +62,7 @@ final class Words {
             text.setTextSize(Theme.FONT_SCALE * DETAIL_DP * dp);
             more = TextUtils.ellipsize(detail, text, width, TextUtils.TruncateAt.END).toString();
         }
-        float titleY = y + 19 * dp, detailY = titleY + 15 * dp;
+        float titleY = y + 20.5f * dp, detailY = titleY + 16 * dp;
         int labelColour = Glow.label(scene);
         int titleColour = Scene.mix(Theme.TEXT, scene.hot, 0.3f); // a warm white, lit by the key (warmer than elsewhere: it's the star)
         int detailColour = Glow.muted(scene);
