@@ -39,8 +39,7 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:paddingBottom="12dp">
+                    android:paddingEnd="2dp">
                     <ImageView
                         android:id="@+id/clk_day_0"
                         android:layout_width="match_parent"
@@ -81,8 +80,7 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:paddingBottom="12dp">
+                    android:paddingEnd="2dp">
                     <ImageView
                         android:id="@+id/clk_day_1"
                         android:layout_width="match_parent"
@@ -123,8 +121,7 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:paddingBottom="12dp">
+                    android:paddingEnd="2dp">
                     <ImageView
                         android:id="@+id/clk_day_2"
                         android:layout_width="match_parent"
@@ -165,8 +162,7 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:paddingStart="2dp"
-                    android:paddingEnd="2dp"
-                    android:paddingBottom="12dp">
+                    android:paddingEnd="2dp">
                     <ImageView
                         android:id="@+id/clk_day_3"
                         android:layout_width="match_parent"
