@@ -22,6 +22,9 @@ import android.widget.LinearLayout;
  * what's behind is drawn small ({@link #DOWN} times smaller), blurred, and stretched back up: drawn again after every
  * scroll, and now and then for the room's slowly drifting light. If that picture can't be taken, the glass is drawn
  * nearly solid rather than showing what's behind it sharp.
+ * <p>
+ * Since 2.20 it's the screen's tab bar ({@code dock}): across the bottom, square, a darker glass, and only a hairline
+ * along its top, as the tab bar reference's line between the page and the bar.
  */
 final class GlassBar extends LinearLayout {
     /** What's behind is drawn this many times smaller than the screen... */
@@ -35,6 +38,8 @@ final class GlassBar extends LinearLayout {
 
     private final View room;
     private final float radius, px;
+    /** The tab bar across the bottom (2.20), rather than a floating bar. */
+    private final boolean dock;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
     private final Path shape = new Path(), edge = new Path();
     private final RectF box = new RectF();
@@ -61,10 +66,16 @@ final class GlassBar extends LinearLayout {
 
     /** A glass bar over {@code room} (the view it floats in, whose other children show through it). */
     GlassBar(Context c, View room, float radiusDp) {
+        this(c, room, radiusDp, false);
+    }
+
+    /** A glass bar over {@code room}; with {@code dock}, the tab bar across the bottom of the screen. */
+    GlassBar(Context c, View room, float radiusDp, boolean dock) {
         super(c);
         this.room = room;
+        this.dock = dock;
         float density = c.getResources().getDisplayMetrics().density;
-        this.radius = radiusDp * density;
+        this.radius = dock ? 0 : radiusDp * density;
         this.px = density;
         this.blurRadius = 22 * density;
         setWillNotDraw(false);
@@ -99,7 +110,12 @@ final class GlassBar extends LinearLayout {
         shape.rewind();
         shape.addRoundRect(box, radius, radius, Path.Direction.CW);
         edge.rewind();
-        edge.addRoundRect(new RectF(in, in, w - in, h - in), radius - in, radius - in, Path.Direction.CW);
+        if (dock) { // only the line between the page and the bar
+            edge.moveTo(0, in);
+            edge.lineTo(w, in);
+        } else {
+            edge.addRoundRect(new RectF(in, in, w - in, h - in), radius - in, radius - in, Path.Direction.CW);
+        }
     }
 
     /** While it takes in what's behind, the bar itself (drawn as part of the room) is left out. */
@@ -150,13 +166,21 @@ final class GlassBar extends LinearLayout {
         }
         // the glass: a translucent dark grey with a breath of the song's colour, and a faint sheen along its top
         paint.setShader(null);
-        paint.setColor(Scene.alpha(Scene.mix(0xFF4A4644, s.deep, 0.08f), 0.58f));
+        paint.setColor(dock ? Scene.alpha(0xFF14171E, 0.74f) : Scene.alpha(Scene.mix(0xFF4A4644, s.deep, 0.08f), 0.58f));
         canvas.drawRect(box, paint);
         paint.setShader(new LinearGradient(0, 0, 0, h * 0.6f, 0x14FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
         canvas.drawRect(box, paint);
         paint.setShader(null);
         Stage.grain(canvas, box); // the frost in the glass, as every card's (2.05)
         canvas.restore();
+        if (dock) { // the tab bar: a hairline along its top, nothing more
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(1f, px * 0.8f));
+            paint.setColor(Scene.alpha(Stage.ICE, 0.11f));
+            canvas.drawPath(edge, paint);
+            paint.setStyle(Paint.Style.FILL);
+            return;
+        }
         // its rim: light caught by the glass's edge, brightest at the top left and back, softer, at the bottom right
         // (as the buttons'; see Theme.glassEdge), never fading as far as theirs
         int line = Stage.ICE; // a fixed icy white, as every card's edge (2.05)

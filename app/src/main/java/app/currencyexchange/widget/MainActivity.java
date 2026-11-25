@@ -9,7 +9,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
-import android.location.Location;
+import android.graphics.drawable.GradientDrawable;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,8 +22,11 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ScrollView;
@@ -35,6 +38,8 @@ import org.json.JSONObject;
 
 import java.net.URLEncoder;
 import java.text.DateFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.Date;
@@ -42,286 +47,165 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Settings screen: smoked-glass cards with lit edges over a dark stage, in the playing song's light (drawn again when
- * the song changes). Cities and currencies are picked from lists.
+ * The app (2.20): five tabs, after the references. A frosted glass tab bar across the bottom (the pages blur through
+ * it), each tab an icon over its name, the open one white and filled; a floating "Refresh" pill just above it. Each page
+ * opens as the car app's screen does: the crystal globe in a glass ring with the page's name; Home has the four world
+ * clocks' live skies as its hero, reflected on the dark, the first rate in big polished figures, a row of three tiles
+ * (the middle one raised) and a pill for whatever needs attention. Choices are segmented controls ({@link Segmented}).
+ * Cities and currencies are picked from lists.
  */
 public class MainActivity extends Activity {
-    private TextView batStatus, batButton;
-    private final TextView[] cityBtn = new TextView[4];
-    private final TextView[] fromBtn = new TextView[6];
-    private TextView toBtn;
-    private EditText fee;
-    private String sbbMode;
-    private final TextView[] modeBtn = new TextView[3];
+    private static final int HOME = 0, CLOCKS = 1, RATES = 2, WIDGETS = 3, STATUS = 4;
+    private static final String[] TABS = {"Home", "Clocks", "Rates", "Widgets", "Status"};
+    private static final int[] TAB_GLYPHS = {Glyph.GLOBE, Glyph.CLOCK, Glyph.RATES, Glyph.WIDGETS, Glyph.STATUS};
     private static final String[] MODES = {"smooth", "second", "minute"};
-    private static final String[] MODE_LABELS = {"Smooth", "Every second", "Minute only"};
-    private TextView banner, calStatus, calButton, locStatus, locButton;
-    private TextView mediaStatus, mediaButton, soundStatus, soundButton;
-    private LinearLayout statusBox;
-    private final Handler ui = new Handler(Looper.getMainLooper());
+
+    private final ScrollView[] pages = new ScrollView[5];
+    private final LinearLayout[] cols = new LinearLayout[5];
+    private final ImageView[] tabIcon = new ImageView[5];
+    private final TextView[] tabWord = new TextView[5];
+    private int tab = HOME;
+    private boolean resumed;
+
+    private FrameLayout room;
+    private BackdropFrame behind;
+    private GlassBar dock;
+    private LinearLayout pill;
+    private TextView pillWord;
+    private View topShade, bottomFade;
+    private SkyStrip hero;
     private StageView stage;
+
+    // home
+    private TextView bigRate, bigUnit, bigWhat, alert;
+    private final TextView[] tileValue = new TextView[3], tileWord = new TextView[3];
+    // clocks
+    private final TextView[] cityName = new TextView[4], cityWhen = new TextView[4], cityTime = new TextView[4];
+    // rates
+    private LinearLayout ratesList, toList;
+    private EditText fee;
+    // status
+    private LinearLayout accessList, liveList;
+
+    private final Handler ui = new Handler(Looper.getMainLooper());
     /** The light the screen was drawn in: when the song has changed by the time it's back in front, it's redrawn. */
     private String drawnIn;
+    private int insetTop, insetBottom;
+    private boolean typing;
+    private int busy;
 
     private static final int REQ_ALL = 1;
+    private static final int PAD = 18;
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         drawnIn = Theme.accent().tag();
+        if (b != null) tab = Math.max(0, Math.min(4, b.getInt("tab", HOME)));
+        edgeToEdge();
 
-        // The stage stays put behind the cards while they scroll over it.
-        // The glass header floats over a frame of its own (2.18): the stage and the scrolling cards, beside the header,
-        // so it can show them blurred (BackdropFrame, GlassBar)
-        android.widget.FrameLayout room = new android.widget.FrameLayout(this);
-        final BackdropFrame behind = new BackdropFrame(this);
+        // The room: the stage behind, the pages over it, both in a frame of their own so the tab bar can show them
+        // blurred (BackdropFrame, GlassBar)
+        room = new FrameLayout(this);
+        behind = new BackdropFrame(this);
         room.addView(behind, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         stage = new StageView(this);
         behind.addView(stage, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        ScrollView sv = new ScrollView(this);
-        sv.setBackgroundColor(0);
-        sv.setFillViewport(true);
-        behind.addView(sv, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        final LinearLayout col = vbox();
-        col.setPadding(dp(16), dp(104), dp(16), dp(28)); // room at the top for the glass bar floating over it
-        sv.addView(col, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        // ---- header: a bar of frosted glass floating at the top, the cards scrolling under it, blurred ----
-        final GlassBar head = new GlassBar(this, behind, 16);
-        head.setOrientation(LinearLayout.HORIZONTAL);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        head.setPadding(dp(12), dp(12), dp(12), dp(12));
-        android.widget.FrameLayout.LayoutParams headAt = new android.widget.FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
-        headAt.setMargins(dp(16), dp(12), dp(16), 0);
-        room.addView(head, headAt);
-        sv.setOnScrollChangeListener((v, x, y, ox, oy) -> head.refresh());
-        head.addOnLayoutChangeListener((v, l, t, r, bottom, ol, ot, or, ob) -> {
-            int want = bottom + dp(16); // the first card starts just under the bar
-            if (col.getPaddingTop() != want) col.setPadding(col.getPaddingLeft(), want, col.getPaddingRight(), col.getPaddingBottom());
-        });
-        // the crystal globe, the app's icon (2.06)
-        android.widget.ImageView badge = new android.widget.ImageView(this);
-        badge.setImageResource(R.mipmap.ic_launcher);
-        badge.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
-        head.addView(badge, new LinearLayout.LayoutParams(dp(48), dp(48)));
-        LinearLayout titles = vbox();
-        titles.setPadding(dp(12), 0, 0, 0);
-        TextView name = text("WORLDLY", 19, Theme.uiBold(this), Theme.TEXT);
-        titles.addView(name);
-        TextView tagline = text("World clocks · rates · SBB clock · calendar", 12, Theme.uiMedium(this), Theme.MUTED);
-        Theme.label(this, tagline);
-        tagline.setTextSize(10);
-        tagline.setLetterSpacing(0.14f);
-        tagline.setTextColor(Theme.accent().key);
-        titles.addView(tagline);
-        head.addView(titles);
-
-        // ---- world clocks: pick from a list ----
-        LinearLayout clocks = card(col, "WORLD CLOCKS");
-        for (int i = 0; i < 4; i += 2) {
-            LinearLayout row = hbox();
-            for (int j = 0; j < 2; j++) {
-                final int idx = i + j;
-                cityBtn[idx] = picker(Store.city(this, idx), v -> pickCity(idx));
-                addWeighted(row, cityBtn[idx], j == 0 ? 0 : 8);
-            }
-            clocks.addView(row, matchWrap(i == 0 ? 0 : 8));
+        for (int i = 0; i < 5; i++) {
+            ScrollView sv = new ScrollView(this);
+            sv.setBackgroundColor(0);
+            sv.setFillViewport(true);
+            sv.setVerticalScrollBarEnabled(false);
+            LinearLayout col = vbox();
+            sv.addView(col, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            behind.addView(sv, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            pages[i] = sv;
+            cols[i] = col;
         }
-        TextView cityHint = text("Tap a city to choose from the list. Can't find yours? Type its name in the list's search box.",
-                12, Theme.uiMedium(this), Theme.DIM);
-        cityHint.setPadding(dp(2), dp(8), 0, 0);
-        clocks.addView(cityHint);
 
-        // ---- currency rows: pick from a list ----
-        LinearLayout rates = card(col, "CURRENCY ROWS");
-        final LinearLayout[] rateRows = new LinearLayout[3];
-        for (int i = 0; i < 6; i += 2) {
-            LinearLayout row = hbox();
-            rateRows[i / 2] = row;
-            for (int j = 0; j < 2; j++) {
-                final int idx = i + j;
-                fromBtn[idx] = picker(currencyLabel(Store.from(this, idx)), v -> pickCurrency("Currency " + (idx + 1), code -> {
-                    Store.sp(this).edit().putString("fx" + idx, code).apply();
-                    fromBtn[idx].setText(currencyLabel(code));
-                    refreshNow("Updating rates…");
-                }));
-                addWeighted(row, fromBtn[idx], j == 0 ? 0 : 8);
-            }
-            rates.addView(row, matchWrap(i == 0 ? 0 : 8));
+        buildHome(cols[HOME]);
+        buildClocks(cols[CLOCKS]);
+        buildRates(cols[RATES]);
+        buildWidgets(cols[WIDGETS]);
+        buildStatus(cols[STATUS]);
+
+        // under the status bar, the pages fade into the dark; above the tab bar too, where the pill floats
+        topShade = new View(this);
+        topShade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{Scene.alpha(Theme.BG, 0.94f), Scene.alpha(Theme.BG, 0.6f), Scene.alpha(Theme.BG, 0f)}));
+        room.addView(topShade, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(24), Gravity.TOP));
+        bottomFade = new View(this);
+        bottomFade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{Scene.alpha(Theme.BG, 0f), Scene.alpha(Theme.BG, 0.55f), Scene.alpha(Theme.BG, 0.8f)}));
+        room.addView(bottomFade, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(150), Gravity.BOTTOM));
+
+        // ---- the tab bar: frosted glass across the bottom, each tab an icon over its name ----
+        dock = new GlassBar(this, behind, 0, true);
+        dock.setOrientation(LinearLayout.HORIZONTAL);
+        dock.setGravity(Gravity.CENTER_VERTICAL);
+        for (int i = 0; i < 5; i++) {
+            final int t = i;
+            LinearLayout item = vbox();
+            item.setGravity(Gravity.CENTER_HORIZONTAL);
+            item.setPadding(0, dp(2), 0, dp(2));
+            ImageView icon = new ImageView(this);
+            tabIcon[i] = icon;
+            item.addView(icon, new LinearLayout.LayoutParams(dp(26), dp(26)));
+            TextView word = text(TABS[i], 13, Theme.uiMedium(this), Segmented.OFF);
+            word.setPadding(0, dp(5), 0, 0);
+            word.setGravity(Gravity.CENTER_HORIZONTAL);
+            tabWord[i] = word;
+            item.addView(word);
+            item.setClickable(true);
+            item.setOnClickListener(v -> selectTab(t, true));
+            dock.addView(item, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         }
-        final TextView[] addBtn = new TextView[1];
-        final TextView[] removeBtnRef = new TextView[1];
-        final Runnable showRows = () -> {
-            int n = Store.count(this);
-            for (int i = 0; i < 6; i++) fromBtn[i].setVisibility(i < n ? View.VISIBLE : View.INVISIBLE);
-            for (int r = 0; r < 3; r++) rateRows[r].setVisibility(r * 2 < n ? View.VISIBLE : View.GONE);
-            addBtn[0].setVisibility(n < 6 ? View.VISIBLE : View.INVISIBLE);
-            removeBtnRef[0].setVisibility(n > 1 ? View.VISIBLE : View.INVISIBLE);
-        };
-        addBtn[0] = secondaryButton("+  Add currency", v -> {
-            Store.setCount(this, Store.count(this) + 1);
-            refreshNow("Updating rates…");
-            showRows.run();
-        });
-        final TextView removeBtn = secondaryButton("\u2013  Remove", v -> {
-            Store.setCount(this, Store.count(this) - 1);
-            refreshNow("Updating…");
-            showRows.run();
-        });
-        removeBtnRef[0] = removeBtn;
-        LinearLayout addRemove = hbox();
-        addWeighted(addRemove, addBtn[0], 0);
-        addWeighted(addRemove, removeBtn, 8);
-        rates.addView(addRemove, matchWrap(8));
-        showRows.run();
-        LinearLayout conv = hbox();
-        toBtn = picker(currencyLabel(Store.to(this)), v -> pickCurrency("Convert to", code -> {
-            Store.sp(this).edit().putString("to", code).apply();
-            toBtn.setText(currencyLabel(code));
-            refreshNow("Updating rates…");
-        }));
-        fee = input(Store.feeText(this), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, true, "Fee");
-        addWeighted(conv, labeledView("CONVERT TO", toBtn), 0);
-        addWeighted(conv, labeledView("VISA FEE %", fee), 8);
-        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        cp.topMargin = dp(12);
-        rates.addView(conv, cp);
+        room.addView(dock, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+        for (ScrollView sv : pages) sv.setOnScrollChangeListener((v, x, y, ox, oy) -> dock.refresh());
 
-        // ---- World clocks: animated or still skies (2.05) ----
-        LinearLayout skies = card(col, "WORLD CLOCK SKIES");
-        LinearLayout skyModes = hbox();
-        final TextView[] skyBtn = new TextView[2];
-        final String[] skyLabels = {"ANIMATED", "STILL"};
-        final Runnable paintSkies = () -> {
-            boolean animated = Store.animateSkies(this);
-            for (int i = 0; i < 2; i++) {
-                boolean on = (i == 0) == animated;
-                skyBtn[i].setTextColor(on ? Theme.onLit() : Theme.TEXT_SOFT);
-                skyBtn[i].setBackground(on ? Theme.lit(this, 12, false) : Theme.dark(this, 12, false));
-                skyBtn[i].setElevation(0);
+        // ---- the floating pill: refresh everything ----
+        pill = hbox();
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        pill.setPadding(dp(24), dp(13), dp(20), dp(13));
+        pill.setBackground(Theme.pill(this, 0xFFEEF2F7, false));
+        pill.setElevation(dp(10));
+        pillWord = plain("Refresh", 16, Theme.uiSemi(this), 0xFF0B0D12);
+        pill.addView(pillWord);
+        ImageView pillIcon = new ImageView(this);
+        pillIcon.setImageDrawable(new Glyph(Glyph.REFRESH, 0xFF0B0D12, false, 2f));
+        LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(19), dp(19));
+        ip.leftMargin = dp(10);
+        pill.addView(pillIcon, ip);
+        pill.setClickable(true);
+        pill.setOnClickListener(v -> save());
+        room.addView(pill, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+
+        room.setOnApplyWindowInsetsListener((v, in) -> {
+            int top, bottom, ime = 0;
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets bars = in.getInsets(WindowInsets.Type.systemBars());
+                top = bars.top;
+                bottom = bars.bottom;
+                ime = in.getInsets(WindowInsets.Type.ime()).bottom;
+            } else {
+                top = in.getSystemWindowInsetTop();
+                bottom = in.getSystemWindowInsetBottom();
+                if (bottom > dp(120)) { // the keyboard (adjustResize puts it in the bottom inset)
+                    ime = bottom;
+                    bottom = in.getStableInsetBottom();
+                }
             }
-        };
-        for (int i = 0; i < 2; i++) {
-            final boolean animate = i == 0;
-            skyBtn[i] = text(skyLabels[i], 13, Theme.uiSemi(this), Theme.TEXT_SOFT);
-            Theme.label(this, skyBtn[i]);
-            skyBtn[i].setLetterSpacing(0.12f);
-            skyBtn[i].setGravity(Gravity.CENTER);
-            skyBtn[i].setPadding(dp(6), dp(14), dp(6), dp(14));
-            skyBtn[i].setClickable(true);
-            skyBtn[i].setOnClickListener(v -> {
-                Store.setAnimateSkies(this, animate);
-                paintSkies.run();
-                WidgetProvider.updateAll(getApplicationContext());
-                LiveService.ensure(getApplicationContext());
-            });
-            addWeighted(skyModes, skyBtn[i], i == 0 ? 0 : 8);
-        }
-        skies.addView(skyModes, matchWrap(0));
-        paintSkies.run();
-        TextView skyHint = text("Animated: the stars twinkle, the clouds drift, the trees sway with the wind and now and then a "
-                + "plane crosses far away, while the screen is on. It needs the same small notification as the Sound widget "
-                + "and uses a little more battery. Still: one picture a minute.", 12, Theme.uiMedium(this), Theme.DIM);
-        skyHint.setPadding(dp(2), dp(8), 0, 0);
-        skies.addView(skyHint);
-
-        // ---- SBB clock: only the animation options ----
-        LinearLayout sbb = card(col, "SBB CLOCK ANIMATION");
-        sbbMode = Store.sbbMode(this);
-        LinearLayout modes = hbox();
-        for (int i = 0; i < 3; i++) {
-            final String m = MODES[i];
-            modeBtn[i] = text(MODE_LABELS[i], 13, Theme.uiSemi(this), Theme.TEXT_SOFT);
-            Theme.label(this, modeBtn[i]);
-            modeBtn[i].setLetterSpacing(0.12f);
-            modeBtn[i].setGravity(Gravity.CENTER);
-            modeBtn[i].setPadding(dp(6), dp(14), dp(6), dp(14));
-            modeBtn[i].setClickable(true);
-            modeBtn[i].setOnClickListener(v -> {
-                sbbMode = m;
-                Store.sp(this).edit().putString("sbbMode", m).apply();
-                paintModes();
-                SbbWidgetProvider.updateAll(getApplicationContext());
-                LiveService.ensure(getApplicationContext());
-            });
-            addWeighted(modes, modeBtn[i], i == 0 ? 0 : 8);
-        }
-        sbb.addView(modes, matchWrap(0));
-        paintModes();
-        TextView modeHint = text("Smooth: second hand runs a lap in 58.5 s and the minute hand swings like the real clock. "
-                + "Every second: one picture a second. Minute only: still picture each minute. The clock always shows the "
-                + "time where you are.", 12, Theme.uiMedium(this), Theme.DIM);
-        modeHint.setPadding(dp(2), dp(8), 0, 0);
-        sbb.addView(modeHint);
-
-        // ---- Sound widget: what it needs to see and hear what's playing ----
-        LinearLayout sound = card(col, "SOUND & MUSIC WIDGETS");
-        TextView soundHint = text("Sound: a wall of lights that follows what's playing in any app, in its colour, with the "
-                + "cover as a spinning LP for music; paused or nothing playing, it plays its light patterns. Music: play, "
-                + "pause, skip and jump through the song. Both need media access; Sound also uses the sound levels.",
-                12, Theme.uiMedium(this), Theme.DIM);
-        sound.addView(soundHint);
-        mediaStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
-        mediaStatus.setPadding(0, dp(12), 0, 0);
-        sound.addView(mediaStatus);
-        mediaButton = secondaryButton("Allow media access", v -> openMediaAccess());
-        sound.addView(mediaButton, matchWrap(8));
-        soundStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
-        soundStatus.setPadding(0, dp(12), 0, 0);
-        sound.addView(soundStatus);
-        soundButton = secondaryButton("Allow sound levels", v -> requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_ALL));
-        sound.addView(soundButton, matchWrap(8));
-
-        // ---- permissions ----
-        LinearLayout perms = card(col, "PERMISSIONS");
-        locStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
-        perms.addView(locStatus);
-        locButton = secondaryButton("Allow location", v -> requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_ALL));
-        perms.addView(locButton, matchWrap(8));
-        calStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
-        calStatus.setPadding(0, dp(12), 0, 0);
-        perms.addView(calStatus);
-        calButton = secondaryButton("Allow calendar", v -> requestPermissions(new String[]{Manifest.permission.READ_CALENDAR}, REQ_ALL));
-        perms.addView(calButton, matchWrap(8));
-        batStatus = text("", 13, Theme.uiSemi(this), Theme.TEXT);
-        batStatus.setPadding(0, dp(12), 0, 0);
-        perms.addView(batStatus);
-        batButton = secondaryButton("Allow running in background", v -> {
-            try {
-                startActivity(new android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                        android.net.Uri.parse("package:" + getPackageName())));
-            } catch (Exception e) {
-                startActivity(new android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
-            }
+            applyInsets(top, bottom, ime);
+            return in;
         });
-        perms.addView(batButton, matchWrap(8));
-        updatePermissionCards();
-
-        // ---- actions ----
-        col.addView(primaryButton("Save & refresh", v -> save()), matchWrap(18));
-        col.addView(secondaryButton("Add Currency widget", v -> pin(WidgetProvider.class)), matchWrap(10));
-        col.addView(secondaryButton("Add SBB clock widget", v -> pin(SbbWidgetProvider.class)), matchWrap(8));
-        col.addView(secondaryButton("Add Calendar widget", v -> pin(CalendarWidgetProvider.class)), matchWrap(8));
-        col.addView(secondaryButton("Add Sound widget", v -> pin(SoundWidgetProvider.class)), matchWrap(8));
-        col.addView(secondaryButton("Add Music widget", v -> pin(PlayerWidgetProvider.class)), matchWrap(8));
-
-        // ---- status ----
-        LinearLayout st = card(col, "STATUS");
-        banner = text("", 13, Theme.uiSemi(this), Theme.AMBER);
-        banner.setVisibility(View.GONE);
-        banner.setPadding(0, 0, 0, dp(8));
-        st.addView(banner);
-        statusBox = vbox();
-        st.addView(statusBox);
-        TextView foot = text("Clocks update every minute and rates and weather about every 30 minutes, with no notification. "
-                + "Only the SBB clock's moving second hand (Smooth / Every second) needs a small notification, because Android "
-                + "requires one for live animation; choose Minute only to avoid it.", 12, Theme.uiMedium(this), Theme.DIM);
-        foot.setPadding(0, dp(10), 0, 0);
-        st.addView(foot);
-        updateStatus();
+        applyInsets(0, 0, 0);
 
         setContentView(room);
+        selectTab(tab, false);
+        updatePermissionCards();
+        updateStatus();
 
         // First launch: ask for everything the widgets need in one go.
         if (!Store.sp(this).getBoolean("permAsked", false)) {
@@ -335,6 +219,387 @@ public class MainActivity extends Activity {
             askBackground(); // installs from before this was asked get asked once too
         }
     }
+
+    /** The pages run under the status bar and the tab bar under the navigation bar, as in the references. */
+    private void edgeToEdge() {
+        Window w = getWindow();
+        w.setStatusBarColor(0);
+        w.setNavigationBarColor(0);
+        if (Build.VERSION.SDK_INT >= 29) {
+            w.setStatusBarContrastEnforced(false);
+            w.setNavigationBarContrastEnforced(false);
+        }
+        if (Build.VERSION.SDK_INT >= 30) {
+            w.setDecorFitsSystemWindows(false);
+        } else {
+            w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        }
+        w.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    }
+
+    /** Room for the status bar ({@code top}), the navigation bar ({@code bottom}) and the keyboard ({@code ime}). */
+    private void applyInsets(int top, int bottom, int ime) {
+        insetTop = top;
+        insetBottom = bottom;
+        typing = ime > 0;
+        int dockH = dp(70) + bottom;
+        dock.setPadding(0, dp(10), 0, dp(10) + bottom);
+        int below = typing ? ime + dp(24) : dockH + dp(92);
+        for (LinearLayout col : cols) col.setPadding(dp(PAD), top + dp(18), dp(PAD), below);
+        FrameLayout.LayoutParams pp = (FrameLayout.LayoutParams) pill.getLayoutParams();
+        if (pp != null) {
+            pp.bottomMargin = dockH + dp(16);
+            pill.setLayoutParams(pp);
+        }
+        ViewGroup.LayoutParams sp = topShade.getLayoutParams();
+        sp.height = top + dp(20);
+        topShade.setLayoutParams(sp);
+        ViewGroup.LayoutParams fp = bottomFade.getLayoutParams();
+        fp.height = dockH + dp(96);
+        bottomFade.setLayoutParams(fp);
+        int show = typing ? View.GONE : View.VISIBLE;
+        dock.setVisibility(show);
+        pill.setVisibility(show);
+        bottomFade.setVisibility(show);
+        if (typing) revealFocus();
+    }
+
+    /** With the keyboard up, the field being typed in is scrolled into sight. */
+    private void revealFocus() {
+        final View f = getCurrentFocus();
+        if (f == null) return;
+        final ScrollView sv = pages[tab];
+        sv.post(() -> {
+            android.graphics.Rect r = new android.graphics.Rect();
+            f.getDrawingRect(r);
+            sv.offsetDescendantRectToMyCoords(f, r);
+            int visible = sv.getHeight() - cols[tab].getPaddingBottom();
+            if (r.bottom - sv.getScrollY() > visible) sv.smoothScrollTo(0, r.bottom - visible + dp(24));
+        });
+    }
+
+    /** Opens tab {@code t}: its page shows (fading in, when {@code animate}), its icon fills and turns white. */
+    private void selectTab(int t, boolean animate) {
+        boolean same = t == tab && animate;
+        tab = t;
+        for (int i = 0; i < 5; i++) {
+            boolean on = i == t;
+            pages[i].setVisibility(on ? View.VISIBLE : View.GONE);
+            tabIcon[i].setImageDrawable(new Glyph(TAB_GLYPHS[i], on ? Segmented.ON : Segmented.OFF, on, 1.7f));
+            tabWord[i].setTextColor(on ? Segmented.ON : Segmented.OFF);
+        }
+        if (same) {
+            pages[t].smoothScrollTo(0, 0); // the open tab tapped again: back to its top
+        } else if (animate) {
+            pages[t].setAlpha(0f);
+            pages[t].setTranslationY(dp(6));
+            pages[t].animate().alpha(1f).translationY(0).setDuration(200).start();
+        }
+        hero.setRunning(resumed && t == HOME);
+        dock.refresh();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        out.putInt("tab", tab);
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onBackPressed() {
+        if (tab != HOME) selectTab(HOME, true);
+        else super.onBackPressed();
+    }
+
+    // ------------------------------------------------------------------ pages
+
+    /** Home: the hero (the four clocks' skies, reflected), the first rate in big figures, three tiles, what needs you. */
+    private void buildHome(LinearLayout col) {
+        header(col, "Worldly", "World clocks · rates · widgets");
+        hero = new SkyStrip(this);
+        hero.setOnClickListener(v -> selectTab(CLOCKS, true));
+        col.addView(hero, matchWrap(6));
+
+        // the first rate, big, as the reference's "89 %"
+        LinearLayout big = hbox();
+        big.setBaselineAligned(true);
+        big.setPadding(dp(4), 0, 0, 0);
+        bigRate = chrome("--", 66);
+        big.addView(bigRate);
+        bigUnit = chrome("", 24);
+        bigUnit.setPadding(dp(8), 0, 0, 0);
+        big.addView(bigUnit);
+        bigWhat = text("", 14, Theme.uiMedium(this), Theme.MUTED);
+        bigWhat.setPadding(dp(16), 0, 0, 0);
+        big.addView(bigWhat);
+        big.setClickable(true);
+        big.setOnClickListener(v -> selectTab(RATES, true));
+        col.addView(big, matchWrap(0));
+
+        // three tiles, the middle one raised
+        LinearLayout tiles = hbox();
+        String[] titles = {"Visa", "Updated", "Weather"};
+        for (int i = 0; i < 3; i++) {
+            LinearLayout t = tile(i == 1);
+            TextView title = text(titles[i], 16, Theme.uiMedium(this), Theme.TEXT);
+            title.setGravity(Gravity.CENTER);
+            t.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            t.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1f));
+            tileWord[i] = text("", 12.5f, Theme.uiMedium(this), Theme.MUTED);
+            tileWord[i].setGravity(Gravity.CENTER);
+            t.addView(tileWord[i], new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            tileValue[i] = chrome("--", 32);
+            tileValue[i].setGravity(Gravity.CENTER);
+            tileValue[i].setMaxLines(1);
+            t.addView(tileValue[i], new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            final int target = i == 0 ? RATES : STATUS;
+            t.setClickable(true);
+            t.setOnClickListener(v -> selectTab(target, true));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(136), 1f);
+            lp.leftMargin = i == 0 ? 0 : dp(10);
+            tiles.addView(t, lp);
+        }
+        col.addView(tiles, matchWrap(18));
+
+        // what needs attention, as the reference's orange pill
+        alert = text("", 14, Theme.uiMedium(this), 0xFFFFF1E2);
+        alert.setPadding(dp(18), dp(10), dp(18), dp(10));
+        alert.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{0xFF8A4518, 0xFFC0702E}));
+        ((GradientDrawable) alert.getBackground()).setCornerRadius(dp(100));
+        alert.setClickable(true);
+        alert.setOnClickListener(v -> selectTab(STATUS, true));
+        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        ap.topMargin = dp(18);
+        ap.gravity = Gravity.CENTER_HORIZONTAL;
+        col.addView(alert, ap);
+    }
+
+    /** Clocks: the four cities as tiles (tap one to change it), and how their skies move. */
+    private void buildClocks(LinearLayout col) {
+        header(col, "Clocks", "The four cities on your widget");
+        for (int r = 0; r < 2; r++) {
+            LinearLayout row = hbox();
+            for (int j = 0; j < 2; j++) {
+                final int i = r * 2 + j;
+                LinearLayout t = tile(false);
+                t.setGravity(Gravity.START);
+                t.setPadding(dp(18), dp(18), dp(18), dp(16));
+                cityName[i] = text("", 17, Theme.uiMedium(this), Theme.TEXT);
+                cityName[i].setSingleLine(true);
+                cityName[i].setEllipsize(android.text.TextUtils.TruncateAt.END);
+                t.addView(cityName[i]);
+                t.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1f));
+                cityWhen[i] = text("", 12.5f, Theme.uiMedium(this), Theme.MUTED);
+                t.addView(cityWhen[i]);
+                cityTime[i] = chrome("", 38);
+                t.addView(cityTime[i]);
+                t.setClickable(true);
+                t.setOnClickListener(v -> pickCity(i));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(150), 1f);
+                lp.leftMargin = j == 0 ? 0 : dp(10);
+                row.addView(t, lp);
+            }
+            col.addView(row, matchWrap(r == 0 ? 0 : 10));
+        }
+        updateClockTiles();
+        hint(col, "Tap a city to choose another. Can't find yours? Type its name in the list's search box.");
+
+        section(col, "Sky motion");
+        Segmented skies = new Segmented(this, new String[]{"Animated", "Still"}, new int[]{Glyph.SPARKLE, Glyph.IMAGE},
+                Store.animateSkies(this) ? 0 : 1, i -> {
+                    Store.setAnimateSkies(this, i == 0);
+                    WidgetProvider.updateAll(getApplicationContext());
+                    LiveService.ensure(getApplicationContext());
+                });
+        col.addView(skies, matchWrap(0));
+        hint(col, "Animated: the stars twinkle, the clouds drift, the trees sway with the wind and now and then a plane "
+                + "crosses far away, while the screen is on. It needs the same small notification as the Sound widget and "
+                + "uses a little more battery. Still: one picture a minute.");
+    }
+
+    /** Rates: the currencies (tap one to change it), how many rows, what they convert to, the bank's fee. */
+    private void buildRates(LinearLayout col) {
+        header(col, "Rates", "Market and Visa, side by side");
+        section(col, "Your currencies");
+        ratesList = listCard(col);
+        section(col, "Rows on the widget");
+        Segmented count = new Segmented(this, new String[]{"1", "2", "3", "4", "5", "6"}, null, Store.count(this) - 1, i -> {
+            Store.setCount(this, i + 1);
+            fillRates();
+            refreshNow("Updating rates…");
+        });
+        col.addView(count, matchWrap(0));
+        section(col, "Convert to");
+        toList = listCard(col);
+        section(col, "Visa fee");
+        LinearLayout feeCard = listCard(col);
+        LinearLayout row = listRow(feeCard, true);
+        LinearLayout words = vbox();
+        words.addView(text("Your bank's fee", 16, Theme.uiMedium(this), Theme.TEXT));
+        TextView d = text("Added to Visa's rate, as on your statement", 12.5f, Theme.uiMedium(this), Theme.MUTED);
+        d.setPadding(0, dp(2), 0, 0);
+        words.addView(d);
+        row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        fee = input(Store.feeText(this), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, true, "0");
+        fee.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        fee.setHorizontallyScrolling(false); // a short number, set against the right edge without scrolling
+        fee.setMaxLines(1);
+        fee.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override public void afterTextChanged(Editable s) {
+                ui.removeCallbacks(saveFee);
+                ui.postDelayed(saveFee, 900);
+            }
+        });
+        row.addView(fee, new LinearLayout.LayoutParams(dp(78), ViewGroup.LayoutParams.WRAP_CONTENT));
+        TextView pct = text("%", 16, Theme.uiMedium(this), Theme.MUTED);
+        pct.setPadding(dp(8), 0, 0, 0);
+        row.addView(pct);
+        fillRates();
+    }
+
+    /** The bank's fee, kept a moment after it's typed (the widgets show it from the next refresh). */
+    private final Runnable saveFee = () -> {
+        String in = Util.cleanNum(fee.getText().toString());
+        if (!Double.isNaN(Util.parseNum(in)) && !in.equals(Store.feeText(this))) {
+            Store.sp(this).edit().putString("feeTxt", in).apply();
+            WidgetProvider.updateAll(getApplicationContext());
+        }
+    };
+
+    /** The currency rows and the one they convert to, each a line in its card. */
+    private void fillRates() {
+        ratesList.removeAllViews();
+        String to = Store.to(this);
+        int n = Store.count(this);
+        for (int i = 0; i < n; i++) {
+            final int idx = i;
+            String code = Store.from(this, i);
+            double market = Store.rate(this, code.trim().toUpperCase(Locale.ROOT), to.trim().toUpperCase(Locale.ROOT));
+            currencyRow(ratesList, i == 0, code, Double.isNaN(market) ? "" : rateText(market) + " " + to,
+                    v -> pickCurrency("Currency " + (idx + 1), c -> {
+                        Store.sp(this).edit().putString("fx" + idx, c).apply();
+                        fillRates();
+                        refreshNow("Updating rates…");
+                    }));
+        }
+        toList.removeAllViews();
+        currencyRow(toList, true, to, "", v -> pickCurrency("Convert to", c -> {
+            Store.sp(this).edit().putString("to", c).apply();
+            fillRates();
+            refreshNow("Updating rates…");
+        }));
+    }
+
+    /** A currency's line: its flag, code and name, what it's worth on the right, and a chevron. */
+    private void currencyRow(LinearLayout card, boolean first, String code, String value, View.OnClickListener l) {
+        String c = code == null ? "" : code.trim().toUpperCase(Locale.ROOT);
+        LinearLayout row = listRow(card, first);
+        ImageView flag = new ImageView(this);
+        flag.setImageBitmap(CurrencyView.flagOrLabel(this, Util.countryOfCurrency(c), c));
+        LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(dp(32), dp(32));
+        fp.rightMargin = dp(14);
+        row.addView(flag, fp);
+        LinearLayout words = vbox();
+        words.addView(text(c, 16, Theme.uiMedium(this), Theme.TEXT));
+        String name;
+        try {
+            name = Currency.getInstance(c).getDisplayName(Locale.ENGLISH);
+        } catch (Exception e) {
+            name = "";
+        }
+        TextView n = text(name, 12.5f, Theme.uiMedium(this), Theme.MUTED);
+        n.setSingleLine(true);
+        n.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        n.setPadding(0, dp(2), 0, 0);
+        words.addView(n);
+        row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (!value.isEmpty()) {
+            TextView v = text(value, 14, Theme.uiMedium(this), Theme.TEXT_SOFT);
+            v.setPadding(dp(8), 0, dp(6), 0);
+            row.addView(v);
+        }
+        row.addView(chevron(), new LinearLayout.LayoutParams(dp(18), dp(18)));
+        row.setClickable(true);
+        row.setOnClickListener(l);
+    }
+
+    /** Widgets: a tile for each (tap to add it to the home screen), and how the SBB clock moves. */
+    private void buildWidgets(LinearLayout col) {
+        header(col, "Widgets", "Tap one to add it to your home screen");
+        Object[][] all = {
+                {"Currency", "World clocks and rates", Glyph.GLOBE, WidgetProvider.class},
+                {"SBB clock", "The Swiss railway clock", Glyph.CLOCK, SbbWidgetProvider.class},
+                {"Calendar", "Your week and next events", Glyph.CALENDAR, CalendarWidgetProvider.class},
+                {"Sound", "Lights that follow the music", Glyph.LEVELS, SoundWidgetProvider.class},
+                {"Music", "Play, pause, skip and seek", Glyph.NOTE, PlayerWidgetProvider.class}};
+        LinearLayout row = null;
+        for (int i = 0; i < all.length; i++) {
+            final Class<?> provider = (Class<?>) all[i][3];
+            boolean wide = i == all.length - 1 && all.length % 2 == 1;
+            if (i % 2 == 0) {
+                row = hbox();
+                col.addView(row, matchWrap(i == 0 ? 0 : 10));
+            }
+            LinearLayout t = tile(false);
+            t.setGravity(Gravity.START);
+            t.setPadding(dp(16), dp(16), dp(16), dp(16));
+            LinearLayout top = hbox();
+            FrameLayout disc = new FrameLayout(this);
+            disc.setBackground(Theme.pill(this, 0xFF1E222A, true));
+            ImageView g = new ImageView(this);
+            g.setImageDrawable(new Glyph((Integer) all[i][2], Theme.TEXT, false, 1.6f));
+            disc.addView(g, new FrameLayout.LayoutParams(dp(22), dp(22), Gravity.CENTER));
+            top.addView(disc, new LinearLayout.LayoutParams(dp(42), dp(42)));
+            top.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
+            ImageView plus = new ImageView(this);
+            plus.setImageDrawable(new Glyph(Glyph.PLUS, Segmented.OFF, false, 1.8f));
+            top.addView(plus, new LinearLayout.LayoutParams(dp(20), dp(20)));
+            t.addView(top, matchWrap(0));
+            t.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1f));
+            t.addView(text((String) all[i][0], 17, Theme.uiMedium(this), Theme.TEXT));
+            TextView d = text((String) all[i][1], 12.5f, Theme.uiMedium(this), Theme.MUTED);
+            d.setPadding(0, dp(3), 0, 0);
+            t.addView(d);
+            t.setClickable(true);
+            t.setOnClickListener(v -> pin(provider));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(wide ? 128 : 150), 1f);
+            lp.leftMargin = i % 2 == 0 ? 0 : dp(10);
+            row.addView(t, lp);
+        }
+
+        section(col, "SBB clock motion");
+        int mode = 0;
+        for (int i = 0; i < 3; i++) if (MODES[i].equals(Store.sbbMode(this))) mode = i;
+        Segmented modes = new Segmented(this, new String[]{"Smooth", "Second", "Minute"},
+                new int[]{Glyph.WAVE, Glyph.STOPWATCH, Glyph.CLOCK}, mode, i -> {
+                    Store.sp(this).edit().putString("sbbMode", MODES[i]).apply();
+                    SbbWidgetProvider.updateAll(getApplicationContext());
+                    LiveService.ensure(getApplicationContext());
+                });
+        col.addView(modes, matchWrap(0));
+        hint(col, "Smooth: the second hand runs a lap in 58.5 s and the minute hand swings like the real clock. Second: one "
+                + "picture a second. Minute: a still picture each minute, with no notification. The clock always shows the "
+                + "time where you are.");
+    }
+
+    /** Status: what the widgets are allowed to use, and how the live data is doing. */
+    private void buildStatus(LinearLayout col) {
+        header(col, "Status", "Access and live data");
+        section(col, "Access");
+        accessList = listCard(col);
+        section(col, "Live data");
+        liveList = listCard(col);
+        hint(col, "Clocks update every minute and rates and weather about every 30 minutes, with no notification. Only "
+                + "moving pictures (the SBB clock's second hand, animated skies, the Sound widget) need a small "
+                + "notification, because Android requires one for live animation.");
+    }
+
+    // ------------------------------------------------------------------ lifecycle
 
     /** Once, right after the other permissions: let the clocks run in the background (battery optimisation off). */
     private void askBackground() {
@@ -351,6 +616,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
         updatePermissionCards();
         Context app = getApplicationContext();
         if (Locator.allowed(this)) {
@@ -366,6 +632,7 @@ public class MainActivity extends Activity {
         WidgetProvider.kick(app); // (re)start the per-minute clock alarms
         statusTicker.run();
         stage.setRunning(true);
+        hero.setRunning(tab == HOME);
         // The song changed while the screen was away: draw it again in the new light.
         ui.post(() -> {
             if (!isFinishing() && !Theme.accent().tag().equals(drawnIn)) recreate();
@@ -375,22 +642,24 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        statusUi.removeCallbacks(statusTicker);
+        resumed = false;
+        ui.removeCallbacks(statusTicker);
         stage.setRunning(false);
+        hero.setRunning(false);
+        if (fee != null) {
+            ui.removeCallbacks(saveFee);
+            saveFee.run();
+        }
     }
 
-    private final android.os.Handler statusUi = new android.os.Handler(android.os.Looper.getMainLooper());
-    /** Keeps the Status card current while the app is open, so you can watch the clock updates arrive. */
+    /** Keeps the pages current while the app is open: the clocks' times, the tiles, the live data. */
     private final Runnable statusTicker = new Runnable() {
         @Override
         public void run() {
-            statusUi.removeCallbacks(this);
-            if (statusBox != null && banner != null) {
-                int v = banner.getVisibility();
-                updateStatus();
-                banner.setVisibility(v); // a running "Updating…" message stays
-            }
-            statusUi.postDelayed(this, 5000);
+            ui.removeCallbacks(this);
+            updateStatus();
+            updateClockTiles();
+            ui.postDelayed(this, 5000);
         }
     };
 
@@ -403,7 +672,7 @@ public class MainActivity extends Activity {
         CalendarWidgetProvider.updateAll(app);
         if (Locator.allowed(this)) {
             if (!Locator.refreshFromLastKnown(app)) fetchLocation();
-            refreshNow("Getting your location…");
+            refreshNow("Finding you…");
         }
         LiveService.ensure(app);
     }
@@ -411,15 +680,19 @@ public class MainActivity extends Activity {
     // ------------------------------------------------------------------ actions
 
     private void save() {
-        SharedPreferences.Editor e = Store.sp(this).edit();
-        String feeIn = Util.cleanNum(fee.getText().toString());
-        if (!Double.isNaN(Util.parseNum(feeIn))) e.putString("feeTxt", feeIn);
-        e.putString("sbbMode", sbbMode);
-        e.apply();
-        refreshNow("Saved. Refreshing…");
+        if (fee != null) {
+            SharedPreferences.Editor e = Store.sp(this).edit();
+            String feeIn = Util.cleanNum(fee.getText().toString());
+            if (!Double.isNaN(Util.parseNum(feeIn))) e.putString("feeTxt", feeIn);
+            e.apply();
+        }
+        refreshNow("Refreshing…");
     }
 
-    /** Repaint every widget from the cache, then fetch fresh data in the background. msg == null: quiet. */
+    /**
+     * Repaint every widget from the cache, then fetch fresh data in the background. {@code msg} shows on the pill
+     * while it works (null: quietly).
+     */
     private void refreshNow(String msg) {
         final Context app = getApplicationContext();
         WidgetProvider.updateAll(app);
@@ -427,56 +700,102 @@ public class MainActivity extends Activity {
         CalendarWidgetProvider.updateAll(app);
         LiveService.ensure(app);
         if (msg != null) {
-            banner.setText(msg);
-            banner.setVisibility(View.VISIBLE);
+            busy++;
+            pillWord.setText(msg);
         }
+        final boolean shown = msg != null;
         new Thread(() -> {
             Fetcher.refreshAll(app, true);
             WidgetProvider.updateAll(app);
-            runOnUiThread(this::updateStatus);
-            if (Fetcher.refreshHistory(app)) WidgetProvider.updateAll(app); // trend charts, after the rates
+            runOnUiThread(() -> {
+                if (shown && --busy <= 0) {
+                    busy = 0;
+                    pillWord.setText("Refresh");
+                }
+                updateStatus();
+                fillRates();
+            });
+            if (Fetcher.refreshHistory(app)) WidgetProvider.updateAll(app); // the history, after the rates
         }).start();
     }
 
     private void updatePermissionCards() {
+        accessList.removeAllViews();
         boolean loc = Locator.allowed(this);
-        locStatus.setText(loc ? "Location allowed - weather and sunrise/sunset follow where you are."
-                : "Needs location to show weather and sunrise/sunset where you are.");
-        locStatus.setTextColor(loc ? Theme.TEXT : Theme.AMBER);
-        locButton.setVisibility(loc ? View.GONE : View.VISIBLE);
+        accessRow(true, Glyph.PIN, "Location", loc ? "Weather and sunrise follow where you are"
+                : "For the weather and sunrise where you are", loc,
+                v -> requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_ALL));
         boolean cal = CalendarData.allowed(this);
-        calStatus.setText(cal ? "Calendar allowed - the Calendar widget shows your next events."
-                : "Needs calendar access for the Calendar widget. Events never leave your phone.");
-        calStatus.setTextColor(cal ? Theme.TEXT : Theme.AMBER);
-        calButton.setVisibility(cal ? View.GONE : View.VISIBLE);
+        accessRow(false, Glyph.CALENDAR, "Calendar", cal ? "The Calendar widget shows your next events"
+                : "For the Calendar widget. Events never leave your phone", cal,
+                v -> requestPermissions(new String[]{Manifest.permission.READ_CALENDAR}, REQ_ALL));
         android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
         boolean bat = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
-        batStatus.setText(bat ? "Background allowed - the clocks keep ticking every minute."
-                : "Battery saving may pause the clocks. Allow Worldly to run in the background.");
-        batStatus.setTextColor(bat ? Theme.TEXT : Theme.AMBER);
-        batButton.setVisibility(bat ? View.GONE : View.VISIBLE);
-
+        accessRow(false, Glyph.BATTERY, "Background", bat ? "The clocks keep ticking every minute"
+                : "Battery saving may pause the clocks", bat, v -> {
+            try {
+                startActivity(new android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        android.net.Uri.parse("package:" + getPackageName())));
+            } catch (Exception e) {
+                startActivity(new android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+            }
+        });
         boolean media = NowPlaying.hasAccess(this);
-        mediaStatus.setText(media ? "Media access on - the Sound widget sees what's playing in any app."
-                : "Needs notification access to see what's playing. Worldly reads no notifications.");
-        mediaStatus.setTextColor(media ? Theme.TEXT : Theme.AMBER);
-        mediaButton.setVisibility(media ? View.GONE : View.VISIBLE);
+        accessRow(false, Glyph.NOTE, "Media", media ? "Sound and Music see what's playing in any app"
+                : "For Sound and Music to see what's playing. No notifications are read", media, v -> openMediaAccess());
         boolean levels = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
         String heard = Store.sp(this).getString("soundStatus", "");
         String levelsText;
         if (!levels) {
-            levelsText = "Allow sound levels so the lights follow the real sound. It reads the phone's own sound, never the "
-                    + "microphone. Without it they move with the music on their own.";
+            levelsText = "So the lights follow the real sound (the phone's own, never the microphone)";
         } else if ("FOLLOWING".equals(heard)) {
-            levelsText = "Sound levels on - the lights follow the real sound.";
+            levelsText = "The lights follow the real sound";
         } else if ("PHONE_SILENT".equals(heard) || "UNAVAILABLE".equals(heard)) {
-            levelsText = "This phone keeps its sound to itself, so the lights move with the music on their own.";
+            levelsText = "This phone keeps its sound to itself, so the lights move on their own";
         } else {
-            levelsText = "Sound levels on - the lights follow the sound once something plays.";
+            levelsText = "The lights follow the sound once something plays";
         }
-        soundStatus.setText(levelsText);
-        soundStatus.setTextColor(levels ? Theme.TEXT : Theme.AMBER);
-        soundButton.setVisibility(levels ? View.GONE : View.VISIBLE);
+        accessRow(false, Glyph.LEVELS, "Sound levels", levelsText, levels,
+                v -> requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_ALL));
+
+        // Home's pill: the first thing that needs you
+        String need = !loc ? "Allow location for local weather" : !cal ? "Allow your calendar for events"
+                : !bat ? "Let Worldly run in the background" : !media ? "Allow media access for Sound" : null;
+        alert.setText(need == null ? "" : need);
+        alert.setVisibility(need == null ? View.GONE : View.VISIBLE);
+    }
+
+    /** An access line: its icon, name and what it's for; on the right a check when it's allowed, or an Allow pill. */
+    private void accessRow(boolean first, int glyph, String name, String detail, boolean ok, View.OnClickListener allow) {
+        LinearLayout row = listRow(accessList, first);
+        ImageView g = new ImageView(this);
+        g.setImageDrawable(new Glyph(glyph, ok ? Theme.TEXT_SOFT : Theme.AMBER, false, 1.6f));
+        LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(dp(22), dp(22));
+        gp.rightMargin = dp(14);
+        row.addView(g, gp);
+        LinearLayout words = vbox();
+        words.addView(text(name, 16, Theme.uiMedium(this), Theme.TEXT));
+        TextView d = text(detail, 12.5f, Theme.uiMedium(this), Theme.MUTED);
+        d.setPadding(0, dp(2), 0, 0);
+        words.addView(d);
+        row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (ok) {
+            ImageView check = new ImageView(this);
+            check.setImageDrawable(new Glyph(Glyph.CHECK, Theme.GREEN, false, 2f));
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(20), dp(20));
+            cp.leftMargin = dp(10);
+            row.addView(check, cp);
+        } else {
+            TextView b = text("Allow", 14, Theme.uiMedium(this), Segmented.ON);
+            b.setPadding(dp(16), dp(8), dp(16), dp(8));
+            b.setBackground(Theme.pressable(Theme.pill(this, 0xFF2A2F39, true), Theme.pill(this, 0xFF363C48, true)));
+            b.setClickable(true);
+            b.setOnClickListener(allow);
+            LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            bp.leftMargin = dp(10);
+            row.addView(b, bp);
+        }
     }
 
     /** Notification access, which is how Android lets an app see other apps' media. */
@@ -496,43 +815,109 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** The live data lines, and Home's big rate and tiles. */
     private void updateStatus() {
-        banner.setVisibility(View.GONE);
-        statusBox.removeAllViews();
-
+        liveList.removeAllViews();
         long t = Store.lastFetch(this);
         String last = t == 0 ? null
                 : DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(t));
-        statusRow("Data refresh", last != null, last == null ? "Not refreshed yet" : "Last successful: " + last);
+        statusRow(true, "Data refresh", last != null, last == null ? "Not refreshed yet" : "Last successful: " + last);
 
         String mktErr = Store.sp(this).getString("mktErr", "");
-        statusRow("Market rate", mktErr.isEmpty() && Store.marketAt(this) > 0,
+        statusRow(false, "Market rate", mktErr.isEmpty() && Store.marketAt(this) > 0,
                 Store.marketAt(this) == 0 ? "Waiting for first update"
                         : mktErr.isEmpty() ? "Live mid-market rate from Wise" : mktErr);
 
         String visaErr = Store.sp(this).getString("visaErr", "");
-        statusRow("Visa rate", visaErr.isEmpty(),
-                visaErr.isEmpty() ? "Live rate from Visa" : visaErr);
+        statusRow(false, "Visa rate", visaErr.isEmpty(), visaErr.isEmpty() ? "Live rate from Visa" : visaErr);
 
         String wxErr = Store.sp(this).getString("wxErr", "");
-        statusRow("Weather", wxErr.isEmpty() && Store.weather(this) != null,
+        statusRow(false, "Weather", wxErr.isEmpty() && Store.weather(this) != null,
                 !wxErr.isEmpty() ? wxErr : (Store.weather(this) == null ? "Waiting for first update" : "Open-Meteo"));
 
-        android.content.SharedPreferences sp = Store.sp(this);
+        SharedPreferences sp = Store.sp(this);
         long ok = sp.getLong("clockOkAt", 0), bad = sp.getLong("clockErrAt", 0);
-        java.text.SimpleDateFormat hms = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault());
+        java.text.SimpleDateFormat hms = new java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault());
         if (bad > ok) {
-            statusRow("Clock updates", false, "Failed at " + hms.format(new Date(bad)) + " (" + sp.getString("clockErrWho", "")
-                    + "): " + sp.getString("clockErrMsg", ""));
+            statusRow(false, "Clock updates", false, "Failed at " + hms.format(new Date(bad)) + " ("
+                    + sp.getString("clockErrWho", "") + "): " + sp.getString("clockErrMsg", ""));
         } else {
             long nx = sp.getLong("clockNextAt", 0);
             String next = nx == 0 ? "" : " · next " + hms.format(new Date(nx)) + " (" + sp.getString("clockNextWho", "") + ")";
-            statusRow("Clock updates", ok > 0 && System.currentTimeMillis() - ok < 3 * 60_000L,
-                    (ok == 0 ? "No update yet" : "Last " + hms.format(new Date(ok)) + " (" + sp.getString("clockOkWho", "") + ")") + next);
+            statusRow(false, "Clock updates", ok > 0 && System.currentTimeMillis() - ok < 3 * 60_000L,
+                    (ok == 0 ? "No update yet" : "Last " + hms.format(new Date(ok)) + " (" + sp.getString("clockOkWho", "")
+                            + ")") + next);
         }
 
         String geoErr = Store.sp(this).getString("geoErr", "");
-        statusRow("Cities", geoErr.isEmpty(), geoErr.isEmpty() ? "All cities found" : geoErr);
+        statusRow(false, "Cities", geoErr.isEmpty(), geoErr.isEmpty() ? "All cities found" : geoErr);
+
+        updateHome(t);
+    }
+
+    /** Home's big rate (the first row's market rate) and its three tiles. */
+    private void updateHome(long lastFetch) {
+        String from = Store.from(this, 0).trim().toUpperCase(Locale.ROOT), to = Store.to(this).trim().toUpperCase(Locale.ROOT);
+        double market = Store.rate(this, from, to);
+        bigRate.setText(rateText(market));
+        bigUnit.setText(to);
+        bigWhat.setText("per " + from + " · market");
+        double visa = Util.alignToMarket(Store.visa(this, from, to), market);
+        if (!Double.isNaN(visa)) {
+            tileValue[0].setText(rateText(visa));
+            tileWord[0].setText(from + " by card");
+        } else if (!Double.isNaN(market)) {
+            tileValue[0].setText("~" + rateText(market * (1.0 + Store.fee(this) / 100.0)));
+            tileWord[0].setText("Estimated");
+        } else {
+            tileValue[0].setText("--");
+            tileWord[0].setText(from + " by card");
+        }
+        if (lastFetch == 0) {
+            tileValue[1].setText("--");
+            tileWord[1].setText("Not yet");
+        } else {
+            long min = Math.max(0, (System.currentTimeMillis() - lastFetch) / 60_000L);
+            if (min < 120) {
+                tileValue[1].setText(String.valueOf(min));
+                tileWord[1].setText(min == 1 ? "Minute ago" : "Minutes ago");
+            } else {
+                long h = min / 60;
+                tileValue[1].setText(String.valueOf(h));
+                tileWord[1].setText("Hours ago");
+            }
+        }
+        Store.Weather wx = Store.weather(this);
+        tileValue[2].setText(wx == null ? "--" : Math.round(wx.temp) + "°");
+        tileWord[2].setText("Where you are");
+    }
+
+    /** The clock tiles: each city's name, day and offset, and its time now. */
+    private void updateClockTiles() {
+        if (cityName[0] == null) return;
+        CurrencyView.Clock[] ks = CurrencyView.clocks(this, System.currentTimeMillis());
+        DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault());
+        DateTimeFormatter timeF = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
+        for (int i = 0; i < 4; i++) {
+            ZonedDateTime now = ZonedDateTime.now(ks[i].zone);
+            cityName[i].setText(Util.capWords(ks[i].city));
+            int off = now.getOffset().getTotalSeconds() / 60;
+            String utc = "UTC" + (off < 0 ? "−" : "+") + Math.abs(off) / 60 + (Math.abs(off) % 60 == 0 ? ""
+                    : String.format(Locale.US, ":%02d", Math.abs(off) % 60));
+            cityWhen[i].setText(now.format(dayF) + " · " + utc);
+            cityTime[i].setText(now.format(timeF));
+        }
+    }
+
+    /** A rate as the widget shows it: whole above 100, with decimals below. */
+    private static String rateText(double v) {
+        if (Double.isNaN(v) || Double.isInfinite(v)) return "--";
+        if (v >= 100) return Util.fmt0(v);
+        java.text.NumberFormat f = java.text.NumberFormat.getNumberInstance(Locale.US);
+        int dec = v >= 10 ? 1 : v >= 1 ? 2 : 4;
+        f.setMinimumFractionDigits(dec);
+        f.setMaximumFractionDigits(dec);
+        return f.format(v);
     }
 
     // ---- location ----
@@ -566,15 +951,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void paintModes() {
-        for (int i = 0; i < 3; i++) {
-            boolean on = MODES[i].equals(sbbMode);
-            modeBtn[i].setTextColor(on ? Theme.onLit() : Theme.TEXT_SOFT);
-            modeBtn[i].setBackground(on ? Theme.lit(this, 12, false) : Theme.dark(this, 12, false)); // same size on or off
-            modeBtn[i].setElevation(0); // no glow under it
-        }
-    }
-
     // ------------------------------------------------------------------ pickers
 
     private interface Pick<T> { void on(T value); }
@@ -584,15 +960,6 @@ public class MainActivity extends Activity {
         final Object payload;
         Item(String title, String sub, Object payload) { this.title = title; this.sub = sub; this.payload = payload; }
         String hay() { return (title + " " + sub).toLowerCase(Locale.ROOT); }
-    }
-
-    private String currencyLabel(String code) {
-        String c = code == null ? "" : code.trim().toUpperCase(Locale.ROOT);
-        try {
-            return c + "  ·  " + Currency.getInstance(c).getDisplayName(Locale.ENGLISH);
-        } catch (Exception e) {
-            return c;
-        }
     }
 
     private void pickCity(final int slot) {
@@ -606,13 +973,12 @@ public class MainActivity extends Activity {
                 name = c.name;
                 geo = c.toGeo();
             } else {
-                JSONObject o = (JSONObject) p.payload;
                 name = p.title;
-                geo = o;
+                geo = (JSONObject) p.payload;
             }
             Store.putGeo(this, name, geo);
             Store.sp(this).edit().putString("city" + slot, name).apply();
-            cityBtn[slot].setText(name);
+            updateClockTiles();
             refreshNow("Updating…");
         });
     }
@@ -634,11 +1000,10 @@ public class MainActivity extends Activity {
         final Dialog d = new Dialog(this);
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout root = vbox();
-        root.setPadding(dp(14), dp(14), dp(14), dp(10));
-        root.setBackground(Theme.card(this, 18, 0xFA010203));
-        TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().key);
-        Theme.cardTitle(this, t);
-        t.setPadding(dp(2), 0, 0, dp(8));
+        root.setPadding(dp(16), dp(18), dp(16), dp(10));
+        root.setBackground(Theme.card(this, 22, 0xFA010203));
+        TextView t = text(title, 20, Theme.uiBold(this), Theme.TEXT);
+        t.setPadding(dp(4), 0, 0, dp(12));
         root.addView(t);
         final EditText q = input("", InputType.TYPE_CLASS_TEXT, false, remote ? "Search or type any city" : "Search");
         root.addView(q);
@@ -652,10 +1017,10 @@ public class MainActivity extends Activity {
             @Override public long getItemId(int i) { return i; }
             @Override public View getView(int i, View v, ViewGroup parent) {
                 LinearLayout r = vbox();
-                r.setPadding(dp(10), dp(9), dp(10), dp(9));
+                r.setPadding(dp(10), dp(10), dp(10), dp(10));
                 Item it = shown.get(i);
-                r.addView(text(it.title, 15, Theme.uiSemi(MainActivity.this), Theme.TEXT));
-                if (!it.sub.isEmpty()) r.addView(text(it.sub, 12, Theme.uiMedium(MainActivity.this), Theme.MUTED));
+                r.addView(text(it.title, 16, Theme.uiMedium(MainActivity.this), Theme.TEXT));
+                if (!it.sub.isEmpty()) r.addView(text(it.sub, 12.5f, Theme.uiMedium(MainActivity.this), Theme.MUTED));
                 return r;
             }
         };
@@ -736,33 +1101,9 @@ public class MainActivity extends Activity {
         return out;
     }
 
-    /** Looks like an input but opens a list when tapped. */
-    private TextView picker(String value, View.OnClickListener l) {
-        TextView t = text(value, 14, Theme.uiMedium(this), Theme.TEXT);
-        t.setSingleLine(true);
-        t.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        t.setPadding(dp(12), dp(12), dp(12), dp(12));
-        t.setBackground(Theme.pressable(Theme.well(this, 12, false), Theme.well(this, 12, true)));
-        t.setCompoundDrawablePadding(dp(6));
-        t.setClickable(true);
-        t.setOnClickListener(l);
-        return t;
-    }
-
-    private LinearLayout labeledView(String label, View v) {
-        LinearLayout l = vbox();
-        TextView t = text(label, 10, Theme.uiBold(this), Theme.DIM);
-        Theme.label(this, t);
-        t.setTextSize(10);
-        t.setPadding(dp(2), 0, 0, dp(4));
-        l.addView(t);
-        l.addView(v, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        return l;
-    }
-
     // ------------------------------------------------------------------ UI building blocks
 
-    private int dp(int v) { return Math.round(Theme.dp(this, v)); }
+    private int dp(float v) { return Math.round(Theme.dp(this, v)); }
 
     private LinearLayout vbox() {
         LinearLayout l = new LinearLayout(this);
@@ -791,16 +1132,130 @@ public class MainActivity extends Activity {
         return t;
     }
 
-    /** A black card over the stage with its lit edge, its title in spaced capitals in the song's line colour. */
-    private LinearLayout card(LinearLayout parent, String title) {
+    /** Dark text on something light (the floating pill): no fringe. */
+    private TextView plain(String s, float sp, Typeface tf, int color) {
+        TextView t = new TextView(this);
+        t.setText(s);
+        t.setTextSize(sp * Theme.FONT_SCALE);
+        t.setTypeface(tf);
+        t.setTextColor(color);
+        return t;
+    }
+
+    /** Big figures in polished metal ({@link Theme.Chrome}). */
+    private TextView chrome(String s, float sp) {
+        TextView t = new Theme.Chrome(this);
+        t.setText(s);
+        t.setTextSize(sp);
+        t.setTypeface(Theme.uiMedium(this));
+        t.setTextColor(0xFFFFFFFF);
+        t.setIncludeFontPadding(false);
+        return t;
+    }
+
+    /**
+     * A page's head, as the car app's: the crystal globe in a glass ring, the page's name beside it in big white
+     * letters, and a line under the name in grey.
+     */
+    private void header(LinearLayout col, String title, String sub) {
+        LinearLayout row = hbox();
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        FrameLayout badge = new FrameLayout(this);
+        ImageView logo = new ImageView(this);
+        logo.setImageBitmap(badgeArt(dp(50)));
+        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        badge.addView(logo, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        badge.setForeground(Theme.ring(this));
+        row.addView(badge, new LinearLayout.LayoutParams(dp(50), dp(50)));
+        LinearLayout words = vbox();
+        words.setPadding(dp(14), 0, 0, 0);
+        words.addView(text(title, 28, Theme.uiBold(this), Theme.TEXT));
+        TextView s = text(sub, 13.5f, Theme.uiMedium(this), Theme.MUTED);
+        s.setPadding(0, dp(1), 0, 0);
+        words.addView(s);
+        row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout.LayoutParams lp = matchWrap(0);
+        lp.bottomMargin = dp(22);
+        col.addView(row, lp);
+    }
+
+    private android.graphics.Bitmap badge;
+
+    /**
+     * The crystal globe for a page's head, {@code size} pixels: the icon's two layers (deep space and the globe), the
+     * globe drawn larger so it fills the ring as the car app's logo does, cut to a circle.
+     */
+    private android.graphics.Bitmap badgeArt(int size) {
+        if (badge != null && badge.getWidth() == size) return badge;
+        android.graphics.Bitmap sq = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas c = new android.graphics.Canvas(sq);
+        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG
+                | android.graphics.Paint.FILTER_BITMAP_FLAG);
+        android.graphics.Bitmap back = android.graphics.BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher_background);
+        android.graphics.Bitmap globe = android.graphics.BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher_foreground);
+        if (back != null) c.drawBitmap(back, null, new android.graphics.RectF(0, 0, size, size), p);
+        float big = size * 1.42f, at = (size - big) / 2f;
+        if (globe != null) c.drawBitmap(globe, null, new android.graphics.RectF(at, at, at + big, at + big), p);
+        badge = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
+        p.setShader(new android.graphics.BitmapShader(sq, android.graphics.Shader.TileMode.CLAMP,
+                android.graphics.Shader.TileMode.CLAMP));
+        new android.graphics.Canvas(badge).drawCircle(size / 2f, size / 2f, size / 2f, p);
+        return badge;
+    }
+
+    /** A quiet heading over a group, in sentence case. */
+    private void section(LinearLayout col, String s) {
+        TextView t = text(s, 14.5f, Theme.uiMedium(this), Theme.MUTED);
+        t.setPadding(dp(4), dp(28), 0, dp(10));
+        col.addView(t);
+    }
+
+    /** A note under a group, small and dim. */
+    private void hint(LinearLayout col, String s) {
+        TextView t = text(s, 12.5f, Theme.uiMedium(this), Theme.DIM);
+        t.setPadding(dp(4), dp(10), dp(4), 0);
+        t.setLineSpacing(dp(2), 1f);
+        col.addView(t);
+    }
+
+    /** A tile, as the reference's: a glass card with its words centred; {@code lifted}, the raised one in a row. */
+    private LinearLayout tile(boolean lifted) {
+        LinearLayout t = vbox();
+        t.setGravity(Gravity.CENTER_HORIZONTAL);
+        t.setBackground(Theme.tile(this, 22, lifted));
+        t.setPadding(dp(10), dp(18), dp(10), dp(16));
+        return t;
+    }
+
+    /** A card holding lines (currencies, access, live data), hairlines between them. */
+    private LinearLayout listCard(LinearLayout col) {
         LinearLayout c = vbox();
-        c.setBackground(Theme.card(this, 16));
-        c.setPadding(dp(16), dp(16), dp(16), dp(16));
-        TextView t = text(title, 11, Theme.uiBold(this), Theme.accent().key);
-        Theme.cardTitle(this, t);
-        t.setPadding(dp(2), 0, 0, dp(10));
-        c.addView(t);
-        parent.addView(c, matchWrap(14));
+        c.setBackground(Theme.card(this, 22));
+        c.setPadding(0, dp(4), 0, dp(4));
+        col.addView(c, matchWrap(0));
+        return c;
+    }
+
+    /** A line in a list card, a hairline over it unless it's the {@code first}. */
+    private LinearLayout listRow(LinearLayout card, boolean first) {
+        if (!first) {
+            View line = new View(this);
+            line.setBackgroundColor(Scene.alpha(Stage.ICE, 0.07f));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(0.7f)));
+            lp.leftMargin = dp(18);
+            lp.rightMargin = dp(18);
+            card.addView(line, lp);
+        }
+        LinearLayout row = hbox();
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(18), dp(14), dp(16), dp(14));
+        card.addView(row, matchWrap(0));
+        return row;
+    }
+
+    private ImageView chevron() {
+        ImageView c = new ImageView(this);
+        c.setImageDrawable(new Glyph(Glyph.CHEVRON, Segmented.OFF, false, 1.8f));
         return c;
     }
 
@@ -811,64 +1266,37 @@ public class MainActivity extends Activity {
         e.setSingleLine(true);
         e.setText(value);
         e.setHint(hint);
-        e.setTextSize(14);
+        e.setTextSize(16);
         e.setTypeface(mono ? Theme.monoMedium(this) : Theme.uiMedium(this));
         e.setTextColor(Theme.TEXT);
         e.setHintTextColor(Theme.DIM);
         e.setHighlightColor(Scene.alpha(Theme.accent().key, 0.33f));
-        e.setPadding(dp(12), dp(11), dp(12), dp(11));
+        e.setPadding(dp(12), dp(10), dp(12), dp(10));
         e.setBackground(Theme.well(this, 12, false));
-        e.setOnFocusChangeListener((v, focused) -> e.setBackground(Theme.well(this, 12, focused)));
+        e.setOnFocusChangeListener((v, focused) -> {
+            e.setBackground(Theme.well(this, 12, focused));
+            if (focused && typing) revealFocus();
+        });
         return e;
     }
 
-    private void addWeighted(LinearLayout row, View v, int leftMarginDp) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        lp.leftMargin = dp(leftMarginDp);
-        row.addView(v, lp);
-    }
-
-    /** The main action: a solid button in a deep shade of the song's colour, with a lighter edge of it. */
-    private TextView primaryButton(String label, View.OnClickListener l) {
-        TextView b = text(label, 15, Theme.uiBold(this), Theme.onLit());
-        Theme.label(this, b);
-        b.setTextSize(13);
-        b.setLetterSpacing(0.18f);
-        b.setGravity(Gravity.CENTER);
-        b.setPadding(dp(16), dp(17), dp(16), dp(17));
-        b.setBackground(Theme.pressable(Theme.lit(this, 12, false), Theme.lit(this, 12, true)));
-        b.setClickable(true);
-        b.setOnClickListener(l);
-        return b;
-    }
-
-    /** Other actions: a near black button with a grey edge, the same corners as every other control. */
-    private TextView secondaryButton(String label, View.OnClickListener l) {
-        TextView b = text(label, 14, Theme.uiSemi(this), Theme.TEXT_SOFT);
-        Theme.label(this, b);
-        b.setTextSize(12);
-        b.setLetterSpacing(0.14f);
-        b.setGravity(Gravity.CENTER);
-        b.setPadding(dp(16), dp(14), dp(16), dp(14));
-        b.setBackground(Theme.pressable(Theme.dark(this, 12, false), Theme.dark(this, 12, true)));
-        b.setClickable(true);
-        b.setOnClickListener(l);
-        return b;
-    }
-
-    /** Colored dot + name + detail. Green = OK, amber = needs attention. */
-    private void statusRow(String name, boolean ok, String detail) {
-        LinearLayout row = hbox();
-        row.setPadding(0, dp(6), 0, dp(6));
-        TextView dot = text("●", 12, Typeface.DEFAULT, ok ? Theme.GREEN : Theme.AMBER);
-        dot.setPadding(0, dp(3), dp(10), 0);
-        row.addView(dot);
+    /** A live data line: a dot (green: fine, amber: needs a look), its name and what's happening. */
+    private void statusRow(boolean first, String name, boolean ok, String detail) {
+        LinearLayout row = listRow(liveList, first);
+        View dot = new View(this);
+        GradientDrawable g = new GradientDrawable();
+        g.setShape(GradientDrawable.OVAL);
+        g.setColor(ok ? Theme.GREEN : Theme.AMBER);
+        dot.setBackground(g);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(8), dp(8));
+        lp.rightMargin = dp(16);
+        lp.leftMargin = dp(7);
+        row.addView(dot, lp);
         LinearLayout txt = vbox();
-        txt.addView(text(name, 14, Theme.uiSemi(this), Theme.TEXT));
-        TextView d = text(detail, 12, Theme.uiMedium(this), Theme.MUTED);
-        d.setPadding(0, dp(1), 0, 0);
+        txt.addView(text(name, 16, Theme.uiMedium(this), Theme.TEXT));
+        TextView d = text(detail, 12.5f, Theme.uiMedium(this), Theme.MUTED);
+        d.setPadding(0, dp(2), 0, 0);
         txt.addView(d);
         row.addView(txt, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        statusBox.addView(row);
     }
 }
