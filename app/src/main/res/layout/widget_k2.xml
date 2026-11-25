@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Generated: the Currency widget with 2 currency row(s). Its clocks card (each clock on its city's sky right now,
-     CurrencyView / Sky) and one card holding the rows, thin lines between them; fixed-size content (dp) in flexible
-     rows, so any widget size keeps the same proportions. -->
+<!-- Generated: the Rates widget with 2 currency row(s) (since 2.26 without the clocks, which have a widget of their
+     own): one card holding the rows, thin lines between them; fixed-size content (dp) in flexible rows, so any widget
+     size keeps the same proportions. -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
@@ -9,207 +9,23 @@
     android:layout_height="match_parent"
     android:padding="0dp">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-        <!-- the clocks card -->
-        <FrameLayout
+        android:layout_height="wrap_content">
+        <ImageView
+            android:id="@+id/rates_bg"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <!-- the skies run to the card's very edge (2.02), so no strip of the card shows round them -->
-            <!-- 94 dp by default; on Android 12 and up as tall as a clock is wide, so each clock is square (2.15) -->
-            <LinearLayout
-                android:id="@+id/clk_row"
-                android:layout_width="match_parent"
-                android:layout_height="94dp"
-                android:background="@drawable/cur_clocks"
-                android:clipToOutline="true"
-                android:orientation="horizontal">
-            <FrameLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1">
-                <ImageView
-                    android:id="@+id/clk_bg_0"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp">
-                    <ImageView
-                        android:id="@+id/clk_day_0"
-                        android:layout_width="match_parent"
-                        android:layout_height="17.5dp"
-                        android:scaleType="fitCenter" />
-                    <ImageView
-                        android:id="@+id/clk_time_0"
-                        android:layout_width="match_parent"
-                        android:layout_height="33dp"
-                        android:scaleType="fitCenter" />
-                    <ImageView
-                        android:id="@+id/clk_city_0"
-                        android:layout_width="match_parent"
-                        android:layout_height="17.5dp"
-                        android:layout_marginTop="-3.3dp"
-                        android:scaleType="fitCenter" />
-                </LinearLayout>
-            </FrameLayout>
-            <!-- a hairline between two clocks -->
-            <ImageView
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:importantForAccessibility="no"
-                android:scaleType="fitXY"
-                android:src="@drawable/cur_seam" />
-            <FrameLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1">
-                <ImageView
-                    android:id="@+id/clk_bg_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp">
-                    <ImageView
-                        android:id="@+id/clk_day_1"
-                        android:layout_width="match_parent"
-                        android:layout_height="17.5dp"
-                        android:scaleType="fitCenter" />
-                    <ImageView
-                        android:id="@+id/clk_time_1"
-                        android:layout_width="match_parent"
-                        android:layout_height="33dp"
-                        android:scaleType="fitCenter" />
-                    <ImageView
-                        android:id="@+id/clk_city_1"
-                        android:layout_width="match_parent"
-                        android:layout_height="17.5dp"
-                        android:layout_marginTop="-3.3dp"
-                        android:scaleType="fitCenter" />
-                </LinearLayout>
-            </FrameLayout>
-            <!-- a hairline between two clocks -->
-            <ImageView
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:importantForAccessibility="no"
-                android:scaleType="fitXY"
-                android:src="@drawable/cur_seam" />
-            <FrameLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1">
-                <ImageView
-                    android:id="@+id/clk_bg_2"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp">
-                    <ImageView
-                        android:id="@+id/clk_day_2"
-                        android:layout_width="match_parent"
-                        android:layout_height="17.5dp"
-                        android:scaleType="fitCenter" />
-                    <ImageView
-                        android:id="@+id/clk_time_2"
-                        android:layout_width="match_parent"
-                        android:layout_height="33dp"
-                        android:scaleType="fitCenter" />
-                    <ImageView
-                        android:id="@+id/clk_city_2"
-                        android:layout_width="match_parent"
-                        android:layout_height="17.5dp"
-                        android:layout_marginTop="-3.3dp"
-                        android:scaleType="fitCenter" />
-                </LinearLayout>
-            </FrameLayout>
-            <!-- a hairline between two clocks -->
-            <ImageView
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:importantForAccessibility="no"
-                android:scaleType="fitXY"
-                android:src="@drawable/cur_seam" />
-            <FrameLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1">
-                <ImageView
-                    android:id="@+id/clk_bg_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitXY" />
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp">
-                    <ImageView
-                        android:id="@+id/clk_day_3"
-                        android:layout_width="match_parent"
-                        android:layout_height="17.5dp"
-                        android:scaleType="fitCenter" />
-                    <ImageView
-                        android:id="@+id/clk_time_3"
-                        android:layout_width="match_parent"
-                        android:layout_height="33dp"
-                        android:scaleType="fitCenter" />
-                    <ImageView
-                        android:id="@+id/clk_city_3"
-                        android:layout_width="match_parent"
-                        android:layout_height="17.5dp"
-                        android:layout_marginTop="-3.3dp"
-                        android:scaleType="fitCenter" />
-                </LinearLayout>
-            </FrameLayout>
-            </LinearLayout>
-            <ImageView
-                android:id="@+id/clk_rim"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:importantForAccessibility="no"
-                android:scaleType="fitXY" />
-        </FrameLayout>
-        <!-- the currency rows, on one card, 16 dp under the clocks (2.21; 12 dp before) -->
-        <FrameLayout
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="fitXY" />
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp">
-            <ImageView
-                android:id="@+id/rates_bg"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:importantForAccessibility="no"
-                android:scaleType="fitXY" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/cur_clocks"
-                android:clipToOutline="true"
-                android:orientation="vertical"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp">
+            android:background="@drawable/cur_clocks"
+            android:clipToOutline="true"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
             <FrameLayout
                 android:id="@+id/row_0"
                 android:layout_width="match_parent"
@@ -439,7 +255,6 @@
                     </LinearLayout>
                 </LinearLayout>
             </FrameLayout>
-            </LinearLayout>
-        </FrameLayout>
-    </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
 </FrameLayout>

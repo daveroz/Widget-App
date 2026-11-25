@@ -46,7 +46,7 @@ final class Fetcher {
         StringBuilder geoErr = new StringBuilder();
 
         // Cities: geocode (cached forever per name) + flags
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0, n = Store.clockCount(ctx); i < n; i++) { // the World clocks widget's cities (2.26: up to eight)
             String city = Store.city(ctx, i);
             try {
                 if (Store.geo(ctx, city) == null) geocode(ctx, city);
@@ -108,13 +108,13 @@ final class Fetcher {
     }
 
     /**
-     * Open-Meteo for the four clock cities at once (free, no key): each one's cloud cover and weather code now, for
+     * Open-Meteo for the clock cities at once (free, no key): each one's cloud cover and weather code now, for
      * its sky behind the clock.
      */
     private static void skies(Context ctx) throws Exception {
         StringBuilder la = new StringBuilder(), lo = new StringBuilder();
         java.util.List<String> names = new java.util.ArrayList<>();
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0, n = Store.clockCount(ctx); i < n; i++) { // the World clocks widget's cities (2.26: up to eight)
             String city = Store.city(ctx, i);
             JSONObject g = Store.geo(ctx, city);
             double lat = g == null ? Double.NaN : g.optDouble("lat", Double.NaN), lon = g == null ? Double.NaN : g.optDouble("lon", Double.NaN);

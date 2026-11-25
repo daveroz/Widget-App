@@ -29,10 +29,10 @@ final class PlayerPicture {
         Stage.fill(c, box, corners, scene, dp, 0f, null);
         if (!access || track == null) {
             // as a line of the app's Status tab (2.23): the note in a glass disc, what's up in white capitals and what
-            // to do in grey; its middle where the controls' middle is (44 dp down, or the middle of a shorter card)
+            // to do in grey; in the card's middle, as the controls are (2.26)
             String title = (!access ? "Media access needed" : "Nothing playing").toUpperCase(Locale.getDefault());
             String detail = !access ? "Tap to turn it on in Worldly" : "Play something to control it here";
-            float cy = Math.min(h / 2f, 44 * dp), x = 18 * dp, r = 21 * dp;
+            float cy = h / 2f, x = 18 * dp, r = 21 * dp;
             Paint disc = new Paint(Paint.ANTI_ALIAS_FLAG);
             disc.setShader(Theme.crystal(new RectF(x, cy - r, x + 2 * r, cy + r), 0xFF1E222A));
             c.drawCircle(x + r, cy, r, disc);
@@ -48,19 +48,19 @@ final class PlayerPicture {
             float tx = x + 2 * r + 14 * dp, room = w - tx - 18 * dp;
             TextPaint text = Words.paint();
             text.setTypeface(Theme.uiBold(ctx));
-            text.setTextSize(Theme.FONT_SCALE * 11.5f * dp);
-            text.setLetterSpacing(0.2f);
+            text.setTextSize(Theme.FONT_SCALE * Words.LABEL_DP * dp); // as the Sound widget's label (2.26)
+            text.setLetterSpacing(0.16f);
             String head = TextUtils.ellipsize(title, text, room, TextUtils.TruncateAt.END).toString();
-            Lens.text(c, text, head, tx, cy - 3 * dp, dp); // the fringe all text has, no glow
+            Lens.text(c, text, head, tx, cy - 4 * dp, dp); // the fringe all text has, no glow
             text.setColor(Theme.TEXT);
-            c.drawText(head, tx, cy - 3 * dp, text);
+            c.drawText(head, tx, cy - 4 * dp, text);
             text.setTypeface(Theme.uiMedium(ctx));
             text.setTextSize(Theme.FONT_SCALE * Words.DETAIL_DP * dp);
             text.setLetterSpacing(0f);
             String more = TextUtils.ellipsize(detail, text, room, TextUtils.TruncateAt.END).toString();
-            Lens.text(c, text, more, tx, cy + 13 * dp, dp);
+            Lens.text(c, text, more, tx, cy + 16 * dp, dp);
             text.setColor(Theme.MUTED);
-            c.drawText(more, tx, cy + 13 * dp, text);
+            c.drawText(more, tx, cy + 16 * dp, text);
         }
         c.restore();
         Stage.rim(c, box, corners, dp);

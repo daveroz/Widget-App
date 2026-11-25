@@ -74,7 +74,9 @@ public class MainActivity extends Activity {
     private StageView stage;
 
     // clocks
-    private final TextView[] cityName = new TextView[4], cityWhen = new TextView[4], cityTime = new TextView[4];
+    private final TextView[] cityName = new TextView[8], cityWhen = new TextView[8], cityTime = new TextView[8];
+    /** The clock tiles' grid, built again when the number of clocks changes (2.26). */
+    private LinearLayout cityGrid;
     // rates
     private LinearLayout ratesList, toList;
     private EditText fee;
@@ -312,33 +314,26 @@ public class MainActivity extends Activity {
 
     /** Clocks: the four cities as tiles (tap one to change it), and how their skies move. */
     private void buildClocks(LinearLayout col) {
-        header(col, "Clocks", "The four cities on your widget");
-        for (int r = 0; r < 2; r++) {
-            LinearLayout row = hbox();
-            for (int j = 0; j < 2; j++) {
-                final int i = r * 2 + j;
-                LinearLayout t = tile(false);
-                t.setGravity(Gravity.START);
-                t.setPadding(dp(18), dp(18), dp(18), dp(16));
-                cityName[i] = text("", 17, Theme.uiMedium(this), Theme.TEXT);
-                cityName[i].setSingleLine(true);
-                cityName[i].setEllipsize(android.text.TextUtils.TruncateAt.END);
-                t.addView(cityName[i]);
-                t.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1f));
-                cityWhen[i] = text("", 12.5f, Theme.uiMedium(this), Theme.MUTED);
-                t.addView(cityWhen[i]);
-                cityTime[i] = chrome("", 38);
-                t.addView(cityTime[i]);
-                t.setClickable(true);
-                t.setOnClickListener(v -> pickCity(i));
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(150), 1f);
-                lp.leftMargin = j == 0 ? 0 : dp(10);
-                row.addView(t, lp);
-            }
-            col.addView(row, matchWrap(r == 0 ? 0 : 10));
-        }
-        updateClockTiles();
+        header(col, "Clocks", "The cities on your World clocks widget");
+        cityGrid = vbox();
+        col.addView(cityGrid, matchWrap(0));
+        fillClockTiles();
         hint(col, "Tap a city to choose another. Can't find yours? Type its name in the list's search box.");
+
+        section(col, "Clocks on the widget");
+        int at = 0;
+        String[] counts = new String[ClockView.COUNTS.length];
+        for (int k = 0; k < counts.length; k++) {
+            counts[k] = String.valueOf(ClockView.COUNTS[k]);
+            if (ClockView.COUNTS[k] == Store.clockCount(this)) at = k;
+        }
+        Segmented count = new Segmented(this, counts, (int[]) null, at, k -> {
+            Store.setClockCount(this, ClockView.COUNTS[k]);
+            fillClockTiles();
+            refreshNow("Updating…");
+        });
+        col.addView(count, matchWrap(0));
+        hint(col, "Up to four clocks sit in one row; six or eight in two even rows, so every clock keeps its shape.");
 
         section(col, "Sky motion");
         Segmented skies = new Segmented(this, new String[]{"Animated", "Still"}, new int[]{Glyph.SPARKLE, Glyph.IMAGE},
@@ -465,7 +460,8 @@ public class MainActivity extends Activity {
     private void buildWidgets(LinearLayout col) {
         header(col, "Widgets", "Tap one to add it to your home screen");
         Object[][] all = {
-                {"Currency", "World clocks and rates", Glyph.GLOBE, WidgetProvider.class},
+                {"Clocks", "World clocks on their skies", Glyph.GLOBE, ClockWidgetProvider.class},
+                {"Rates", "Market and Visa rates", Glyph.RATES, WidgetProvider.class},
                 {"SBB clock", "The Swiss railway clock", Glyph.CLOCK, SbbWidgetProvider.class},
                 {"Calendar", "Your week and next events", Glyph.CALENDAR, CalendarWidgetProvider.class},
                 {"Sound", "Lights that follow the music", Glyph.LEVELS, SoundWidgetProvider.class},
@@ -782,13 +778,48 @@ public class MainActivity extends Activity {
 
     }
 
+    /** The clock tiles, two to a row, one for each of the widget's clocks (tap one to change its city). */
+    private void fillClockTiles() {
+        cityGrid.removeAllViews();
+        int n = Store.clockCount(this);
+        LinearLayout row = null;
+        for (int i = 0; i < n; i++) {
+            final int slot = i;
+            if (i % 2 == 0) {
+                row = hbox();
+                cityGrid.addView(row, matchWrap(i == 0 ? 0 : 10));
+            }
+            LinearLayout t = tile(false);
+            t.setGravity(Gravity.START);
+            t.setPadding(dp(18), dp(18), dp(18), dp(16));
+            cityName[i] = text("", 17, Theme.uiMedium(this), Theme.TEXT);
+            cityName[i].setSingleLine(true);
+            cityName[i].setEllipsize(android.text.TextUtils.TruncateAt.END);
+            t.addView(cityName[i]);
+            t.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1f));
+            cityWhen[i] = text("", 12.5f, Theme.uiMedium(this), Theme.MUTED);
+            t.addView(cityWhen[i]);
+            cityTime[i] = chrome("", 38);
+            t.addView(cityTime[i]);
+            t.setClickable(true);
+            t.setOnClickListener(v -> pickCity(slot));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(150), 1f);
+            lp.leftMargin = i % 2 == 0 ? 0 : dp(10);
+            row.addView(t, lp);
+        }
+        if (n % 2 == 1) row.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f)); // an odd one keeps its size
+        updateClockTiles();
+    }
+
     /** The clock tiles: each city's name, day and offset, and its time now. */
     private void updateClockTiles() {
-        if (cityName[0] == null) return;
-        CurrencyView.Clock[] ks = CurrencyView.clocks(this, System.currentTimeMillis());
+        if (cityName[0] == null || cityGrid == null) return;
+        int n = Math.min(Store.clockCount(this), cityGrid.getChildCount() * 2);
+        ClockView.Clock[] ks = ClockView.clocks(this, System.currentTimeMillis(), n);
         DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault());
         DateTimeFormatter timeF = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < n; i++) {
+            if (cityName[i] == null) continue;
             ZonedDateTime now = ZonedDateTime.now(ks[i].zone);
             cityName[i].setText(Util.capWords(ks[i].city));
             int off = now.getOffset().getTotalSeconds() / 60;

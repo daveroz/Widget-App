@@ -12,7 +12,8 @@ import java.util.Locale;
 final class Store {
     private Store() {}
 
-    static final String[] DEF_CITIES = {"Mexico City", "Bucharest", "Brussels", "Charlotte"};
+    static final String[] DEF_CITIES = {"Mexico City", "Bucharest", "Brussels", "Charlotte", "Tokyo", "London",
+            "New York", "Sydney"};
     static final String[] DEF_FROM = {"USD", "EUR", "GBP", "CHF", "CNY", "JPY"};
 
     static SharedPreferences sp(Context c) {
@@ -21,6 +22,15 @@ final class Store {
 
     // ---- settings ----
     static String city(Context c, int i) { return sp(c).getString("city" + i, DEF_CITIES[i]); }
+
+    /** How many world clocks the World clocks widget shows (2.26): one of {@link ClockView#COUNTS}, four at first. */
+    static int clockCount(Context c) {
+        int n = sp(c).getInt("clockCount", 4);
+        for (int k : ClockView.COUNTS) if (k == n) return n;
+        return 4;
+    }
+
+    static void setClockCount(Context c, int n) { sp(c).edit().putInt("clockCount", n).apply(); }
     /** How many currency rows are configured (4 by default, up to 6). The widget shows as many as fit. */
     static int count(Context c) { return Math.max(1, Math.min(DEF_FROM.length, sp(c).getInt("fxCount", 4))); }
     static void setCount(Context c, int n) { sp(c).edit().putInt("fxCount", Math.max(1, Math.min(DEF_FROM.length, n))).apply(); }

@@ -37,6 +37,15 @@ public class WidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onDisabled(Context ctx) {
+        stopIfNone(ctx);
+    }
+
+    /**
+     * The last Rates or World clocks widget has gone (2.26: the two share the minute chain and the refresh): stops them
+     * once neither is left on the home screen.
+     */
+    static void stopIfNone(Context ctx) {
+        if (widgetIds(ctx).length > 0 || ClockWidgetProvider.widgetIds(ctx).length > 0) return;
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
         am.cancel(tickIntent(ctx));
         JobScheduler js = (JobScheduler) ctx.getSystemService(Context.JOB_SCHEDULER_SERVICE);
@@ -71,7 +80,7 @@ public class WidgetProvider extends AppWidgetProvider {
     private static void tick(Context ctx) { tick(ctx, "alarm"); }
 
     private static void tick(Context ctx, String who) {
-        if (widgetIds(ctx).length == 0) return;
+        if (widgetIds(ctx).length == 0 && ClockWidgetProvider.widgetIds(ctx).length == 0) return;
         // Arm the next minute FIRST so a failure while drawing can never break the chain.
         try { scheduleNextTick(ctx); } catch (Exception ignored) { }
         try {
@@ -91,7 +100,9 @@ public class WidgetProvider extends AppWidgetProvider {
         return AppWidgetManager.getInstance(ctx).getAppWidgetIds(new ComponentName(ctx, WidgetProvider.class));
     }
 
+    /** Draws every Rates widget, and (2.26) every World clocks widget, afresh. */
     static void updateAll(Context ctx) {
+        ClockWidgetProvider.updateAll(ctx);
         AppWidgetManager awm = AppWidgetManager.getInstance(ctx);
         int[] ids = widgetIds(ctx);
         if (ids.length == 0) return;
@@ -100,21 +111,20 @@ public class WidgetProvider extends AppWidgetProvider {
         int max = Math.min(CurrencyView.LAYOUTS.length, Store.count(ctx));
         boolean land = ctx.getResources().getConfiguration().orientation
                 == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
-        boolean animated = Store.animateSkies(ctx);
         for (int id : ids) {
             RemoteViews rv;
             android.os.Bundle o = awm.getAppWidgetOptions(id);
             int wdp = o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH
                     : AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
-            // With animated skies the widget gets the one layout its height fits (picked again on resize): the sky
-            // frames are partial updates, which never reach the per-size layouts of a size map.
-            if (Build.VERSION.SDK_INT >= 31 && !animated) {
+            // Android 12 and up: a size map, so the launcher shows the variant whose rows fit (no live frames go to the
+            // Rates widget since 2.26, so it can always have one)
+            if (Build.VERSION.SDK_INT >= 31) {
                 // The launcher shows the variant whose number of rows fits the real height, and re-picks on resize.
                 java.util.Map<android.util.SizeF, RemoteViews> map = new java.util.LinkedHashMap<>();
                 for (int k = 1; k <= max; k++) {
                     RemoteViews v = CurrencyView.build(ctx, k, wdp);
                     v.setOnClickPendingIntent(R.id.root, open);
-                    map.put(new android.util.SizeF(110f, CurrencyView.heightFor(k, wdp)), v);
+                    map.put(new android.util.SizeF(110f, CurrencyView.heightFor(k)), v);
                 }
                 rv = new RemoteViews(map);
             } else {
@@ -133,8 +143,7 @@ public class WidgetProvider extends AppWidgetProvider {
         int hdp = o == null ? 400 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
                 : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 400);
         int max = Math.min(CurrencyView.LAYOUTS.length, Store.count(ctx)), k = 1;
-        int wdp = widthDp(ctx, awm, id);
-        for (int i = 1; i <= max; i++) if (CurrencyView.heightFor(i, wdp) <= hdp) k = i;
+        for (int i = 1; i <= max; i++) if (CurrencyView.heightFor(i) <= hdp) k = i;
         return k;
     }
 

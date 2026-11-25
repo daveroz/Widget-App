@@ -175,7 +175,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
         // week row, Sunday first; today sits on a solid tile in the song's colour, covering its day name and number
         LocalDate sunday = today.minusDays(today.getDayOfWeek().getValue() % 7);
-        int onTile = Theme.onLit(scene.key);
+        int onTile = Theme.TEXT; // today's tile is grey glass (2.26): its words white
         for (int i = 0; i < 7; i++) {
             LocalDate d = sunday.plusDays(i);
             boolean isToday = d.equals(today);
@@ -183,10 +183,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             String name = d.format(java.time.format.DateTimeFormatter.ofPattern("EEE", loc)).toUpperCase(loc);
             String day = String.valueOf(d.getDayOfMonth());
             if (isToday) { // solid, like a button; its text has the fringe all text has
-                rv.setInt(col, "setBackgroundResource", R.drawable.cal_today);
-                if (android.os.Build.VERSION.SDK_INT >= 31) {
-                    rv.setColorStateList(col, "setBackgroundTintList", android.content.res.ColorStateList.valueOf(scene.key));
-                }
+                rv.setInt(col, "setBackgroundResource", R.drawable.cal_today); // no colour of its own since 2.26
                 rv.setImageViewBitmap(lab, TextBmp.fringed(Theme.uiBold(ctx), 9.5f * 2.5f, 0.8f, name, onTile));
                 rv.setImageViewBitmap(num, TextBmp.fringed(tf, 13 * 2.5f, NUMBER_FILL, day, onTile));
             } else {
@@ -302,33 +299,8 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int h = o == null ? 0 : o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
         if (w <= 0) w = 320;
         if (h <= 0) h = fallbackHeightDp;
-        // today's tile: no wide glow of its light round it (2.03), only the very faint haze the music player's progress
-        // line has, hugging its edge (2.21)
-        Scene scene = Ambience.scene();
-        android.graphics.Bitmap panel = Stage.panel(scene, w, h, 1.25f, Stage.round(28), null, true);
-        return todayHaze(panel, scene, w);
-    }
-
-    /**
-     * The calendar's card picture with a very faint haze round today's tile (2.21), in the light's deep shade, as the
-     * progress line's bloom: the tile in its column of the week row (20 dp side padding, seven 40 dp columns spread
-     * across it), 73.1 dp down (13 dp padding, the 51 dp header, 9.1 dp), 54 dp tall, its corners 12 dp.
-     */
-    private static android.graphics.Bitmap todayHaze(android.graphics.Bitmap panel, Scene scene, int wDp) {
-        float px = 1.25f;
-        android.graphics.Bitmap out = panel.copy(android.graphics.Bitmap.Config.ARGB_8888, true);
-        int col = LocalDate.now().getDayOfWeek().getValue() % 7;
-        float gap = Math.max(0, (wDp - 40 - 7 * 40) / 6f), left = 20 + col * (40 + gap), top = 73.1f;
-        android.graphics.RectF tile = new android.graphics.RectF(left * px, top * px, (left + 40) * px, (top + 54) * px);
-        Look look = Look.get();
-        float mist = Math.min(1.25f, (float) Math.sqrt(look.haze));
-        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        p.setStyle(android.graphics.Paint.Style.FILL_AND_STROKE);
-        p.setStrokeWidth(1.2f * px * mist);
-        p.setColor(Scene.alpha(scene.deep, 0.42f * look.bloom));
-        p.setMaskFilter(new android.graphics.BlurMaskFilter(2.2f * px * mist, android.graphics.BlurMaskFilter.Blur.NORMAL));
-        new android.graphics.Canvas(out).drawRoundRect(tile, 12 * px, 12 * px, p);
-        return out;
+        // today's tile sits flat on the glass: no glow round it (2.03; the faint haze of 2.21 went in 2.26)
+        return Stage.panel(Ambience.scene(), w, h, 1.25f, Stage.round(28), null, true);
     }
 
     private static PendingIntent broadcast(Context ctx, String action, int code) {
