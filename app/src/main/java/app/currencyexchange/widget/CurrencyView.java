@@ -247,25 +247,28 @@ final class CurrencyView {
     }
 
     /**
-     * The Visa badge, monochrome as in the mockup (2.05): a small dark grey tile with "VISA" in white bold italics,
-     * so nothing but the flags brings colour into the rows.
+     * The Visa badge, monochrome as in the mockup (2.05): a small dark grey tile with the mark in white, so nothing but
+     * the flags brings colour into the rows. Since 2.25 the mark is Visa's own wordmark ({@code R.drawable.visa_mark})
+     * rather than "VISA" typed in italics.
      */
     static Bitmap visaLogo(Context ctx) {
-        Bitmap hit = PICS.get("v|mono");
+        Bitmap hit = PICS.get("v|mark");
         if (hit != null) return hit;
         Bitmap out = Bitmap.createBitmap(130, 64, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(0xFF3A3A40);
         c.drawRoundRect(new RectF(0, 0, 130, 64), 9, 9, p);
-        Paint t = new Paint(Paint.ANTI_ALIAS_FLAG);
-        t.setColor(0xFFF2F2F4);
-        t.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD_ITALIC));
-        t.setTextSize(34);
-        t.setTextAlign(Paint.Align.CENTER);
-        t.setLetterSpacing(0.02f);
-        c.drawText("VISA", 64, 32 - (t.ascent() + t.descent()) / 2f, t);
-        PICS.put("v|mono", out);
+        android.graphics.drawable.Drawable mark = ctx.getDrawable(R.drawable.visa_mark);
+        if (mark != null) {
+            mark = mark.mutate();
+            mark.setTint(0xFFF2F2F4);
+            int mw = 92, mh = Math.round(mw * 8.2f / 24f); // the mark's own proportions
+            int x = (130 - mw) / 2, y = (64 - mh) / 2;
+            mark.setBounds(x, y, x + mw, y + mh);
+            mark.draw(c);
+        }
+        PICS.put("v|mark", out);
         return out;
     }
 
