@@ -41,6 +41,16 @@ final class Segmented extends LinearLayout {
      * picked; {@code listener} hears when another is picked.
      */
     Segmented(Context c, String[] words, int[] glyphs, int selected, Listener listener) {
+        this(c, words, glyphs, null, selected, listener);
+    }
+
+    /** As above with a small round picture before each word ({@code images}: the converter's flags, 2.23). */
+    Segmented(Context c, String[] words, android.graphics.Bitmap[] images, int selected, Listener listener) {
+        this(c, words, null, images, selected, listener);
+    }
+
+    private Segmented(Context c, String[] words, int[] glyphs, android.graphics.Bitmap[] images, int selected,
+                      Listener listener) {
         super(c);
         this.listener = listener;
         this.selected = selected;
@@ -67,11 +77,18 @@ final class Segmented extends LinearLayout {
                 LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(Math.round(19 * px), Math.round(19 * px));
                 ip.rightMargin = Math.round(7 * px);
                 option.addView(icon, ip);
+            } else if (images != null && images[i] != null) {
+                ImageView pic = new ImageView(c);
+                pic.setImageBitmap(images[i]);
+                LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(Math.round(18 * px), Math.round(18 * px));
+                ip.rightMargin = Math.round(6 * px);
+                option.addView(pic, ip);
             }
             TextView t = new Theme.FringeText(c);
-            t.setText(words[i]);
-            t.setTextSize(15);
-            t.setTypeface(Theme.uiMedium(c));
+            t.setText(words[i].toUpperCase(java.util.Locale.getDefault())); // a button: spaced capitals (2.23)
+            t.setTextSize(12.5f);
+            t.setTypeface(Theme.uiBold(c));
+            t.setLetterSpacing(0.14f);
             t.setTextColor(i == selected ? ON : OFF);
             t.setSingleLine(true);
             labels[i] = t;

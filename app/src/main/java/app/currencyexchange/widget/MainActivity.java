@@ -144,8 +144,9 @@ public class MainActivity extends Activity {
             ImageView icon = new ImageView(this);
             tabIcon[i] = icon;
             item.addView(icon, new LinearLayout.LayoutParams(dp(26), dp(26)));
-            TextView word = text(TABS[i], 13, Theme.uiMedium(this), Segmented.OFF);
-            word.setPadding(0, dp(5), 0, 0);
+            TextView word = text(TABS[i].toUpperCase(Locale.getDefault()), 11, Theme.uiBold(this), Segmented.OFF);
+            word.setLetterSpacing(0.12f);
+            word.setPadding(0, dp(6), 0, 0);
             word.setGravity(Gravity.CENTER_HORIZONTAL);
             tabWord[i] = word;
             item.addView(word);
@@ -163,7 +164,9 @@ public class MainActivity extends Activity {
         pill.setPadding(dp(24), dp(13), dp(20), dp(13));
         pill.setBackground(Theme.pill(this, 0xFFEEF2F7, false));
         pill.setElevation(dp(10));
-        pillWord = plain("Refresh", 16, Theme.uiSemi(this), 0xFF0B0D12);
+        pillWord = plain("Refresh", 13, Theme.uiBold(this), 0xFF0B0D12);
+        pillWord.setAllCaps(true); // a button: spaced capitals (2.23)
+        pillWord.setLetterSpacing(0.16f);
         pill.addView(pillWord);
         ImageView pillIcon = new ImageView(this);
         pillIcon.setImageDrawable(new Glyph(Glyph.REFRESH, 0xFF0B0D12, false, 2f));
@@ -356,7 +359,7 @@ public class MainActivity extends Activity {
         section(col, "Your currencies");
         ratesList = listCard(col);
         section(col, "Rows on the widget");
-        Segmented count = new Segmented(this, new String[]{"1", "2", "3", "4", "5", "6"}, null, Store.count(this) - 1, i -> {
+        Segmented count = new Segmented(this, new String[]{"1", "2", "3", "4", "5", "6"}, (int[]) null, Store.count(this) - 1, i -> {
             Store.setCount(this, i + 1);
             fillRates();
             refreshNow("Updating rates…");
@@ -491,7 +494,9 @@ public class MainActivity extends Activity {
             top.addView(plus, new LinearLayout.LayoutParams(dp(20), dp(20)));
             t.addView(top, matchWrap(0));
             t.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1f));
-            t.addView(text((String) all[i][0], 17, Theme.uiMedium(this), Theme.TEXT));
+            TextView name = text(((String) all[i][0]).toUpperCase(Locale.getDefault()), 16, Theme.uiMedium(this), Theme.TEXT);
+            name.setLetterSpacing(0.06f);
+            t.addView(name);
             TextView d = text((String) all[i][1], 12.5f, Theme.uiMedium(this), Theme.MUTED);
             d.setPadding(0, dp(3), 0, 0);
             t.addView(d);
@@ -708,7 +713,8 @@ public class MainActivity extends Activity {
             cp.leftMargin = dp(10);
             row.addView(check, cp);
         } else {
-            TextView b = text("Allow", 14, Theme.uiMedium(this), Segmented.ON);
+            TextView b = text("ALLOW", 11.5f, Theme.uiBold(this), Segmented.ON);
+            b.setLetterSpacing(0.16f);
             b.setPadding(dp(16), dp(8), dp(16), dp(8));
             b.setBackground(Theme.pressable(Theme.pill(this, 0xFF2A2F39, true), Theme.pill(this, 0xFF363C48, true)));
             b.setClickable(true);
@@ -886,7 +892,8 @@ public class MainActivity extends Activity {
         LinearLayout root = vbox();
         root.setPadding(dp(16), dp(18), dp(16), dp(10));
         root.setBackground(Theme.card(this, 22, 0xFA010203));
-        TextView t = text(title, 20, Theme.uiBold(this), Theme.TEXT);
+        TextView t = text(title.toUpperCase(Locale.getDefault()), 16, Theme.uiBold(this), Theme.TEXT);
+        t.setLetterSpacing(0.14f);
         t.setPadding(dp(4), 0, 0, dp(12));
         root.addView(t);
         final EditText q = input("", InputType.TYPE_CLASS_TEXT, false, remote ? "Search or type any city" : "Search");
@@ -1046,14 +1053,16 @@ public class MainActivity extends Activity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         FrameLayout badge = new FrameLayout(this);
         ImageView logo = new ImageView(this);
-        logo.setImageBitmap(badgeArt(dp(50)));
+        logo.setImageBitmap(Theme.badge(this, dp(50)));
         logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
         badge.addView(logo, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         badge.setForeground(Theme.ring(this));
         row.addView(badge, new LinearLayout.LayoutParams(dp(50), dp(50)));
         LinearLayout words = vbox();
         words.setPadding(dp(14), 0, 0, 0);
-        words.addView(text(title, 28, Theme.uiBold(this), Theme.TEXT));
+        TextView name = text(title.toUpperCase(Locale.getDefault()), 24, Theme.uiBold(this), Theme.TEXT);
+        name.setLetterSpacing(0.08f); // titles in spaced capitals (2.23), as the widgets' labels
+        words.addView(name);
         TextView s = text(sub, 13.5f, Theme.uiMedium(this), Theme.MUTED);
         s.setPadding(0, dp(1), 0, 0);
         words.addView(s);
@@ -1063,34 +1072,11 @@ public class MainActivity extends Activity {
         col.addView(row, lp);
     }
 
-    private android.graphics.Bitmap badge;
-
-    /**
-     * The crystal globe for a page's head, {@code size} pixels: the icon's two layers (deep space and the globe), the
-     * globe drawn larger so it fills the ring as the car app's logo does, cut to a circle.
-     */
-    private android.graphics.Bitmap badgeArt(int size) {
-        if (badge != null && badge.getWidth() == size) return badge;
-        android.graphics.Bitmap sq = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
-        android.graphics.Canvas c = new android.graphics.Canvas(sq);
-        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG
-                | android.graphics.Paint.FILTER_BITMAP_FLAG);
-        android.graphics.Bitmap back = android.graphics.BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher_background);
-        android.graphics.Bitmap globe = android.graphics.BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher_foreground);
-        if (back != null) c.drawBitmap(back, null, new android.graphics.RectF(0, 0, size, size), p);
-        float big = size * 1.42f, at = (size - big) / 2f;
-        if (globe != null) c.drawBitmap(globe, null, new android.graphics.RectF(at, at, at + big, at + big), p);
-        badge = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
-        p.setShader(new android.graphics.BitmapShader(sq, android.graphics.Shader.TileMode.CLAMP,
-                android.graphics.Shader.TileMode.CLAMP));
-        new android.graphics.Canvas(badge).drawCircle(size / 2f, size / 2f, size / 2f, p);
-        return badge;
-    }
-
-    /** A quiet heading over a group, in sentence case. */
+    /** A quiet heading over a group, in small spaced capitals. */
     private void section(LinearLayout col, String s) {
-        TextView t = text(s, 14.5f, Theme.uiMedium(this), Theme.MUTED);
-        t.setPadding(dp(4), dp(28), 0, dp(10));
+        TextView t = text(s.toUpperCase(Locale.getDefault()), 11.5f, Theme.uiBold(this), Theme.MUTED);
+        t.setLetterSpacing(0.2f); // spaced capitals (2.23), as the widgets' labels
+        t.setPadding(dp(4), dp(30), 0, dp(12));
         col.addView(t);
     }
 

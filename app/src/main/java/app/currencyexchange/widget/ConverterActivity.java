@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -16,7 +17,7 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.HorizontalScrollView;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -31,6 +32,8 @@ import java.util.Locale;
  * shows the market and Visa values, from the same cached rates as the widget, then from the live market rate it
  * fetches as it opens. The swap button converts the other
  * way (from the target currency), the chips switch between the configured currencies. Taps outside close it.
+ * Since 2.23 it's drawn as the app is: its head with the crystal globe, the currencies as a segmented control, the
+ * swap as an icon disc, the results as lines of a list card with their figures in polished silver.
  */
 public class ConverterActivity extends Activity {
     static final String EXTRA_ROW = "row";
@@ -44,9 +47,10 @@ public class ConverterActivity extends Activity {
 
     private int row;
     private boolean reverse; // false: from-currency -> target, true: target -> from-currency
-    private LinearLayout chips, amountBox;
+    private Segmented chips;
+    private LinearLayout amountBox;
     private ImageView inFlag;
-    private TextView inCode, mktVal, mktCode, visaVal, visaCode, rateLine;
+    private TextView inCode, mktVal, mktCode, visaVal, visaCode, rateLine, note;
     private EditText amount;
 
     @Override
@@ -89,30 +93,54 @@ public class ConverterActivity extends Activity {
     private View build() {
         LinearLayout card = vbox();
         card.setBackground(room());
-        card.setPadding(dp(16), dp(14), dp(16), dp(14));
+        card.setPadding(dp(18), dp(18), dp(18), dp(18));
 
-        TextView title = text("CONVERTER", 11, Theme.uiBold(this), Theme.accent().key);
-        Theme.cardTitle(this, title);
-        title.setPadding(dp(2), 0, 0, dp(10));
-        card.addView(title);
+        // its head, as the app's pages (2.23): the crystal globe in its glass ring, CONVERTER, and the rate under it
+        LinearLayout head = hbox();
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        FrameLayout badge = new FrameLayout(this);
+        ImageView logo = new ImageView(this);
+        logo.setImageBitmap(Theme.badge(this, dp(40)));
+        badge.addView(logo, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        badge.setForeground(Theme.ring(this));
+        head.addView(badge, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        LinearLayout words = vbox();
+        words.setPadding(dp(12), 0, 0, 0);
+        TextView title = text("CONVERTER", 18, Theme.uiBold(this), Theme.TEXT);
+        title.setLetterSpacing(0.08f);
+        words.addView(title);
+        rateLine = text("", 12, Theme.uiMedium(this), Theme.MUTED);
+        rateLine.setPadding(0, dp(1), 0, 0);
+        words.addView(rateLine);
+        head.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        card.addView(head);
 
-        // one chip per configured currency row
-        chips = hbox();
-        chips.setGravity(Gravity.CENTER_VERTICAL);
-        HorizontalScrollView hs = new HorizontalScrollView(this);
-        hs.setHorizontalScrollBarEnabled(false);
-        hs.addView(chips);
-        card.addView(hs);
+        // the configured currencies, as the app's segmented control: a flag and a code each, the chosen one raised
+        int n = Store.count(this);
+        if (n >= 2) {
+            String[] codes = new String[n];
+            android.graphics.Bitmap[] flags = n <= 4 ? new android.graphics.Bitmap[n] : null; // flags while they fit
+            for (int i = 0; i < n; i++) {
+                codes[i] = from(i);
+                if (flags != null) flags[i] = CurrencyView.flagOrLabel(this, Util.countryOfCurrency(codes[i]), codes[i]);
+            }
+            chips = new Segmented(this, codes, flags, row, i -> {
+                row = i;
+                refreshPair();
+            });
+            card.addView(chips, matchWrap(18));
+        }
 
-        // amount: flag + code of the currency typed in, then the number
+        // amount: flag + code of the currency typed in, then the number, in a well lit in the light while typing
         amountBox = hbox();
         amountBox.setGravity(Gravity.CENTER_VERTICAL);
-        amountBox.setPadding(dp(15), dp(9), dp(15), dp(9));
-        amountBox.setBackground(Theme.well(this, 12, true)); // the field being typed in: lit in the song's colour
+        amountBox.setPadding(dp(16), dp(10), dp(16), dp(10));
+        amountBox.setBackground(Theme.well(this, 16, true));
         inFlag = new ImageView(this);
-        amountBox.addView(inFlag, new LinearLayout.LayoutParams(dp(28), dp(28)));
-        inCode = text("", 17, Theme.uiMedium(this), Theme.TEXT);
-        inCode.setPadding(dp(8), 0, dp(8), 0);
+        amountBox.addView(inFlag, new LinearLayout.LayoutParams(dp(30), dp(30)));
+        inCode = text("", 15, Theme.uiBold(this), Theme.TEXT);
+        inCode.setLetterSpacing(0.08f);
+        inCode.setPadding(dp(10), 0, dp(8), 0);
         amountBox.addView(inCode);
         amount = new Theme.FringeEdit(this);
         amount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
@@ -120,8 +148,8 @@ public class ConverterActivity extends Activity {
         amount.setImeOptions(EditorInfo.IME_ACTION_DONE);
         amount.setSingleLine(true);
         amount.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        amount.setTextSize(26);
-        amount.setTypeface(Theme.monoMedium(this));
+        amount.setTextSize(30);
+        amount.setTypeface(Theme.uiMedium(this));
         amount.setTextColor(Theme.TEXT);
         amount.setHint("0");
         amount.setHintTextColor(Theme.DIM);
@@ -139,106 +167,91 @@ public class ConverterActivity extends Activity {
             return false;
         });
         amountBox.addView(amount, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        card.addView(amountBox, matchWrap(12));
+        card.addView(amountBox, matchWrap(14));
 
-        // swap direction
-        ImageView swap = new ImageView(this);
-        swap.setImageResource(R.drawable.ic_swap);
-        swap.setPadding(dp(8), dp(8), dp(8), dp(8));
-        swap.setBackground(Theme.pressable(Theme.iconButton(this, false), Theme.iconButton(this, true))); // a dark round icon button
-        swap.setColorFilter(Theme.iconGlyph(Theme.accent()));
+        // swap direction: the app's icon disc, its arrows in white
+        FrameLayout swap = new FrameLayout(this);
+        swap.setBackground(Theme.disc(this));
+        ImageView arrows = new ImageView(this);
+        arrows.setImageDrawable(new Glyph(Glyph.SWAP, Theme.TEXT, false, 1.7f));
+        swap.addView(arrows, new FrameLayout.LayoutParams(dp(20), dp(20), Gravity.CENTER));
         swap.setContentDescription("Swap direction");
         swap.setClickable(true);
         swap.setOnClickListener(v -> {
             reverse = !reverse;
             refreshPair();
         });
-        LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(dp(36), dp(36));
+        LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(dp(40), dp(40));
         sl.gravity = Gravity.CENTER_HORIZONTAL;
-        sl.topMargin = dp(8);
-        sl.bottomMargin = dp(8);
+        sl.topMargin = dp(10);
+        sl.bottomMargin = dp(10);
         card.addView(swap, sl);
 
-        // results: market and Visa, like the widget row
+        // results: market and Visa, as lines of the app's list cards, their figures in polished silver
         LinearLayout res = vbox();
-        res.setBackground(Theme.well(this, 12, false));
-        res.setPadding(dp(14), dp(10), dp(14), dp(10));
-        TextView mktLbl = text("Market", 14, Theme.uiMedium(this), Theme.accent().quiet);
-        Theme.label(this, mktLbl);
-        mktVal = text("", 22, Theme.monoMedium(this), Theme.TEXT);
-        mktCode = text("", 14, Theme.uiMedium(this), Theme.MUTED);
+        GradientDrawable well = new GradientDrawable();
+        well.setColor(0xFF10131A);
+        well.setCornerRadius(dp(16));
+        well.setStroke(Math.max(1, dp(1)), Scene.alpha(Stage.ICE, 0.05f));
+        res.setBackground(well);
+        res.setPadding(dp(16), dp(4), dp(16), dp(4));
+        TextView mktLbl = text("MARKET", 11.5f, Theme.uiBold(this), Theme.MUTED);
+        mktLbl.setLetterSpacing(0.2f);
+        mktVal = chrome(26);
+        mktCode = text("", 13, Theme.uiBold(this), Theme.MUTED);
         res.addView(resultRow(mktLbl, mktVal, mktCode));
         View div = new View(this);
-        div.setBackgroundColor(Theme.line(0.16f));
-        LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(1)));
-        dl.topMargin = dp(8);
-        dl.bottomMargin = dp(8);
-        res.addView(div, dl);
+        div.setBackgroundColor(Scene.alpha(Stage.ICE, 0.07f));
+        res.addView(div, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(1))));
         ImageView visa = new ImageView(this);
         visa.setImageBitmap(CurrencyView.visaLogo(this));
         visa.setAdjustViewBounds(true);
         visa.setScaleType(ImageView.ScaleType.FIT_START);
-        visa.setLayoutParams(new LinearLayout.LayoutParams(dp(36), dp(24)));
-        visaVal = text("", 22, Theme.monoMedium(this), Theme.TEXT_SOFT);
-        visaCode = text("", 14, Theme.uiMedium(this), Theme.MUTED);
+        visa.setLayoutParams(new LinearLayout.LayoutParams(dp(36), dp(20)));
+        visaVal = chrome(26);
+        visaCode = text("", 13, Theme.uiBold(this), Theme.MUTED);
         res.addView(resultRow(visa, visaVal, visaCode));
         card.addView(res, matchWrap(0));
 
-        rateLine = text("", 11, Theme.uiMedium(this), Theme.DIM);
-        rateLine.setPadding(dp(2), dp(10), dp(2), 0);
-        card.addView(rateLine);
+        note = text("", 12, Theme.uiMedium(this), Theme.DIM);
+        note.setPadding(dp(4), dp(10), dp(4), 0);
+        note.setVisibility(View.GONE);
+        card.addView(note);
         return card;
     }
 
     /**
      * The card floats over the home screen, so it brings its own light: the widgets' black panel, nearly opaque so the
-     * numbers read over any wallpaper: the app's card (see {@link Stage}), in the song's light.
+     * numbers read over any wallpaper: the app's card (see {@link Stage}), with the app's corners (2.23).
      */
     private Drawable room() {
-        return Theme.card(this, 16, 0xF7010203);
+        return Theme.card(this, 22, 0xF7010203);
     }
 
     private LinearLayout resultRow(View label, TextView value, TextView code) {
         LinearLayout r = hbox();
         r.setGravity(Gravity.CENTER_VERTICAL);
+        r.setPadding(0, dp(12), 0, dp(12));
         r.addView(label);
         View gap = new View(this);
         r.addView(gap, new LinearLayout.LayoutParams(0, 1, 1f));
         r.addView(value);
-        code.setPadding(dp(6), dp(4), 0, 0);
-        code.setMinWidth(dp(34));
+        code.setPadding(dp(8), dp(4), 0, 0);
+        code.setMinWidth(dp(38));
+        code.setLetterSpacing(0.08f);
         r.addView(code);
         return r;
     }
 
-    private void buildChips() {
-        chips.removeAllViews();
-        int n = Store.count(this);
-        if (n < 2) return;
-        for (int i = 0; i < n; i++) {
-            final int idx = i;
-            String code = from(i);
-            LinearLayout c = hbox();
-            c.setGravity(Gravity.CENTER_VERTICAL);
-            boolean on = i == row;
-            c.setPadding(dp(8), dp(6), dp(12), dp(6));
-            c.setBackground(on ? Theme.lit(this, 12, false) : Theme.dark(this, 12, false));
-            ImageView f = new ImageView(this);
-            f.setImageBitmap(CurrencyView.flagOrLabel(this, Util.countryOfCurrency(code), code));
-            c.addView(f, new LinearLayout.LayoutParams(dp(18), dp(18)));
-            TextView t = text(code, 13, Theme.uiMedium(this), on ? Theme.onLit() : Theme.TEXT_SOFT);
-            t.setPadding(dp(6), 0, 0, 0);
-            c.addView(t);
-            c.setClickable(true);
-            c.setOnClickListener(v -> {
-                row = idx;
-                refreshPair();
-            });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.rightMargin = dp(6);
-            lp.gravity = Gravity.CENTER_VERTICAL;
-            chips.addView(c, lp);
-        }
+    /** Big figures in polished metal, as the app's ({@link Theme.Chrome}). */
+    private TextView chrome(float sp) {
+        TextView t = new Theme.Chrome(this);
+        t.setTextSize(sp);
+        t.setTypeface(Theme.uiMedium(this));
+        t.setTextColor(0xFFFFFFFF);
+        t.setIncludeFontPadding(false);
+        t.setMaxLines(1);
+        return t;
     }
 
     // ------------------------------------------------------------------ values
@@ -248,7 +261,7 @@ public class ConverterActivity extends Activity {
 
     /** New currency pair or direction: chips, flag and codes, then the numbers. */
     private void refreshPair() {
-        buildChips();
+        if (chips != null && chips.selected() != row) chips.select(row, false);
         String in = reverse ? to() : from(row), out = reverse ? from(row) : to();
         inFlag.setImageBitmap(CurrencyView.flagOrLabel(this, Util.countryOfCurrency(in), in));
         inCode.setText(in);
@@ -266,15 +279,15 @@ public class ConverterActivity extends Activity {
         double amt = Util.parseAmount(amount.getText().toString());
         mktVal.setText(Util.fmtMoney(convert(amt, market)));
         visaVal.setText((estimate ? "~" : "") + Util.fmtMoney(convert(amt, visa)));
-        visaVal.setTextColor(estimate ? Theme.MUTED : Theme.TEXT_SOFT);
+        note.setText("Visa didn't answer: estimated as the market rate plus your bank's fee");
+        note.setVisibility(estimate ? View.VISIBLE : View.GONE);
         if (Double.isNaN(market)) {
-            rateLine.setText("No rate yet - open Worldly to refresh");
+            rateLine.setText("No rate yet · open Worldly to refresh");
         } else {
             long at = Store.marketAt(this) > 0 ? Store.marketAt(this) : Store.lastFetch(this);
-            String when = at <= 0 ? "" : "  ·  updated " + Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault())
+            String when = at <= 0 ? "" : "  ·  " + Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault())
                     .format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()));
-            rateLine.setText("1 " + from + " = " + Util.fmtMoney(market) + " " + to + when
-                    + (estimate ? "  ·  Visa estimated (market + fee)" : ""));
+            rateLine.setText("1 " + from + " = " + Util.fmtMoney(market) + " " + to + when);
         }
     }
 

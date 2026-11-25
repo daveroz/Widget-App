@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Music widget: its picture (the panel, lit by the light of what's playing) fills it; the controls sit over its
-     middle as real views, so taps land exactly: previous, play / pause, next, and the progress line, split into 24
-     zones a tap jumps the song to. -->
+<!-- Music widget: its picture (the panel, lit by the light of what's playing) fills it; the controls sit over it as real
+     views, so taps land exactly: previous, play / pause, next, and the progress line, split into 24 zones a tap jumps
+     the song to. Since 2.23 they sit at the top, 19 dp down, on the same line as the other widgets' words (the middle
+     of an 88 dp card). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -18,7 +19,8 @@
         android:id="@+id/controls"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:layout_gravity="center_vertical"
+        android:layout_gravity="top"
+        android:layout_marginTop="19dp"
         android:layout_marginStart="10dp"
         android:layout_marginEnd="18dp"
         android:baselineAligned="false"
