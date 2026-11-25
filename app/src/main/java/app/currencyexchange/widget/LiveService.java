@@ -22,7 +22,7 @@ import java.time.ZoneId;
 
 /**
  * Keeps all widgets live while the screen is on, independent of alarms (which some phones delay):
- *  - on every screen-on and at every minute boundary it repaints the clocks (Currency + Calendar + SBB),
+ *  - on every screen-on and at every minute boundary it repaints the clocks (World clocks + Rates + Calendar + SBB),
  *  - for the SBB clock it also pushes frames for the second hand (about 10 a second, or 1 a second),
  *  - for the Sound widget it pushes frames of its light show (about 20 a second while something plays,
  *    12 while it plays its patterns), and listens to the sound while something plays.
@@ -62,7 +62,7 @@ public class LiveService extends Service {
         // Since 2.05 the world clocks' animated skies want it too (unless turned off in the settings).
         return (SbbWidgetProvider.widgetIds(ctx).length > 0 && !"minute".equals(Store.sbbMode(ctx)))
                 || SoundWidgetProvider.widgetIds(ctx).length > 0
-                || (Store.animateSkies(ctx) && WidgetProvider.widgetIds(ctx).length > 0);
+                || (Store.animateSkies(ctx) && ClockWidgetProvider.widgetIds(ctx).length > 0);
     }
 
     static void ensure(Context ctx) {
@@ -281,7 +281,7 @@ public class LiveService extends Service {
     /**
      * The world clocks' skies (2.05): about eight frames a second, each clock's stars twinkling, clouds drifting,
      * trees swaying, a plane crossing now and then, sent as a partial update of just the four pictures. Stops while
-     * there's no Currency widget or skies are set to stay still.
+     * there's no World clocks widget or skies are set to stay still.
      */
     private final Runnable skyLoop = new Runnable() {
         @Override
@@ -291,7 +291,7 @@ public class LiveService extends Service {
             long now = SystemClock.uptimeMillis();
             if (skyPoll == 0 || now - skyPoll >= 2000) {
                 skyPoll = now;
-                skyIds = Store.animateSkies(ctx) ? WidgetProvider.widgetIds(ctx) : new int[0];
+                skyIds = Store.animateSkies(ctx) ? ClockWidgetProvider.widgetIds(ctx) : new int[0];
             }
             if (skyIds.length == 0) {
                 skyNext = 0;
@@ -300,7 +300,7 @@ public class LiveService extends Service {
             }
             if (skyNext == 0) skyNext = now;
             try {
-                CurrencyView.pushSkies(ctx, skyIds, System.currentTimeMillis());
+                ClockView.pushSkies(ctx, skyIds, System.currentTimeMillis());
             } catch (Throwable ignored) { }
             // on a steady timeline (as the Sound widget's): a late frame is dropped, not pushed back
             long after = SystemClock.uptimeMillis();
@@ -310,7 +310,7 @@ public class LiveService extends Service {
         }
     };
 
-    /** Immediately, then at every minute boundary: repaint Currency + Calendar (+ a still SBB picture). */
+    /** Immediately, then at every minute boundary: repaint World clocks, Rates and Calendar (+ a still SBB picture). */
     private final Runnable minuteLoop = new Runnable() {
         @Override
         public void run() {
@@ -329,7 +329,7 @@ public class LiveService extends Service {
 
     private static long lastWork;
 
-    /** Repaint Currency + Calendar (+ a still SBB picture); runs at most once per minute. */
+    /** Repaint World clocks, Rates and Calendar (+ a still SBB picture); runs at most once per minute. */
     static synchronized void minuteWork(Context ctx, String who) {
         long now = System.currentTimeMillis();
         if (now / 60_000L == lastWork / 60_000L) return; // already done this minute

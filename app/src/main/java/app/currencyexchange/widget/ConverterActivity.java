@@ -144,7 +144,7 @@ public class ConverterActivity extends Activity {
         amountBox.addView(inCode);
         amount = new Theme.FringeEdit(this);
         amount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
+        amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.")); // "," is the thousands' (2.26)
         amount.setImeOptions(EditorInfo.IME_ACTION_DONE);
         amount.setSingleLine(true);
         amount.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
@@ -156,11 +156,39 @@ public class ConverterActivity extends Activity {
         amount.setHighlightColor(Scene.alpha(Theme.accent().key, 0.33f));
         amount.setBackground(null);
         amount.setPadding(0, dp(4), 0, dp(4));
-        amount.setText(Store.sp(this).getString("convAmt", "100"));
+        amount.setText(group(Store.sp(this).getString("convAmt", "100")));
         amount.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int a, int c, int d) { }
+            /** Where a thousands' comma was just deleted (-1: none): the digit before it goes instead. */
+            private int lostComma = -1;
+
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                lostComma = !formatting && count == 1 && after == 0 && s.charAt(start) == ',' ? start : -1;
+            }
+
             @Override public void onTextChanged(CharSequence s, int a, int c, int d) { }
-            @Override public void afterTextChanged(Editable s) { refreshValues(); }
+
+            @Override public void afterTextChanged(Editable s) {
+                if (formatting) return;
+                String raw = s.toString();
+                int cursor = Math.max(0, Math.min(raw.length(), amount.getSelectionEnd()));
+                if (lostComma > 0 && lostComma <= raw.length()) { // backspace on a comma: take the digit before it
+                    raw = raw.substring(0, lostComma - 1) + raw.substring(lostComma);
+                    cursor = lostComma - 1;
+                }
+                lostComma = -1;
+                int kept = 0; // the digits and point before the cursor, which stay before it
+                for (int i = 0; i < cursor; i++) if (raw.charAt(i) != ',') kept++;
+                String grouped = group(raw);
+                if (!grouped.equals(s.toString())) {
+                    formatting = true;
+                    s.replace(0, s.length(), grouped);
+                    formatting = false;
+                    int at = 0;
+                    for (int seen = 0; at < grouped.length() && seen < kept; at++) if (grouped.charAt(at) != ',') seen++;
+                    amount.setSelection(at);
+                }
+                refreshValues();
+            }
         });
         amount.setOnEditorActionListener((v, id, ev) -> {
             if (id == EditorInfo.IME_ACTION_DONE) hideKeyboard();
@@ -289,6 +317,34 @@ public class ConverterActivity extends Activity {
                     .format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()));
             rateLine.setText("1 " + from + " = " + Util.fmtMoney(market) + " " + to + when);
         }
+    }
+
+    /** While the amount is being regrouped (its own change, not the user's). */
+    private boolean formatting;
+
+    /**
+     * The amount with a comma between each group of three digits (2.26), as it's typed: "1250000.5" reads
+     * "1,250,000.5". Only digits and one point are kept; leading zeros go.
+     */
+    static String group(String raw) {
+        if (raw == null) return "";
+        StringBuilder whole = new StringBuilder(), part = null;
+        for (int i = 0; i < raw.length(); i++) {
+            char ch = raw.charAt(i);
+            if (Character.isDigit(ch)) (part == null ? whole : part).append(ch);
+            else if (ch == '.' && part == null) part = new StringBuilder();
+        }
+        String w = whole.toString().replaceFirst("^0+(?=\\d)", "");
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < w.length(); i++) {
+            if (i > 0 && (w.length() - i) % 3 == 0) out.append(',');
+            out.append(w.charAt(i));
+        }
+        if (part != null) {
+            if (out.length() == 0) out.append('0');
+            out.append('.').append(part);
+        }
+        return out.toString();
     }
 
     private double convert(double amt, double rate) {

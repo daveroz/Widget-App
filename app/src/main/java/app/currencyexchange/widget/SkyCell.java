@@ -16,7 +16,7 @@ import java.time.ZoneId;
  * One world clock's picture, frame by frame (2.05): its city's sky ({@link Sky}) and corner ({@link CityScene}),
  * built once per light and weather, and put together for each moment: the stars twinkle, a far plane crosses now and
  * then with its contrail, the clouds drift on the wind, the beacons blink, the trees sway (more when it's windy), the
- * rain falls. The outer clocks have the card's round corners cut out of them.
+ * rain falls. The clocks at the card's corners have its round corners cut out of them.
  * <p>
  * {@link LiveService} asks for a frame about eight times a second while the screen is on (when skies are animated);
  * otherwise it's one frame a minute, with the clock.
@@ -37,7 +37,9 @@ final class SkyCell {
     private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint clear = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-    private static final LruCache<String, SkyCell> CELLS = new LruCache<>(12);
+    private static final LruCache<String, SkyCell> CELLS = new LruCache<>(20); // up to eight clocks (2.26)
+    /** The card's corners a cell carries (2.26: any of them, for a grid of clocks). */
+    static final int TL = 1, TR = 2, BR = 4, BL = 8;
     /** For test pictures: the moment the sun and moon are placed for, instead of now (0: now). */
     static long clock = 0;
 
@@ -46,27 +48,27 @@ final class SkyCell {
     /**
      * The cell for {@code city} (at {@code lat}, {@code lon}, in {@code zone}), the sun {@code elevation} degrees up, in the
      * morning ({@code sunLeft}) or afternoon, with {@code cloud} % cover, WMO weather {@code code} and {@code wind}
-     * km/h (-1 each when unknown); {@code w} × {@code h} pixels at {@code px} per dp; {@code side} 0 for a middle cell,
-     * 1 for the left one (the card's round corners on its left, radius {@code r} pixels), 2 for the right one.
+     * km/h (-1 each when unknown); {@code w} × {@code h} pixels at {@code px} per dp; {@code corners} the card's round
+     * corners it carries ({@link #TL}, {@link #TR}, {@link #BR}, {@link #BL}; 0 for none), radius {@code r} pixels.
      */
     static synchronized SkyCell get(String city, double lat, double lon, ZoneId zone, double elevation, boolean sunLeft,
-                                    int cloud, int code, int wind, int w, int h, float px, int side, float r) {
+                                    int cloud, int code, int wind, int w, int h, float px, int corners, float r) {
         float el = Math.round(elevation * 2) / 2f;
         // the moon where it really is, built again each time it has moved a degree or so (2.08)
         double[] moon = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.moon(lat, lon, now());
         String moonKey = moon == null || moon[0] < Math.toRadians(-2) ? "-"
                 : Math.round(Math.toDegrees(moon[0])) + "," + Math.round(Math.toDegrees(moon[1])) + "," + Math.round(moon[2] * 50);
         String spec = city + "|" + el + "|" + sunLeft + "|" + (cloud < 0 ? -1 : cloud / 5) + "|" + code + "|"
-                + (wind < 0 ? -1 : wind / 5) + "|" + w + "x" + h + "|" + px + "|" + side + "|" + moonKey;
+                + (wind < 0 ? -1 : wind / 5) + "|" + w + "x" + h + "|" + px + "|" + corners + "|" + moonKey;
         SkyCell hit = CELLS.get(spec);
         if (hit != null) return hit;
-        SkyCell made = new SkyCell(spec, city, lat, lon, zone, el, sunLeft, cloud, code, wind, w, h, px, side, r, moon);
+        SkyCell made = new SkyCell(spec, city, lat, lon, zone, el, sunLeft, cloud, code, wind, w, h, px, corners, r, moon);
         CELLS.put(spec, made);
         return made;
     }
 
     private SkyCell(String spec, String city, double lat, double lon, ZoneId zone, float el, boolean sunLeft, int cloud,
-                    int code, int wind, int w, int h, float px, int side, float r, double[] moon) {
+                    int code, int wind, int w, int h, float px, int corners, float r, double[] moon) {
         this.spec = spec;
         this.zone = zone;
         this.seed = city == null ? 0 : city.hashCode();
@@ -81,11 +83,11 @@ final class SkyCell {
         out = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
         canvas = new Canvas(out);
         clear.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
-        if (side != 0) {
-            boolean left = side == 1;
+        if (corners != 0) {
+            float tl = (corners & TL) != 0 ? r : 0, tr = (corners & TR) != 0 ? r : 0;
+            float br = (corners & BR) != 0 ? r : 0, bl = (corners & BL) != 0 ? r : 0;
             outside = new Path();
-            outside.addRoundRect(new RectF(left ? 0 : -r, 0, left ? w + r : w, h),
-                    left ? new float[]{r, r, 0, 0, 0, 0, r, r} : new float[]{0, 0, r, r, r, r, 0, 0}, Path.Direction.CW);
+            outside.addRoundRect(new RectF(0, 0, w, h), new float[]{tl, tl, tr, tr, br, br, bl, bl}, Path.Direction.CW);
             outside.setFillType(Path.FillType.INVERSE_WINDING);
         } else {
             outside = null;

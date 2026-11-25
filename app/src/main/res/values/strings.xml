@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Worldly</string>
-    <string name="widget_desc">World clocks, weather and currency rates</string>
-    <string name="currency_name">Currency Exchange</string>
+    <string name="widget_desc">Market and Visa rates side by side; tap a row to convert</string>
+    <string name="currency_name">Rates</string>
+    <string name="clocks_name">World clocks</string>
+    <string name="clocks_desc">Your cities\' clocks, each on its live sky</string>
     <string name="sbb_name">SBB Clock</string>
     <string name="sbb_desc">Swiss railway station clock with the real second-hand motion</string>
     <string name="cal_name">Calendar</string>

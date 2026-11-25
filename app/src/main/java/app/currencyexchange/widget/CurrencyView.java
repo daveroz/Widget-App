@@ -23,10 +23,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * Currency widget as native views (res/layout/widget_k*.xml): the world clocks, each on its city's sky right now
- * ({@link Sky}), and the currency rows on one card, thin lines between them. Rows, columns and text boxes are
- * weighted, so the widget follows any width and height the launcher gives it. Only the flags, the Visa logo, the
- * skies and the cards are small bitmaps (rounded corners baked in).
+ * The Rates widget as native views (res/layout/widget_k*.xml): the currency rows on one card, thin lines between them
+ * (until 2.26 under the world clocks, which have a widget of their own since: {@link ClockView}). Rows, columns and
+ * text boxes are weighted, so the widget follows any width and height the launcher gives it. Only the flags, the Visa
+ * logo and the card are small bitmaps (rounded corners baked in).
  */
 final class CurrencyView {
     private CurrencyView() {}
@@ -52,23 +52,10 @@ final class CurrencyView {
             R.layout.widget_k4, R.layout.widget_k5, R.layout.widget_k6};
 
     /**
-     * Widget height (dp) from which the variant with k rows fits: the clocks card (94), the 16 dp gap (2.21; 12 before), and
-     * the rates card (its 4 dp paddings, k rows of 54 and the k - 1 lines between them).
+     * Widget height (dp) from which the variant with k rows fits: the rates card (its 4 dp paddings, k rows of 54 and
+     * the k - 1 lines between them).
      */
-    static int heightFor(int k) { return 117 + 55 * k; }
-
-    /** As above for a widget {@code widthDp} wide: its clocks card as tall as a clock is wide (2.15). */
-    static int heightFor(int k, int widthDp) { return heightFor(k) + clocksDp(widthDp) - 94; }
-
-    /**
-     * The clocks card's height (dp) in a widget {@code widthDp} wide: on Android 12 and up as tall as each of its four
-     * clocks is wide, so they're square (2.15); before that its layout's fixed 94 dp.
-     */
-    static int clocksDp(int widthDp) {
-        if (android.os.Build.VERSION.SDK_INT < 31) return 94;
-        int w = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
-        return Math.max(72, Math.min(140, Math.round((w - 3) / 4f)));
-    }
+    static int heightFor(int k) { return 7 + 55 * k; }
 
     private static final android.util.LruCache<String, Bitmap> PICS = new android.util.LruCache<>(60);
 
@@ -95,32 +82,6 @@ final class CurrencyView {
         // The text is plain, in its own colours (no glow, no tint).
         int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED;
         int rowW = widthDp >= 120 && widthDp <= 1200 ? widthDp : 360;
-        // the clocks card: square clocks (2.15), its edge over the skies, which fill it to its edge
-        int clocksH = clocksDp(rowW);
-        if (android.os.Build.VERSION.SDK_INT >= 31) {
-            rv.setViewLayoutHeight(R.id.clk_row, clocksH, android.util.TypedValue.COMPLEX_UNIT_DIP);
-        }
-        rv.setImageViewBitmap(R.id.clk_rim, Stage.edge(Math.round(rowW * 1.5f), Math.round(clocksH * 1.5f),
-                Stage.round(28 * 1.5f), 1.5f));
-
-        // world clocks, each on its city's sky right now (Sky): the light of the hour there, its clouds and weather
-        DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault());
-        DateTimeFormatter timeF = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
-        long nowMs = System.currentTimeMillis();
-        Clock[] clocks = clocks(ctx, nowMs);
-        for (int i = 0; i < 4; i++) {
-            Clock k0 = clocks[i];
-            String city = k0.city;
-            ZonedDateTime now = ZonedDateTime.now(k0.zone);
-            // one picture per clock, at the cell's real width, its city's sky and corner (SkyCell); a copy, since the
-            // live service draws the next frame into the same picture while this update is on its way
-            rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), cell(k0, i, rowW).frame(nowMs).copy(Bitmap.Config.ARGB_8888, false));
-            // the day, time and city in front of the sky stay white whatever is playing
-            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11);
-            rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.fringed(reg, 22 * 2.5f, 0.8f, now.format(timeF), // the calendar's weight, not bold
-                    white));
-            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11);
-        }
 
         // currency rows
         String to = Store.to(ctx).trim().toUpperCase(Locale.ROOT);
@@ -270,81 +231,6 @@ final class CurrencyView {
         }
         PICS.put("v|mark", out);
         return out;
-    }
-
-    // Clock pictures are drawn at 2 px per dp (as sharp as the Sound widget's frames, and as light to send), the
-    // card's full height (square since 2.15), at each cell's real width.
-    private static final float PXDP = 2f;
-    private static final float OUTER_R = 28 * PXDP; // the card's own corners: the skies fill it to its edge
-
-    /** What a world clock needs to draw: its city, where it is, the sun's height there, its weather. */
-    static final class Clock {
-        String city;
-        ZoneId zone = ZoneId.systemDefault();
-        double lat = Double.NaN, lon = Double.NaN, elevation;
-        boolean morning;
-        int cloud = -1, code = -1, wind = -1;
-    }
-
-    /** The four world clocks at {@code ms}. */
-    static Clock[] clocks(Context ctx, long ms) {
-        Clock[] out = new Clock[4];
-        for (int i = 0; i < 4; i++) {
-            Clock k = new Clock();
-            k.city = Store.city(ctx, i);
-            JSONObject g = Store.geo(ctx, k.city);
-            if (g != null) {
-                try { k.zone = ZoneId.of(g.optString("tz", k.zone.getId())); } catch (Exception ignored) { }
-                k.lat = g.optDouble("lat", Double.NaN);
-                k.lon = g.optDouble("lon", Double.NaN);
-            }
-            ZonedDateTime now = java.time.Instant.ofEpochMilli(ms).atZone(k.zone);
-            double hr = now.getHour() + now.getMinute() / 60.0;
-            k.morning = hr < 12.5;
-            if (!Double.isNaN(k.lat) && !Double.isNaN(k.lon)) k.elevation = SunCalc.elevation(k.lat, k.lon, ms);
-            else k.elevation = 50 * Math.cos((hr - 12) / 12 * Math.PI) - 5; // no place known: a rough sun from the hour
-            int[] wx = Store.sky(ctx, k.city);
-            if (wx != null) {
-                k.cloud = wx[0];
-                k.code = wx[1];
-                k.wind = wx.length > 2 ? wx[2] : -1;
-            }
-            out[i] = k;
-        }
-        return out;
-    }
-
-    /** Clock {@code i}'s picture-maker in a card {@code rowW} dp wide (four cells and the three 1 dp seams between). */
-    static SkyCell cell(Clock k, int i, int rowW) {
-        int w = Math.max(8, Math.round((rowW - 3) / 4f * PXDP)), h = Math.round(clocksDp(rowW) * PXDP);
-        return SkyCell.get(k.city, k.lat, k.lon, k.zone, k.elevation, k.morning, k.cloud, k.code, k.wind, w, h, PXDP,
-                i == 0 ? 1 : (i == 3 ? 2 : 0), OUTER_R);
-    }
-
-    private static Clock[] liveClocks;
-    private static long liveClocksAt;
-    private static int[] bgIds;
-
-    /**
-     * Sends each Currency widget its four clocks' next frames (the live service's sky loop, while skies are animated):
-     * a partial update of just those four pictures. The clocks' places and weather are looked up again every 15 s.
-     */
-    static void pushSkies(Context ctx, int[] ids, long ms) {
-        if (liveClocks == null || ms - liveClocksAt > 15_000L || ms < liveClocksAt) {
-            liveClocks = clocks(ctx, ms);
-            liveClocksAt = ms;
-        }
-        if (bgIds == null) {
-            bgIds = new int[4];
-            for (int i = 0; i < 4; i++) bgIds[i] = id(ctx, "clk_bg_" + i);
-        }
-        android.appwidget.AppWidgetManager awm = android.appwidget.AppWidgetManager.getInstance(ctx);
-        for (int id : ids) {
-            int k = WidgetProvider.variant(ctx, awm, id), rowW = WidgetProvider.widthDp(ctx, awm, id);
-            RemoteViews rv = new RemoteViews(ctx.getPackageName(), LAYOUTS[k - 1]);
-            for (int i = 0; i < 4; i++) rv.setImageViewBitmap(bgIds[i], cell(liveClocks[i], i, rowW).frame(ms));
-            awm.partiallyUpdateAppWidget(id, rv);
-        }
     }
 
     /** Draws bmp scaled to cover dst (centre-crop) with anti-aliased rounded corners. */

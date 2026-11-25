@@ -20,9 +20,11 @@ import java.util.Locale;
 final class Words {
     private Words() {}
 
-    // the sizes of the other widgets' words (2.09): the Calendar's weekday capitals, event titles and their times
-    // (2.13: a touch larger; 2.14: a bit larger again)
-    static final float LABEL_DP = 10.7f, TITLE_DP = 16f, DETAIL_DP = 11.2f;
+    // the sizes of the other widgets' words (2.09; 2.13 and 2.14 a little larger); since 2.26 the label's capitals and
+    // the artist as tall as the Calendar's "Today, Wednesday", the title a bit bigger than them
+    static final float LABEL_DP = 14f, TITLE_DP = 18f, DETAIL_DP = 14f;
+    /** The label's letter spacing: a little tighter than the other labels', at its larger size. */
+    private static final float LABEL_SPACING = 0.16f;
 
     /** The three lines for what's playing (or for nothing: {@code idle}, or for no access). */
     static String[] of(NowPlaying.Track track, boolean access, String what, String idle) {
@@ -36,7 +38,7 @@ final class Words {
     static void draw(Context ctx, Canvas c, TextPaint text, String[] w, Scene scene, float x, float top, float band,
                      float width, float dp) {
         String label = w[0], source = w[1], title = w[2], detail = w[3];
-        boolean three = detail != null && !detail.isEmpty() && band >= 42 * dp;
+        boolean three = detail != null && !detail.isEmpty() && band >= 50 * dp;
         Typeface bold = Theme.uiBold(ctx), regular = Theme.uiMedium(ctx);
         // since 2.23 at the top, as the other widgets' words: the label's capitals 19.6 dp under the card's top (the
         // Calendar's month), whatever the band's height (they were centred in it, so they sat lower)
@@ -49,7 +51,7 @@ final class Words {
         // Lay the lines out first.
         text.setTypeface(bold);
         text.setTextSize(Theme.FONT_SCALE * LABEL_DP * dp);
-        text.setLetterSpacing(0.22f);
+        text.setLetterSpacing(LABEL_SPACING);
         String head = label.toUpperCase(Locale.getDefault());
         float used = text.measureText(head);
         String tail = null;
@@ -67,7 +69,7 @@ final class Words {
             text.setTextSize(Theme.FONT_SCALE * DETAIL_DP * dp);
             more = TextUtils.ellipsize(detail, text, width, TextUtils.TruncateAt.END).toString();
         }
-        float titleY = y + 20.5f * dp, detailY = titleY + 16 * dp;
+        float titleY = y + 25f * dp, detailY = titleY + 20 * dp;
         // as the app (2.23): the label and the detail in its neutral grey, the title white; only the lights are in colour
         int labelColour = Theme.MUTED;
         int titleColour = Theme.TEXT;
@@ -78,7 +80,7 @@ final class Words {
             boolean fringe = pass == 0;
             text.setTypeface(bold);
             text.setTextSize(Theme.FONT_SCALE * LABEL_DP * dp);
-            text.setLetterSpacing(0.22f);
+            text.setLetterSpacing(LABEL_SPACING);
             line(c, text, head, x, y, labelColour, fringe, dp);
             if (tail != null) line(c, text, tail, x + used, y, Theme.DIM, fringe, dp);
             text.setLetterSpacing(0f);
