@@ -183,7 +183,7 @@ final class Optics {
         spike(c, rp, gx, gy, -a2 * q * 0.9f, a2 * q * 0.9f, thick * 1.4f, rayPale, streak, main);
         // a shorter pair across it: out past the corner, and in across the card
         float out = Math.min(far ? Math.min(box.right - gx, box.bottom - gy) : Math.min(gx - box.left, gy - box.top), 12 * px) / q * 0.9f;
-        float inward = 23 * px * grow;
+        float inward = 19 * px * grow; // a bit shorter (2.13), still longer than the rays square to the card
         spike(c, rp, gx, gy, -sign * out * q, -sign * out * q, thick * 1.1f, rayPale, colour, s * 0.65f);
         spike(c, rp, gx, gy, sign * inward * q, sign * inward * q, thick * 1.1f, rayPale, colour, s * 0.5f);
         // faint rays square to the card, along its edges: the horizontal one the same as the vertical (2.11; no longer
