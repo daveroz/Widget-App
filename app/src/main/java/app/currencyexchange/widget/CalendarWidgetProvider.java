@@ -161,10 +161,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
         // The text is in its own colours, with the lens's colour fringe; only today and "in 5 minutes" are in the light. Labels (what something is, when it is) are in the quiet colour,
         // tinted by the song; the divider and the "+" are in its line colour.
-        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = scene.quiet, label = scene.label;
+        // since 2.23 the labels are the app's neutral grey; only today, the bars and "in 5 minutes" are in the light
+        int white = Theme.TEXT, soft = Theme.TEXT_SOFT, muted = Theme.MUTED, label = scene.label;
         // the day's number, cropped to its digits, its view as tall as from the top of the month's capitals to the
         // bottom of the line under it (the layouts place it there)
-        rv.setImageViewBitmap(R.id.cal_day, TextBmp.ink(tf, 48 * 2.5f, String.valueOf(today.getDayOfMonth()), white));
+        // in polished silver, as the app's big figures (2.23)
+        rv.setImageViewBitmap(R.id.cal_day, TextBmp.chrome(tf, 48 * 2.5f, String.valueOf(today.getDayOfMonth())));
         rv.setImageViewBitmap(R.id.btn_add, addButton(scene));
         t(rv, tf, R.id.cal_month, today.format(java.time.format.DateTimeFormatter.ofPattern("MMMM", loc)).toUpperCase(loc), white, 16, 0.82f, false);
         int week = today.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.SUNDAY, 1).weekOfYear());
@@ -272,16 +274,22 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         int s = Math.round(44 * px);
         android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas c = new android.graphics.Canvas(b);
-        // as the app's dark buttons: near black with a glass rim; the circle fills its box, so its edges line up with the
-        // day number's top and the week row's and the card's right edge
-        Theme.glassCircle(c, s / 2f, s / 2f, s / 2f - 0.5f, 1.2f * px, Theme.darkFill(scene), Theme.darkEdge(scene), Theme.DARK_RIM);
+        // as the app's icon discs (2.23, the Widgets tab's): a dark glass disc with a faint icy line round it, the app's
+        // line "+" in white; the disc fills its box, so its edges line up with the day number's top and the week row's
+        // and the card's right edge
+        float r = s / 2f - 0.5f;
         android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        p.setShader(Theme.crystal(new android.graphics.RectF(0, 0, s, s), 0xFF1E222A));
+        c.drawCircle(s / 2f, s / 2f, r, p);
+        p.setShader(null);
         p.setStyle(android.graphics.Paint.Style.STROKE);
-        p.setStrokeWidth(2.2f * px);
-        p.setStrokeCap(android.graphics.Paint.Cap.ROUND);
-        p.setColor(Theme.iconGlyph(scene));
-        c.drawLine(15 * px, 22 * px, 29 * px, 22 * px, p);
-        c.drawLine(22 * px, 15 * px, 22 * px, 29 * px, p);
+        p.setStrokeWidth(Math.max(1f, 0.8f * px));
+        p.setColor(Scene.alpha(Stage.ICE, 0.12f));
+        c.drawCircle(s / 2f, s / 2f, r - 0.4f * px, p);
+        Glyph plus = new Glyph(Glyph.PLUS, Theme.TEXT, false, 1.8f);
+        int half = Math.round(11 * px);
+        plus.setBounds(s / 2 - half, s / 2 - half, s / 2 + half, s / 2 + half);
+        plus.draw(c);
         return b;
     }
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The thin line between the currency rows in their card: a faint warm white, the same whatever is playing. -->
+<!-- The thin line between the rows of a card (the currency rows, the calendar's events): a faint icy white, the same
+     whatever is playing; since 2.23 as faint as the app's list hairlines. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#22E2EEFF" />
+    <solid android:color="#12E2EEFF" />
 </shape>

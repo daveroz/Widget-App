@@ -104,7 +104,8 @@ final class CurrencyView {
                 Stage.round(28 * 1.5f), 1.5f));
 
         // world clocks, each on its city's sky right now (Sky): the light of the hour there, its clouds and weather
-        DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault());
+        // since 2.23 the day in three capitals ("WED") and the city in capitals
+        DateTimeFormatter dayF = DateTimeFormatter.ofPattern("EEE", Locale.getDefault());
         DateTimeFormatter timeF = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
         long nowMs = System.currentTimeMillis();
         Clock[] clocks = clocks(ctx, nowMs);
@@ -116,16 +117,16 @@ final class CurrencyView {
             // live service draws the next frame into the same picture while this update is on its way
             rv.setImageViewBitmap(id(ctx, "clk_bg_" + i), cell(k0, i, rowW).frame(nowMs).copy(Bitmap.Config.ARGB_8888, false));
             // the day, time and city in front of the sky stay white whatever is playing
-            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF), reg, white, 11);
+            txt(ctx, rv, id(ctx, "clk_day_" + i), now.format(dayF).replace(".", "").toUpperCase(Locale.getDefault()), reg, white, 11);
             rv.setImageViewBitmap(id(ctx, "clk_time_" + i), TextBmp.fringed(reg, 22 * 2.5f, 0.8f, now.format(timeF), // the calendar's weight, not bold
                     white));
-            txt(ctx, rv, id(ctx, "clk_city_" + i), Util.capWords(city), reg, white, 11);
+            txt(ctx, rv, id(ctx, "clk_city_" + i), city.trim().toUpperCase(Locale.getDefault()), reg, white, 11);
         }
 
         // currency rows
         String to = Store.to(ctx).trim().toUpperCase(Locale.ROOT);
         Bitmap visaLogo = visaLogo(ctx);
-        Bitmap marketLbl = marketLabel(reg, scene.quiet);
+        Bitmap marketLbl = marketLabel(reg, Theme.MUTED); // labels in the app's neutral grey (2.23)
         Bitmap toFlag = flagOrLabel(ctx, Util.countryOfCurrency(to), to);
         Bitmap arrow = arrow(scene);
         // their one card (its 4 dp paddings, the rows and the lines between them), with its edge

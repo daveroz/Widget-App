@@ -6,13 +6,15 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.text.TextPaint;
+import android.text.TextUtils;
 
 import java.util.Locale;
 
 /**
  * The Music widget's picture: the card every widget shares ({@link Stage#fill}, {@link Stage#rim}), in the light of
  * what's playing. The controls are real views laid over it ({@link PlayerWidgetProvider}). With nothing
- * playing (or no media access) it says so, quietly, in the middle, in the light's colour with the lens's fringe.
+ * playing (or no media access) it says so as a line of the app's Status tab (2.23): the note in a glass disc, what's up
+ * in white capitals, what to do in grey.
  */
 final class PlayerPicture {
     private PlayerPicture() {}
@@ -26,17 +28,39 @@ final class PlayerPicture {
         // no light round the play button: it's a deep, solid button, as in the app (no glow)
         Stage.fill(c, box, corners, scene, dp, 0f, null);
         if (!access || track == null) {
-            String say = (!access ? "Media access needed  ·  tap to turn it on" : "Nothing playing").toUpperCase(Locale.getDefault());
+            // as a line of the app's Status tab (2.23): the note in a glass disc, what's up in white capitals and what
+            // to do in grey; its middle where the controls' middle is (44 dp down, or the middle of a shorter card)
+            String title = (!access ? "Media access needed" : "Nothing playing").toUpperCase(Locale.getDefault());
+            String detail = !access ? "Tap to turn it on in Worldly" : "Play something to control it here";
+            float cy = Math.min(h / 2f, 44 * dp), x = 18 * dp, r = 21 * dp;
+            Paint disc = new Paint(Paint.ANTI_ALIAS_FLAG);
+            disc.setShader(Theme.crystal(new RectF(x, cy - r, x + 2 * r, cy + r), 0xFF1E222A));
+            c.drawCircle(x + r, cy, r, disc);
+            disc.setShader(null);
+            disc.setStyle(Paint.Style.STROKE);
+            disc.setStrokeWidth(Math.max(1f, 0.8f * dp));
+            disc.setColor(Scene.alpha(Stage.ICE, 0.12f));
+            c.drawCircle(x + r, cy, r - 0.4f * dp, disc);
+            Glyph note = new Glyph(Glyph.NOTE, Theme.TEXT, false, 1.6f);
+            int half = Math.round(11 * dp);
+            note.setBounds(Math.round(x + r) - half, Math.round(cy) - half, Math.round(x + r) + half, Math.round(cy) + half);
+            note.draw(c);
+            float tx = x + 2 * r + 14 * dp, room = w - tx - 18 * dp;
             TextPaint text = Words.paint();
             text.setTypeface(Theme.uiBold(ctx));
-            text.setTextSize(Theme.FONT_SCALE * Words.LABEL_DP * dp);
-            text.setLetterSpacing(0.22f);
-            text.setTextAlign(Paint.Align.CENTER);
-            int colour = Glow.label(scene);
-            float y = h / 2f + Words.LABEL_DP * dp * 0.36f;
-            Lens.text(c, text, say, w / 2f, y, dp); // the fringe all text has, no glow
-            text.setColor(colour);
-            c.drawText(say, w / 2f, y, text);
+            text.setTextSize(Theme.FONT_SCALE * 11.5f * dp);
+            text.setLetterSpacing(0.2f);
+            String head = TextUtils.ellipsize(title, text, room, TextUtils.TruncateAt.END).toString();
+            Lens.text(c, text, head, tx, cy - 3 * dp, dp); // the fringe all text has, no glow
+            text.setColor(Theme.TEXT);
+            c.drawText(head, tx, cy - 3 * dp, text);
+            text.setTypeface(Theme.uiMedium(ctx));
+            text.setTextSize(Theme.FONT_SCALE * Words.DETAIL_DP * dp);
+            text.setLetterSpacing(0f);
+            String more = TextUtils.ellipsize(detail, text, room, TextUtils.TruncateAt.END).toString();
+            Lens.text(c, text, more, tx, cy + 13 * dp, dp);
+            text.setColor(Theme.MUTED);
+            c.drawText(more, tx, cy + 13 * dp, text);
         }
         c.restore();
         Stage.rim(c, box, corners, dp);

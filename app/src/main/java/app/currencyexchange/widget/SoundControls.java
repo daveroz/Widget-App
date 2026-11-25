@@ -5,7 +5,6 @@ import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Shader;
 import android.util.LruCache;
 
@@ -47,32 +46,18 @@ final class SoundControls {
         Canvas c = new Canvas(b);
         float cx = s / 2f, r = cx - 2 * PX;
         Theme.glassCircle(c, cx, cx, r, 1.2f * PX, Theme.litFill(scene), Theme.litEdge(scene), Theme.LIT_RIM);
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setColor(Theme.onLit(Theme.litFill(scene)));
-        c.drawPath(symbol(cx, r * 0.36f, playing), p);
+        // the app's icons (2.23): filled, as the open tab's, with softened corners
+        Glyph g = new Glyph(playing ? Glyph.PAUSE : Glyph.PLAY, Theme.onLit(Theme.litFill(scene)), true, 1.8f);
+        int half = Math.round(r * 0.5f), nudge = playing ? 0 : Math.round(r * 0.04f);
+        g.setBounds(Math.round(cx) - half + nudge, Math.round(cx) - half, Math.round(cx) + half + nudge, Math.round(cx) + half);
+        g.draw(c);
         CACHE.put(key, b);
         return b;
     }
 
-    /** Pause (two bars) or play (a triangle, nudged right so it looks centred), {@code u} the half-height. */
-    private static Path symbol(float cx, float u, boolean pause) {
-        Path symbol = new Path();
-        if (pause) {
-            float bw = u * 0.55f;
-            symbol.addRoundRect(cx - u * 0.75f - bw / 2, cx - u, cx - u * 0.75f + bw / 2, cx + u, bw / 3, bw / 3, Path.Direction.CW);
-            symbol.addRoundRect(cx + u * 0.75f - bw / 2, cx - u, cx + u * 0.75f + bw / 2, cx + u, bw / 3, bw / 3, Path.Direction.CW);
-        } else {
-            symbol.moveTo(cx - u * 0.7f, cx - u * 1.05f);
-            symbol.lineTo(cx + u * 1.15f, cx);
-            symbol.lineTo(cx - u * 0.7f, cx + u * 1.05f);
-            symbol.close();
-        }
-        return symbol;
-    }
-
     /**
      * Previous or next, as the app's dark buttons: a near black circle with a glass rim ({@link Theme#glassEdge}), the
-     * symbol (a triangle and a bar) in a pale shade of the light.
+     * symbol (a triangle and a bar) in the app's line icons, white (2.23; before, a pale shade of the light).
      */
     static Bitmap skip(Scene scene, boolean next, int sizeDp) {
         String key = "s|" + scene.tag() + "|" + next + "|" + sizeDp;
@@ -81,19 +66,13 @@ final class SoundControls {
         int s = Math.round(sizeDp * PX);
         Bitmap b = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        float cx = s / 2f, u = s * 0.15f;
+        float cx = s / 2f;
         Theme.glassCircle(c, cx, cx, cx - 3 * PX, 1.2f * PX, Theme.darkFill(scene), Theme.darkEdge(scene), Theme.DARK_RIM);
-        float dir = next ? 1 : -1;
-        Path symbol = new Path();
-        symbol.moveTo(cx - dir * u * 0.9f, cx - u);
-        symbol.lineTo(cx + dir * u * 0.7f, cx);
-        symbol.lineTo(cx - dir * u * 0.9f, cx + u);
-        symbol.close();
-        float bx = cx + dir * u * 0.95f, bw = u * 0.32f;
-        symbol.addRoundRect(bx - bw / 2, cx - u, bx + bw / 2, cx + u, bw / 2, bw / 2, Path.Direction.CW);
-        p.setColor(Theme.iconGlyph(scene));
-        c.drawPath(symbol, p);
+        // the app's line icons (2.23): a triangle and a bar with round ends, in white
+        Glyph g = new Glyph(next ? Glyph.NEXT : Glyph.PREV, Theme.TEXT, false, 1.7f);
+        int half = Math.round(s * 0.21f);
+        g.setBounds(Math.round(cx) - half, Math.round(cx) - half, Math.round(cx) + half, Math.round(cx) + half);
+        g.draw(c);
         CACHE.put(key, b);
         return b;
     }

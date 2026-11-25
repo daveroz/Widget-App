@@ -248,6 +248,29 @@ final class TextBmp {
         return b;
     }
 
+    /**
+     * As {@link #ink}, in polished silver (2.23), as the app's big figures ({@link Theme.Chrome}): white at the top of
+     * the figures turning to a cool silver at their foot.
+     */
+    static Bitmap chrome(Typeface tf, float px, String s) {
+        if (s == null || s.isEmpty()) s = " ";
+        String key = "C|" + System.identityHashCode(tf) + "|" + px + "|" + s;
+        Bitmap hit = CACHE.get(key);
+        if (hit != null) return hit;
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+        p.setTypeface(tf);
+        p.setTextSize(px);
+        android.graphics.Rect r = new android.graphics.Rect();
+        p.getTextBounds(s, 0, s.length(), r);
+        int h = Math.max(2, r.height());
+        p.setShader(new android.graphics.LinearGradient(0, 0, 0, h, new int[]{0xFFFFFFFF, 0xFFE6EAF0, 0xFFA3ACB8},
+                new float[]{0f, 0.42f, 1f}, android.graphics.Shader.TileMode.CLAMP));
+        Bitmap b = Bitmap.createBitmap(Math.max(2, r.width() + 2), h, Bitmap.Config.ARGB_8888);
+        new Canvas(b).drawText(s, 1 - r.left, -r.top, p);
+        CACHE.put(key, b);
+        return b;
+    }
+
     /** How wide {@code s} is with every digit {@code digit} wide. */
     private static float fixedWidth(Paint p, String s, float digit) {
         float w = 0f;

@@ -37,9 +37,14 @@ final class Words {
                      float width, float dp) {
         String label = w[0], source = w[1], title = w[2], detail = w[3];
         boolean three = detail != null && !detail.isEmpty() && band >= 42 * dp;
-        float block = (three ? 45 : 30) * dp;
-        float y = top + Math.max(0, (band - block) / 2) + 8 * dp;
         Typeface bold = Theme.uiBold(ctx), regular = Theme.uiMedium(ctx);
+        // since 2.23 at the top, as the other widgets' words: the label's capitals 19.6 dp under the card's top (the
+        // Calendar's month), whatever the band's height (they were centred in it, so they sat lower)
+        text.setTypeface(bold);
+        text.setTextSize(Theme.FONT_SCALE * LABEL_DP * dp);
+        android.graphics.Rect caps = new android.graphics.Rect();
+        text.getTextBounds("H", 0, 1, caps);
+        float y = top + Math.max(0f, 19.6f * dp - top) + caps.height();
 
         // Lay the lines out first.
         text.setTypeface(bold);
@@ -63,9 +68,10 @@ final class Words {
             more = TextUtils.ellipsize(detail, text, width, TextUtils.TruncateAt.END).toString();
         }
         float titleY = y + 20.5f * dp, detailY = titleY + 16 * dp;
-        int labelColour = Glow.label(scene);
-        int titleColour = Scene.mix(Theme.TEXT, scene.hot, 0.3f); // a warm white, lit by the key (warmer than elsewhere: it's the star)
-        int detailColour = Glow.muted(scene);
+        // as the app (2.23): the label and the detail in its neutral grey, the title white; only the lights are in colour
+        int labelColour = Theme.MUTED;
+        int titleColour = Theme.TEXT;
+        int detailColour = Theme.MUTED;
 
         // Then twice: first the fringe of every line (so no fringe lies over another line's letters), then the letters.
         for (int pass = 0; pass < 2; pass++) {

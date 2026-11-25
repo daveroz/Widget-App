@@ -298,7 +298,7 @@ public class PlayerWidgetProvider extends AppWidgetProvider {
             done = TextBmp.tightFixedFringed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(at), longest, Theme.TEXT_SOFT,
                     true);
             all = TextBmp.tightFixedFringed(Theme.uiMedium(ctx), TIME_DP, SoundControls.clock(t.duration), longest,
-                    scene.quiet, false);
+                    Theme.MUTED, false); // a label, in the app's neutral grey (2.23)
             used += 8 + (done.getWidth() + all.getWidth()) / 2.5f; // the time pictures are 2.5 px per dp
         }
         int barDp = Math.max(40, Math.round(wDp - used));

@@ -19,7 +19,7 @@ import android.graphics.drawable.Drawable;
 final class Glyph extends Drawable {
     static final int GLOBE = 0, CLOCK = 1, RATES = 2, WIDGETS = 3, STATUS = 4, REFRESH = 5, SPARKLE = 6, IMAGE = 7,
             WAVE = 8, STOPWATCH = 9, CHEVRON = 10, PLUS = 11, PIN = 12, CALENDAR = 13, BATTERY = 14, NOTE = 15,
-            LEVELS = 16, CHECK = 17;
+            LEVELS = 16, CHECK = 17, PLAY = 18, PAUSE = 19, PREV = 20, NEXT = 21, SWAP = 22;
 
     private final int shape;
     private final boolean filled;
@@ -273,6 +273,57 @@ final class Glyph extends Drawable {
                     p.moveTo(bar[0], bar[1]);
                     p.lineTo(bar[0], bar[2]);
                 }
+                c.drawPath(p, line);
+                break;
+            }
+            case PLAY: { // filled when it's on a lit button: a triangle with softened corners
+                p.moveTo(8, 5.5f);
+                p.lineTo(18.5f, 12);
+                p.lineTo(8, 18.5f);
+                p.close();
+                body(c, fill, p);
+                break;
+            }
+            case PAUSE: {
+                line.setStyle(Paint.Style.STROKE);
+                float was = line.getStrokeWidth();
+                if (fill) line.setStrokeWidth(was * 1.9f);
+                p.moveTo(8.5f, 6.5f);
+                p.lineTo(8.5f, 17.5f);
+                p.moveTo(15.5f, 6.5f);
+                p.lineTo(15.5f, 17.5f);
+                c.drawPath(p, line);
+                line.setStrokeWidth(was);
+                break;
+            }
+            case PREV:
+            case NEXT: {
+                boolean next = shape == NEXT;
+                float d = next ? 1 : -1;
+                p.moveTo(12 - d * 5, 6.5f);
+                p.lineTo(12 + d * 3.5f, 12);
+                p.lineTo(12 - d * 5, 17.5f);
+                p.close();
+                body(c, fill, p);
+                Path bar = new Path();
+                bar.moveTo(12 + d * 6.5f, 6.5f);
+                bar.lineTo(12 + d * 6.5f, 17.5f);
+                line.setStyle(Paint.Style.STROKE);
+                c.drawPath(bar, line);
+                break;
+            }
+            case SWAP: { // up and down arrows side by side
+                line.setStyle(Paint.Style.STROKE);
+                p.moveTo(8.5f, 19);
+                p.lineTo(8.5f, 5);
+                p.moveTo(5, 8.5f);
+                p.lineTo(8.5f, 5);
+                p.lineTo(12, 8.5f);
+                p.moveTo(15.5f, 5);
+                p.lineTo(15.5f, 19);
+                p.moveTo(12, 15.5f);
+                p.lineTo(15.5f, 19);
+                p.lineTo(19, 15.5f);
                 c.drawPath(p, line);
                 break;
             }

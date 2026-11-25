@@ -146,6 +146,41 @@ final class Theme {
         return new GlassButton(0x00000000, 0, dp(c, 1.3f), Stage.ICE, RING_RIM, true);
     }
 
+    private static final android.util.LruCache<Integer, Bitmap> BADGES = new android.util.LruCache<>(4);
+
+    /**
+     * The crystal globe for a page's head (2.20; the converter's too since 2.23), {@code size} pixels: the icon's two
+     * layers (deep space and the globe), the globe drawn larger so it fills its ring as the car app's logo does, cut to
+     * a circle. Wear it with a {@link #ring}.
+     */
+    static Bitmap badge(Context c, int size) {
+        Bitmap hit = BADGES.get(size);
+        if (hit != null) return hit;
+        Bitmap sq = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas cv = new Canvas(sq);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        Bitmap back = android.graphics.BitmapFactory.decodeResource(c.getResources(), R.mipmap.ic_launcher_background);
+        Bitmap globe = android.graphics.BitmapFactory.decodeResource(c.getResources(), R.mipmap.ic_launcher_foreground);
+        if (back != null) cv.drawBitmap(back, null, new RectF(0, 0, size, size), p);
+        float big = size * 1.42f, at = (size - big) / 2f;
+        if (globe != null) cv.drawBitmap(globe, null, new RectF(at, at, at + big, at + big), p);
+        Bitmap out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        p.setShader(new android.graphics.BitmapShader(sq, android.graphics.Shader.TileMode.CLAMP,
+                android.graphics.Shader.TileMode.CLAMP));
+        new Canvas(out).drawCircle(size / 2f, size / 2f, size / 2f, p);
+        BADGES.put(size, out);
+        return out;
+    }
+
+    /** An icon disc (2.23, as the app's Widgets tiles and the Calendar's "+"): dark glass, a faint icy line round it. */
+    static Drawable disc(Context c) {
+        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{Scene.mix(0xFF1E222A, Stage.ICE, 0.07f), Scene.mix(0xFF1E222A, 0xFF000000, 0.14f)});
+        g.setShape(GradientDrawable.OVAL);
+        g.setStroke(Math.max(1, Math.round(dp(c, 0.8f))), Scene.alpha(Stage.ICE, 0.12f));
+        return g;
+    }
+
     /** A pill (2.20): fully round ends, {@code fill}, and a faint line of light along its top when {@code edged}. */
     static GradientDrawable pill(Context c, int fill, boolean edged) {
         GradientDrawable g = new GradientDrawable();
