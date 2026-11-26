@@ -2,7 +2,6 @@ package app.currencyexchange.widget;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BlurMaskFilter;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
@@ -145,32 +144,20 @@ final class CurrencyView {
     }
 
     /**
-     * The mood as a picture: laughing and crowned with two sparkles (up, or the same), or sad in a cracked ring (down),
-     * in polished silver with a soft glow round it, as the drawings (res/drawable/mood_up and mood_down, art/mood).
+     * The mood as a picture: laughing and crowned with two sparkles (up, or the same), or sad in a chipped ring (down),
+     * the supplied drawing (res/drawable/mood_up and mood_down, art/mood) as it is, with no glow.
      */
     static Bitmap mood(Context ctx, boolean up) {
         String key = "mood|" + up;
         Bitmap hit = PICS.get(key);
         if (hit != null) return hit;
-        int s = 96, pad = 8; // the icon 80 px in a 96 px picture, room for its glow
-        Bitmap icon = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
+        int s = 120;
+        Bitmap out = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
         android.graphics.drawable.Drawable d = ctx.getDrawable(up ? R.drawable.mood_up : R.drawable.mood_down);
         if (d != null) {
-            d.setBounds(pad, pad, s - pad, s - pad);
-            d.draw(new Canvas(icon));
+            d.setBounds(0, 0, s, s);
+            d.draw(new Canvas(out));
         }
-        Bitmap out = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(out);
-        Paint blur = new Paint(Paint.ANTI_ALIAS_FLAG);
-        blur.setMaskFilter(new BlurMaskFilter(3.2f, BlurMaskFilter.Blur.NORMAL));
-        int[] off = new int[2];
-        Bitmap halo = icon.extractAlpha(blur, off);
-        Paint g = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        g.setColor(up ? 0x73FFFFFF : 0x61DCE6FF); // the glow: white, a little cooler and fainter when down
-        c.drawBitmap(halo, off[0], off[1], g);
-        c.drawBitmap(icon, 0, 0, null);
-        halo.recycle();
-        icon.recycle();
         PICS.put(key, out);
         return out;
     }

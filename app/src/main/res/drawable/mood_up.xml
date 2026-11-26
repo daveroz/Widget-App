@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The market up or flat: a crowned, laughing face with two sparkles (2.33): the supplied drawing (art/mood/wealth_contrast_icons.svg), this face in its own square, the ring
-     at the same place in both faces; the widget adds its glow -->
+     in its middle in both faces; the widget adds its glow -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="100dp" android:height="100dp"
-    android:viewportWidth="380" android:viewportHeight="380">
-    <group android:translateX="-372" android:translateY="-220">
+    android:viewportWidth="450" android:viewportHeight="450">
+    <group android:translateX="-297" android:translateY="-220">
         <path android:pathData="M439,448 Q463,405 488,448" android:strokeColor="#FFF5F4FA" android:strokeWidth="20"
             android:strokeLineCap="round" android:strokeLineJoin="round" />
         <path android:pathData="M551,448 Q577,405 603,448" android:strokeColor="#FFF5F4FA" android:strokeWidth="20"

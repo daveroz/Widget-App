@@ -36,8 +36,8 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="24dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="10dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -45,15 +45,15 @@
                         android:gravity="center_vertical">
                         <ImageView
                             android:id="@+id/fl_a_0"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_0"
                             android:layout_width="36dp"
                             android:layout_height="22dp"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                         <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
                              4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
@@ -62,20 +62,20 @@
                             android:layout_width="16dp"
                             android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="6dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginEnd="9dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_0"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/code_b_0"
                             android:layout_width="wrap_content"
                             android:layout_height="22dp"
                             android:adjustViewBounds="true"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                     </LinearLayout>
                     <FrameLayout
@@ -86,33 +86,31 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginStart="6dp">
+                        android:layout_marginStart="2dp">
                         <ImageView
                             android:id="@+id/mkt_val_0"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="0.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                         <ImageView
                             android:id="@+id/visa_val_0"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="2.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
-                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
-                         sad in a cracked ring when it's down -->
+                    <!-- the short upright line between the rates and their labels -->
                     <ImageView
-                        android:id="@+id/mood_0"
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="1dp"
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="10dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitCenter" />
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -136,6 +134,23 @@
                             android:layout_marginTop="2dp"
                             android:scaleType="fitCenter" />
                     </LinearLayout>
+                    <!-- and another after the labels, then the market's mood (2.33): laughing and crowned when the rate is
+                         up on the day before or the same, sad when it's down; centred in the row -->
+                    <ImageView
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="4dp"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
+                    <ImageView
+                        android:id="@+id/mood_0"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center_vertical"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitCenter" />
                 </LinearLayout>
             </FrameLayout>
             <ImageView
@@ -157,8 +172,8 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="24dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="10dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -166,15 +181,15 @@
                         android:gravity="center_vertical">
                         <ImageView
                             android:id="@+id/fl_a_1"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_1"
                             android:layout_width="36dp"
                             android:layout_height="22dp"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                         <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
                              4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
@@ -183,20 +198,20 @@
                             android:layout_width="16dp"
                             android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="6dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginEnd="9dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_1"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/code_b_1"
                             android:layout_width="wrap_content"
                             android:layout_height="22dp"
                             android:adjustViewBounds="true"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                     </LinearLayout>
                     <FrameLayout
@@ -207,33 +222,31 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginStart="6dp">
+                        android:layout_marginStart="2dp">
                         <ImageView
                             android:id="@+id/mkt_val_1"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="0.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                         <ImageView
                             android:id="@+id/visa_val_1"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="2.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
-                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
-                         sad in a cracked ring when it's down -->
+                    <!-- the short upright line between the rates and their labels -->
                     <ImageView
-                        android:id="@+id/mood_1"
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="1dp"
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="10dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitCenter" />
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -257,6 +270,23 @@
                             android:layout_marginTop="2dp"
                             android:scaleType="fitCenter" />
                     </LinearLayout>
+                    <!-- and another after the labels, then the market's mood (2.33): laughing and crowned when the rate is
+                         up on the day before or the same, sad when it's down; centred in the row -->
+                    <ImageView
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="4dp"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
+                    <ImageView
+                        android:id="@+id/mood_1"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center_vertical"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitCenter" />
                 </LinearLayout>
             </FrameLayout>
             <ImageView
@@ -278,8 +308,8 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="24dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="10dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -287,15 +317,15 @@
                         android:gravity="center_vertical">
                         <ImageView
                             android:id="@+id/fl_a_2"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_2"
                             android:layout_width="36dp"
                             android:layout_height="22dp"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                         <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
                              4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
@@ -304,20 +334,20 @@
                             android:layout_width="16dp"
                             android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="6dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginEnd="9dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_2"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/code_b_2"
                             android:layout_width="wrap_content"
                             android:layout_height="22dp"
                             android:adjustViewBounds="true"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                     </LinearLayout>
                     <FrameLayout
@@ -328,33 +358,31 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginStart="6dp">
+                        android:layout_marginStart="2dp">
                         <ImageView
                             android:id="@+id/mkt_val_2"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="0.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                         <ImageView
                             android:id="@+id/visa_val_2"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="2.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
-                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
-                         sad in a cracked ring when it's down -->
+                    <!-- the short upright line between the rates and their labels -->
                     <ImageView
-                        android:id="@+id/mood_2"
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="1dp"
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="10dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitCenter" />
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -378,6 +406,23 @@
                             android:layout_marginTop="2dp"
                             android:scaleType="fitCenter" />
                     </LinearLayout>
+                    <!-- and another after the labels, then the market's mood (2.33): laughing and crowned when the rate is
+                         up on the day before or the same, sad when it's down; centred in the row -->
+                    <ImageView
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="4dp"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
+                    <ImageView
+                        android:id="@+id/mood_2"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center_vertical"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitCenter" />
                 </LinearLayout>
             </FrameLayout>
             <ImageView
@@ -399,8 +444,8 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="24dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="10dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -408,15 +453,15 @@
                         android:gravity="center_vertical">
                         <ImageView
                             android:id="@+id/fl_a_3"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_3"
                             android:layout_width="36dp"
                             android:layout_height="22dp"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                         <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
                              4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
@@ -425,20 +470,20 @@
                             android:layout_width="16dp"
                             android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="6dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginEnd="9dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_3"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/code_b_3"
                             android:layout_width="wrap_content"
                             android:layout_height="22dp"
                             android:adjustViewBounds="true"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                     </LinearLayout>
                     <FrameLayout
@@ -449,33 +494,31 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginStart="6dp">
+                        android:layout_marginStart="2dp">
                         <ImageView
                             android:id="@+id/mkt_val_3"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="0.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                         <ImageView
                             android:id="@+id/visa_val_3"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="2.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
-                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
-                         sad in a cracked ring when it's down -->
+                    <!-- the short upright line between the rates and their labels -->
                     <ImageView
-                        android:id="@+id/mood_3"
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="1dp"
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="10dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitCenter" />
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -499,6 +542,23 @@
                             android:layout_marginTop="2dp"
                             android:scaleType="fitCenter" />
                     </LinearLayout>
+                    <!-- and another after the labels, then the market's mood (2.33): laughing and crowned when the rate is
+                         up on the day before or the same, sad when it's down; centred in the row -->
+                    <ImageView
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="4dp"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
+                    <ImageView
+                        android:id="@+id/mood_3"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center_vertical"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitCenter" />
                 </LinearLayout>
             </FrameLayout>
             <ImageView
@@ -520,8 +580,8 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="24dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="10dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -529,15 +589,15 @@
                         android:gravity="center_vertical">
                         <ImageView
                             android:id="@+id/fl_a_4"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_4"
                             android:layout_width="36dp"
                             android:layout_height="22dp"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                         <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
                              4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
@@ -546,20 +606,20 @@
                             android:layout_width="16dp"
                             android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="6dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginEnd="9dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_4"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/code_b_4"
                             android:layout_width="wrap_content"
                             android:layout_height="22dp"
                             android:adjustViewBounds="true"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                     </LinearLayout>
                     <FrameLayout
@@ -570,33 +630,31 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginStart="6dp">
+                        android:layout_marginStart="2dp">
                         <ImageView
                             android:id="@+id/mkt_val_4"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="0.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                         <ImageView
                             android:id="@+id/visa_val_4"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="2.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
-                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
-                         sad in a cracked ring when it's down -->
+                    <!-- the short upright line between the rates and their labels -->
                     <ImageView
-                        android:id="@+id/mood_4"
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="1dp"
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="10dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitCenter" />
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -620,6 +678,23 @@
                             android:layout_marginTop="2dp"
                             android:scaleType="fitCenter" />
                     </LinearLayout>
+                    <!-- and another after the labels, then the market's mood (2.33): laughing and crowned when the rate is
+                         up on the day before or the same, sad when it's down; centred in the row -->
+                    <ImageView
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="4dp"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
+                    <ImageView
+                        android:id="@+id/mood_4"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center_vertical"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitCenter" />
                 </LinearLayout>
             </FrameLayout>
             <ImageView
@@ -641,8 +716,8 @@
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="24dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="10dp">
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -650,15 +725,15 @@
                         android:gravity="center_vertical">
                         <ImageView
                             android:id="@+id/fl_a_5"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <!-- a fixed width, so every row's arrow and second flag line up -->
                         <ImageView
                             android:id="@+id/code_a_5"
                             android:layout_width="36dp"
                             android:layout_height="22dp"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                         <!-- the arrow with its faint haze round it (2.21): its picture 4 dp bigger all round, the margins
                              4 dp less, so the arrow itself stays 8 x 11 dp where it was -->
@@ -667,20 +742,20 @@
                             android:layout_width="16dp"
                             android:layout_height="19dp"
                             android:src="@drawable/cur_arrow"
-                            android:layout_marginStart="6dp"
-                            android:layout_marginEnd="12dp"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginEnd="9dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/fl_b_5"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:scaleType="fitCenter" />
                         <ImageView
                             android:id="@+id/code_b_5"
                             android:layout_width="wrap_content"
                             android:layout_height="22dp"
                             android:adjustViewBounds="true"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="9dp"
                             android:scaleType="fitStart" />
                     </LinearLayout>
                     <FrameLayout
@@ -691,33 +766,31 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginStart="6dp">
+                        android:layout_marginStart="2dp">
                         <ImageView
                             android:id="@+id/mkt_val_5"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="0.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                         <ImageView
                             android:id="@+id/visa_val_5"
-                            android:layout_width="56dp"
+                            android:layout_width="48dp"
                             android:layout_height="15.6dp"
                             android:layout_marginTop="2.2dp"
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
-                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
-                         sad in a cracked ring when it's down -->
+                    <!-- the short upright line between the rates and their labels -->
                     <ImageView
-                        android:id="@+id/mood_5"
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="1dp"
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="10dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitCenter" />
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -741,6 +814,23 @@
                             android:layout_marginTop="2dp"
                             android:scaleType="fitCenter" />
                     </LinearLayout>
+                    <!-- and another after the labels, then the market's mood (2.33): laughing and crowned when the rate is
+                         up on the day before or the same, sad when it's down; centred in the row -->
+                    <ImageView
+                        android:layout_width="1dp"
+                        android:layout_height="27dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="4dp"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/cur_div" />
+                    <ImageView
+                        android:id="@+id/mood_5"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center_vertical"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitCenter" />
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>
