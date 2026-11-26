@@ -204,7 +204,10 @@ final class Sky {
                     p.setShader(null);
                 }
                 c.saveLayer(mx - mr * 1.5f, my - mr * 1.5f, mx + mr * 1.5f, my + mr * 1.5f, null);
-                p.setColor(Scene.alpha(pale, 0.06f * vis * dark)); // its unlit part only a hint (2.33: more read as a ghost disc)
+                // its unlit part only a hint (2.33: more read as a ghost disc), but beside a thin crescent the earthshine,
+                // the ashen light a young or old moon shows (2.34)
+                float ash = 0.06f + 0.16f * clamp((0.35f - litF) / 0.3f);
+                p.setColor(Scene.alpha(0xFFC9D2EA, ash * vis * dark));
                 c.drawCircle(mx, my, mr, p);
                 double zen = moon[3];
                 c.save();

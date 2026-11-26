@@ -18,8 +18,8 @@ import java.util.Set;
 /**
  * What the world clocks' skies show on special days and in storms (2.27): fireworks after dark on New Year's Eve and
  * Day everywhere, on the Lunar New Year (its eve and day) in the countries that keep it, and on each country's
- * independence or national day; lightning in a thunderstorm; and in December, strings of Christmas lights across the
- * street, twinkling, brightest at night. Everything is drawn from the time alone, so the frames follow each other.
+ * independence or national day; lightning in a thunderstorm. (December's strings of Christmas lights across the
+ * street, from 2.27, were taken out in 2.34.) Everything is drawn from the time alone, so the frames follow each other.
  */
 final class Festive {
     private Festive() {}
@@ -202,45 +202,4 @@ final class Festive {
 
     private static final int[] BULBS = {0xFFFF5050, 0xFFFFC850, 0xFF50E888, 0xFF58B8FF, 0xFFFFE6C0};
 
-    /**
-     * Christmas lights (December): two strings of bulbs across the street, sagging between the cell's edges, each bulb
-     * twinkling on its own, glowing more the darker it is ({@code night}, 0 to 1).
-     */
-    static void christmas(Canvas c, int w, int h, float px, float t, long seed, float night, Paint p) {
-        float[][] strings = {{0.86f, 0.05f}, {0.79f, 0.035f}}; // height of the ends, how far each sags (of the height)
-        Random r = new Random(seed ^ 0xC4215L);
-        p.setStyle(Paint.Style.FILL);
-        for (int s = 0; s < strings.length; s++) {
-            float yEnd = h * strings[s][0], sag = h * strings[s][1];
-            float x0 = s == 0 ? -0.04f * w : 0.18f * w, x1 = s == 0 ? 1.04f * w : 0.86f * w;
-            // the wire
-            Paint wire = new Paint(Paint.ANTI_ALIAS_FLAG);
-            wire.setStyle(Paint.Style.STROKE);
-            wire.setStrokeWidth(Math.max(1f, 0.6f * px));
-            wire.setColor(Scene.alpha(0xFF101418, 0.55f));
-            Path line = new Path();
-            for (int i = 0; i <= 24; i++) {
-                float u = i / 24f, x = x0 + (x1 - x0) * u, y = yEnd + sag * 4 * u * (1 - u);
-                if (i == 0) line.moveTo(x, y); else line.lineTo(x, y);
-            }
-            c.drawPath(line, wire);
-            int n = Math.max(6, Math.round((x1 - x0) / (5.5f * px)));
-            for (int i = 1; i < n; i++) {
-                float u = i / (float) n, x = x0 + (x1 - x0) * u, y = yEnd + sag * 4 * u * (1 - u) + 1.4f * px;
-                int col = BULBS[(i + s * 2) % BULBS.length];
-                float phase = r.nextFloat() * 6.2832f, speed = 1.2f + r.nextFloat() * 1.8f;
-                float tw = 0.55f + 0.45f * (float) Math.sin(t * speed + phase);
-                float bright = (0.45f + 0.55f * night) * tw;
-                if (night > 0.2f) {
-                    float gr = 3.2f * px;
-                    p.setShader(new RadialGradient(x, y, gr, Scene.alpha(col, 0.5f * bright * night), col & 0x00FFFFFF,
-                            Shader.TileMode.CLAMP));
-                    c.drawCircle(x, y, gr, p);
-                    p.setShader(null);
-                }
-                p.setColor(Scene.alpha(Scene.mix(col, 0xFFFFFFFF, 0.25f * tw), Math.min(1f, 0.35f + bright)));
-                c.drawCircle(x, y, 1.05f * px, p);
-            }
-        }
-    }
 }
