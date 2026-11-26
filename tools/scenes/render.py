@@ -39,13 +39,11 @@ def render(scene, e, morning=0.0, sun_left=True, aspect=1.0, height=280, ss=2):
     img = Image.new('RGB', (w, h))
     d = ImageDraw.Draw(img)
     hz = 0.64 * h
-    band = L['band']
-    for y in range(h):  # the sky (Sky.java's six stops to the horizon), the ground below
-        t = min(1.0, y / hz)
-        for i in range(len(P.BAND) - 1):
-            if t <= P.BAND[i + 1]:
-                col = P.mix(band[i], band[i + 1], (t - P.BAND[i]) / (P.BAND[i + 1] - P.BAND[i]))
-                break
+    for y in range(h):  # the sky (Sky.java's stops), the ground below
+        t = y / h
+        if t < 0.64 * 0.56: col = P.mix(sky[0], sky[1], t / (0.64 * 0.56))
+        elif t < 0.61: col = P.mix(sky[1], sky[2], (t - 0.64 * 0.56) / (0.61 - 0.64 * 0.56))
+        else: col = sky[2]
         d.line([(0, y), (w, y)], fill=col)
     far_haze = P.mix(c[P.FAR], sky[2], 0.45)
     # the hills, far layer then near

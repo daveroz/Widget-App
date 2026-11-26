@@ -9,8 +9,11 @@ stats = {}
 for line in open(os.path.join(HERE, 'assets', '_stats.jsonl')):
     d = json.loads(line)
     if 'error' not in d: stats[d['city']] = d
+import bake_all
+wanted = {k for k, _ in bake_all.jobs()}  # only the places in the app's list now
 kept, dropped, size = collections.Counter(), [], collections.Counter()
 for key, d in sorted(stats.items()):
+    if key not in wanted: continue
     src = os.path.join(HERE, 'assets', key + '.bin')
     if not os.path.exists(src): continue
     sc = pickle.load(open(os.path.join(HERE, 'assets', key + '.pkl'), 'rb'))

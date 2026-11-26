@@ -32,18 +32,12 @@ final class Palette {
     /** The windows' warm glow (the video's peach), the far lights' cool cream, and the street lamps' warm light. */
     static final int WINDOW = 0xFFF8C08E, FAR_LIGHT = 0xFFE8E2FF, LAMP = 0xFFFFD6A6;
 
-    /** Where the sky's six colours stand, from its top (0) to the horizon (1) (2.31). */
-    static final float[] BAND = {0f, 0.3f, 0.55f, 0.75f, 0.9f, 1f};
-
-    // the five lights, each six colours from the top of the sky to the horizon. Since 2.31 the sunset is the reference
-    // photo's (measured off it): indigo at the top, lavender, mauve, salmon and peach low down, a coral-red band, and a
-    // thin crimson-magenta line on the horizon itself. The other lights are built the same way: night a faintly lighter
-    // horizon, the blue hour a plum glow on it, the golden hour peach and orange, the day blue to pale
-    private static final int[] NIGHT = {0xFF0C0F2E, 0xFF10143A, 0xFF141A48, 0xFF1B2156, 0xFF232968, 0xFF2C3074};
-    private static final int[] BLUE_HOUR = {0xFF1C1F66, 0xFF242676, 0xFF2F2E88, 0xFF3F3896, 0xFF573E96, 0xFF6B3C80};
-    private static final int[] DUSK = {0xFF4A459C, 0xFF6E60AD, 0xFF9376AC, 0xFFB9878A, 0xFFC65E60, 0xFF8E2A52};
-    private static final int[] GOLDEN = {0xFF5F78D0, 0xFF8A8ED6, 0xFFB8A0CC, 0xFFEBB39F, 0xFFFFAE74, 0xFFFF8E58};
-    private static final int[] DAY = {0xFF3E7ADC, 0xFF5590E6, 0xFF6EA6EE, 0xFF8CBCF2, 0xFFA8CFF5, 0xFFBCDCF6};
+    // the five lights: the sky's top, middle and horizon
+    private static final int[] NIGHT = {0xFF0C0F2E, 0xFF151B4A, 0xFF262C6A};
+    private static final int[] BLUE_HOUR = {0xFF1C1F66, 0xFF2F2E8A, 0xFF5648AA};
+    private static final int[] DUSK = {0xFF5E40A6, 0xFFA55FCB, 0xFFEB8ECB}; // the video's
+    private static final int[] GOLDEN = {0xFF7470C8, 0xFFE292B6, 0xFFFFC48E};
+    private static final int[] DAY = {0xFF3E7ADC, 0xFF6EA6EE, 0xFFBCDCF6};
 
     /** Where each light is at its fullest (the sun's height, degrees) and how broad its bell is. */
     private static float bell(float e, float at, float width) {
@@ -65,21 +59,12 @@ final class Palette {
         return w;
     }
 
-    /**
-     * The sky (top, middle, low: the light over the city, for the haze, the water and the city's own colours) for the
-     * sun {@code e} degrees up, {@code morning} 0 (evening) to 1 (morning). The whole sky is {@link #band}.
-     */
+    /** The sky (top, middle, horizon) for the sun {@code e} degrees up, {@code morning} 0 (evening) to 1 (morning). */
     static int[] sky(float e, float morning) {
-        int[] b = band(e, morning);
-        return new int[]{b[0], b[2], b[3]};
-    }
-
-    /** The sky's six colours (at {@link #BAND}, top to horizon) for the sun {@code e} degrees up. */
-    static int[] band(float e, float morning) {
         float[] w = weights(e);
         int[][] lights = {NIGHT, BLUE_HOUR, DUSK, GOLDEN, DAY};
-        int[] out = new int[BAND.length];
-        for (int k = 0; k < BAND.length; k++) {
+        int[] out = new int[3];
+        for (int k = 0; k < 3; k++) {
             float L = 0, a = 0, b = 0;
             for (int i = 0; i < lights.length; i++) {
                 float[] lab = lab(lights[i][k]);
@@ -98,7 +83,7 @@ final class Palette {
      * a little less colour and a little lighter, {@code m} of the way.
      */
     private static float[] dawn(float[] lab, float m, int stop) {
-        double turn = Math.toRadians(new int[]{6, 6, 10, 12, 16, 16}[stop] * m); // towards pink and lilac
+        double turn = Math.toRadians((stop == 2 ? 16 : stop == 1 ? 10 : 6) * m); // towards pink and lilac
         float c = (float) Math.cos(turn), s = (float) Math.sin(turn);
         float a = lab[1] * c - lab[2] * s, b = lab[1] * s + lab[2] * c;
         float soft = 1f - 0.1f * m;

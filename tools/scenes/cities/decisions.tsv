@@ -1,0 +1,480 @@
+place	country	population	kept	why
+Aarhus	DK	237551	yes	city (50,000+)
+Abidjan	CI	3802000	yes	national capital
+Abu Dhabi	AE	603492	yes	national capital
+Accra	GH	2121000	yes	national capital
+Adak	US	171	no	too small (under 15,000)
+Addis Ababa	ET	3100000	yes	national capital
+Adelaide	AU	1145000	yes	main city (1M+)
+Aden	YE	1000000	yes	main city (1M+)
+Algiers	DZ	3354000	yes	national capital
+Almaty	KZ	1209000	yes	main city (1M+)
+Amman	JO	1060000	yes	national capital
+Amsterdam	NL	1031000	yes	national capital
+Anadyr	RU	10332	no	too small (under 15,000)
+Anchorage	US	260283	yes	city (50,000+)
+Andorra	AD	53998	yes	national capital
+Anguilla	AI	15000	yes	territory capital, a town (5,000+)
+Antananarivo	MG	1697000	yes	national capital
+Antigua	AG	35499	yes	national capital
+Antwerp	BE	920000	yes	city (50,000+)
+Apia	WS	61916	yes	national capital
+Aqtau	KZ	5213	no	too small (under 15,000)
+Aqtobe	KZ	262457	yes	city (50,000+)
+Araguaina	BR	50444	yes	city (50,000+)
+Aruba	AW	68775	yes	territory capital, a town (5,000+)
+Ashgabat	TM	727700	yes	national capital
+Asmara	ER	620802	yes	national capital
+Astrakhan	RU	502533	yes	city (50,000+)
+Asuncion	PY	1870000	yes	national capital
+Athens	GR	3242000	yes	national capital
+Atikokan	CA	3625	no	too small (under 15,000)
+Atlanta	US	4506000	yes	main city (1M+)
+Atyrau	KZ	182753	yes	city (50,000+)
+Auckland	NZ	1377200	yes	main city (1M+)
+Austin	US	1161000	yes	main city (1M+)
+Azores	PT	61526	yes	territory capital, a town (5,000+)
+Baghdad	IQ	5054000	yes	national capital
+Bahia	BR	3484000	yes	main city (1M+)
+Bahia Banderas	MX	187134	yes	city (50,000+)
+Bahrain	BH	563920	yes	national capital
+Baku	AZ	2122300	yes	national capital
+Bamako	ML	1494000	yes	national capital
+Bangalore	IN	6787000	yes	main city (1M+)
+Bangkok	TH	6704000	yes	national capital
+Bangui	CF	831925	yes	national capital
+Banjul	GM	43094	yes	national capital
+Barbados	BB	191152	yes	national capital
+Barcelona	ES	4920000	yes	main city (1M+)
+Barnaul	RU	599579	yes	city (50,000+)
+Barranquilla	CO	1798000	yes	main city (1M+)
+Basel	CH	830000	yes	city (50,000+)
+Beijing	CN	11106000	yes	national capital
+Beirut	LB	1846000	yes	national capital
+Belem	BR	2167000	yes	main city (1M+)
+Belgrade	RS	1099000	yes	national capital
+Belize	BZ	63028	yes	city (50,000+)
+Berlin	DE	3406000	yes	national capital
+Bermuda	BM	52320	yes	territory capital, a town (5,000+)
+Bern	CH	275329	yes	national capital
+Beulah	US	2993	no	too small (under 15,000)
+Birmingham	GB	2285000	yes	main city (1M+)
+Bishkek	KG	837000	yes	national capital
+Bissau	GW	403339	yes	national capital
+Blanc-Sablon	CA	448	no	too small (under 15,000)
+Blantyre	MW	584877	yes	city (50,000+)
+Boa Vista	BR	235150	yes	city (50,000+)
+Bogota	CO	7772000	yes	national capital
+Boise	US	338071	yes	city (50,000+)
+Boston	US	4467000	yes	main city (1M+)
+Bougainville	PG	40266	yes	small city (15,000+)
+Brasov	RO	311044	yes	city (50,000+)
+Bratislava	SK	423737	yes	national capital
+Brazzaville	CG	1355000	yes	national capital
+Brisbane	AU	1860000	yes	main city (1M+)
+Broken Hill	AU	17395	yes	small city (15,000+)
+Brunei	BN	296500	yes	national capital
+Brussels	BE	1743000	yes	national capital
+Bucharest	RO	1942000	yes	national capital
+Budapest	HU	1679000	yes	national capital
+Buenos Aires	AR	12795000	yes	national capital
+Bujumbura	BI	331700	yes	national capital
+Busan	KR	3480000	yes	main city (1M+)
+Busingen	DE	33863	yes	small city (15,000+)
+Cairo	EG	11893000	yes	national capital
+Calgary	CA	1110000	yes	main city (1M+)
+Cali	CO	2254000	yes	main city (1M+)
+Cambridge Bay	CA	1477	no	too small (under 15,000)
+Campo Grande	BR	778000	yes	city (50,000+)
+Canary	ES	378495	yes	city (50,000+)
+Cancun	MX	542043	yes	city (50,000+)
+Cape Town	ZA	3215000	yes	national capital
+Cape Verde	CV	113364	yes	national capital
+Caracas	VE	2985000	yes	national capital
+Cartagena	CO	887000	yes	city (50,000+)
+Casablanca	MA	3181000	yes	main city (1M+)
+Catamarca	AR	188812	yes	city (50,000+)
+Cayenne	GF	61550	yes	city (50,000+)
+Cayman	KY	35000	yes	territory capital, a town (5,000+)
+Center	US	591	no	too small (under 15,000)
+Ceuta	ES	78674	yes	city (50,000+)
+Chagos	IO	3000	no	too small (under 15,000)
+Charlotte	US	995000	yes	city (50,000+)
+Chatham	NZ	300	yes	only place with UTC+12.75
+Chennai	IN	7163000	yes	main city (1M+)
+Chicago	US	8990000	yes	main city (1M+)
+Chihuahua	MX	793000	yes	city (50,000+)
+Chisinau	MD	688134	yes	national capital
+Chita	RU	308500	yes	city (50,000+)
+Christmas	CX	1355	no	too small (under 15,000)
+Chuuk	FM	36000	yes	small city (15,000+)
+Ciudad Juarez	MX	1343000	yes	main city (1M+)
+Cluj-Napoca	RO	316748	yes	city (50,000+)
+Cocos	CC	432	no	too small (under 15,000)
+Colombo	LK	217000	yes	national capital
+Comoro	KM	128698	yes	national capital
+Conakry	GN	1494000	yes	national capital
+Copenhagen	DK	1085000	yes	national capital
+Cordoba	AR	1452000	yes	main city (1M+)
+Cork	IE	188907	yes	city (50,000+)
+Costa Rica	CR	1284000	yes	national capital
+Coyhaique	CL	45787	yes	small city (15,000+)
+Creston	CA	4816	no	too small (under 15,000)
+Cuiaba	BR	806000	yes	city (50,000+)
+Curacao	CW	146813	yes	territory capital, a town (5,000+)
+Dakar	SN	2604000	yes	national capital
+Dallas	US	4798000	yes	main city (1M+)
+Damascus	SY	2466000	yes	national capital
+Danmarkshavn	GL	8	no	too small (under 15,000)
+Dar es Salaam	TZ	2930000	yes	national capital
+Darwin	AU	93080	yes	city (50,000+)
+Dawson	CA	1319	no	too small (under 15,000)
+Dawson Creek	CA	10802	no	too small (under 15,000)
+Delhi	IN	15926000	yes	main city (1M+)
+Denver	US	2313000	yes	main city (1M+)
+Detroit	US	4101000	yes	main city (1M+)
+Dhaka	BD	12797394	yes	national capital
+Dili	TL	234331	yes	national capital
+Djibouti	DJ	923000	yes	national capital
+Doha	QA	1450000	yes	national capital
+Dominica	DM	23336	yes	national capital
+Douala	CM	1906000	yes	main city (1M+)
+Dubai	AE	1379000	yes	main city (1M+)
+Dublin	IE	1059000	yes	national capital
+Dushanbe	TJ	1086244	yes	national capital
+Easter	CL	7163	no	too small (under 15,000)
+Edinburgh	GB	504966	yes	territory capital, a town (5,000+)
+Edmonton	CA	1058000	yes	main city (1M+)
+Efate	VU	44040	yes	national capital
+Eirunepe	BR	21750	yes	small city (15,000+)
+El Aaiun	EH	188084	yes	national capital
+El Salvador	SV	1433000	yes	national capital
+Eucla	AU	31	yes	only place with UTC+8.75
+Fakaofo	TK	500	no	too small (under 15,000)
+Famagusta	CY	42526	yes	small city (15,000+)
+Faroe	FO	22000	yes	territory capital, a town (5,000+)
+Fiji	FJ	175399	yes	national capital
+Florence	IT	1500000	yes	main city (1M+)
+Fort Nelson	CA	6315	no	too small (under 15,000)
+Fortaleza	BR	3602319	yes	main city (1M+)
+Frankfurt	DE	2895000	yes	main city (1M+)
+Freetown	SL	827000	yes	national capital
+Funafuti	TV	4749	yes	national capital
+Gaborone	BW	208411	yes	national capital
+Galapagos	EC	6030	no	too small (under 15,000)
+Gambier	PF	1500	no	too small (under 15,000)
+Gaza	PS	505700	yes	territory capital, a town (5,000+)
+Geneva	CH	1240000	yes	main city (1M+)
+Gibraltar	GI	187083	yes	territory capital, a town (5,000+)
+Glace Bay	CA	37538	yes	small city (15,000+)
+Glasgow	GB	1160000	yes	main city (1M+)
+Goose Bay	CA	7572	no	too small (under 15,000)
+Gothenburg	SE	537797	yes	city (50,000+)
+Grand Turk	TC	5801	yes	territory capital, a town (5,000+)
+Grenada	GD	33734	yes	national capital
+Guadalajara	MX	4198000	yes	main city (1M+)
+Guadalcanal	SB	129569	yes	national capital
+Guadeloupe	GP	145511	yes	city (50,000+)
+Guam	GU	122411	yes	territory capital, a town (5,000+)
+Guangzhou	CN	8829000	yes	main city (1M+)
+Guatemala	GT	1024000	yes	national capital
+Guatemala City	GT	1024000	yes	national capital
+Guayaquil	EC	2514000	yes	main city (1M+)
+Guernsey	GG	18207	yes	small city (15,000+)
+Guyana	GY	264350	yes	national capital
+Halifax	CA	359111	yes	city (50,000+)
+Hamburg	DE	1757000	yes	main city (1M+)
+Harare	ZW	1572000	yes	national capital
+Havana	CU	2174000	yes	national capital
+Hebron	PS	280321	yes	city (50,000+)
+Helsinki	FI	1115000	yes	national capital
+Hermosillo	MX	595811	yes	city (50,000+)
+Ho Chi Minh City	VN	5314000	yes	main city (1M+)
+Hobart	AU	80870	yes	city (50,000+)
+Hong Kong	HK	7206000	yes	territory capital, a town (5,000+)
+Honolulu	US	786000	yes	city (50,000+)
+Houston	US	4459000	yes	main city (1M+)
+Hovd	MN	30500	yes	small city (15,000+)
+Hyderabad	IN	6376000	yes	main city (1M+)
+Iasi	RO	325914	yes	city (50,000+)
+Indianapolis	US	1436000	yes	main city (1M+)
+Inuvik	CA	3022	no	too small (under 15,000)
+Iqaluit	CA	6124	no	too small (under 15,000)
+Irkutsk	RU	586695	yes	city (50,000+)
+Isle of Man	IM	35854	yes	territory capital, a town (5,000+)
+Istanbul	TR	10061000	yes	main city (1M+)
+Jakarta	ID	9125000	yes	national capital
+Jamaica	JM	937700	yes	national capital
+Jayapura	ID	169341	yes	city (50,000+)
+Jersey	JE	32522	yes	small city (15,000+)
+Jerusalem	IL	1029300	yes	national capital
+Johannesburg	ZA	3435000	yes	national capital
+Juba	SS	111975	yes	national capital
+Jujuy	AR	305891	yes	city (50,000+)
+Juneau	US	30711	yes	small city (15,000+)
+Kabul	AF	3277000	yes	national capital
+Kaliningrad	RU	434954	yes	city (50,000+)
+Kamchatka	RU	187282	yes	city (50,000+)
+Kampala	UG	1420000	yes	national capital
+Kanton	KI	20	no	too small (under 15,000)
+Karachi	PK	12130000	yes	main city (1M+)
+Kathmandu	NP	895000	yes	national capital
+Kerguelen	TF	100	no	too small (under 15,000)
+Khandyga	RU	6796	no	too small (under 15,000)
+Khartoum	SD	4754000	yes	national capital
+Kigali	RW	860000	yes	national capital
+Kinshasa	CD	7843000	yes	national capital
+Kiritimati	KI	3001	yes	only place with UTC+14
+Kirov	RU	457437	yes	city (50,000+)
+Knox	US	3662	no	too small (under 15,000)
+Kolkata	IN	14787000	yes	main city (1M+)
+Kosrae	FM	6600	no	too small (under 15,000)
+Krakow	PL	756000	yes	city (50,000+)
+Kralendijk	BQ	12531	yes	territory capital, a town (5,000+)
+Krasnoyarsk	RU	925000	yes	city (50,000+)
+Kuala Lumpur	MY	1448000	yes	national capital
+Kuching	MY	570407	yes	city (50,000+)
+Kuwait	KW	2063000	yes	national capital
+Kwajalein	MH	1000	no	too small (under 15,000)
+Kyiv	UA	2709000	yes	national capital
+Kyoto	JP	1805000	yes	national capital
+La Paz	BO	1590000	yes	national capital
+La Rioja	AR	162620	yes	city (50,000+)
+Lagos	NG	9466000	yes	national capital
+Las Vegas	US	1823000	yes	main city (1M+)
+Libreville	GA	578156	yes	national capital
+Lima	PE	8012000	yes	national capital
+Lindeman	AU	1759	no	too small (under 15,000)
+Lisbon	PT	2812000	yes	national capital
+Ljubljana	SI	314807	yes	national capital
+Lome	TG	1452000	yes	national capital
+London	GB	8567000	yes	national capital
+Lord Howe	AU	445	no	too small (under 15,000)
+Los Angeles	US	12500000	yes	main city (1M+)
+Louisville	US	948000	yes	city (50,000+)
+Lower Princes	SX	41000	yes	territory capital, a town (5,000+)
+Luanda	AO	5172900	yes	national capital
+Lubumbashi	CD	1352000	yes	main city (1M+)
+Lusaka	ZM	1328000	yes	national capital
+Luxembourg	LU	107260	yes	national capital
+Lyon	FR	1423000	yes	main city (1M+)
+Macau	MO	568700	yes	territory capital, a town (5,000+)
+Maceio	BR	1186000	yes	main city (1M+)
+Madeira	PT	204767	yes	territory capital, a town (5,000+)
+Madrid	ES	5567000	yes	national capital
+Magadan	RU	95282	yes	city (50,000+)
+Mahe	SC	33576	yes	national capital
+Majuro	MH	25400	yes	national capital
+Makassar	ID	1262000	yes	main city (1M+)
+Malabo	GQ	155963	yes	national capital
+Maldives	MV	112927	yes	national capital
+Malta	MT	368250	yes	national capital
+Managua	NI	920000	yes	national capital
+Manaus	BR	1753000	yes	main city (1M+)
+Manchester	GB	2230000	yes	main city (1M+)
+Manila	PH	11100000	yes	national capital
+Maputo	MZ	1446000	yes	national capital
+Marengo	US	800	no	too small (under 15,000)
+Mariehamn	AX	10682	yes	territory capital, a town (5,000+)
+Marigot	MF	5700	yes	territory capital, a town (5,000+)
+Marquesas	PF	9300	yes	only place with UTC-9.5
+Marseille	FR	1400000	yes	main city (1M+)
+Martinique	MQ	253995	yes	city (50,000+)
+Maseru	LS	361324	yes	national capital
+Matamoros	MX	538785	yes	city (50,000+)
+Mauritius	MU	595491	yes	national capital
+Mayotte	YT	32057	yes	small city (15,000+)
+Mazatlan	MX	368204	yes	city (50,000+)
+Mbabane	SZ	90138	yes	national capital
+Medellin	CO	3297000	yes	main city (1M+)
+Melbourne	AU	4170000	yes	main city (1M+)
+Mendoza	AR	893000	yes	city (50,000+)
+Menominee	US	27169	yes	small city (15,000+)
+Merida	MX	965000	yes	city (50,000+)
+Metlakatla	US	1400	no	too small (under 15,000)
+Mexico City	MX	19028000	yes	national capital
+Miami	US	5585000	yes	main city (1M+)
+Midway	UM	40	no	too small (under 15,000)
+Milan	IT	2945000	yes	main city (1M+)
+Minsk	BY	1805000	yes	national capital
+Miquelon	PM	5800	yes	territory capital, a town (5,000+)
+Mogadishu	SO	1100000	yes	national capital
+Monaco	MC	36371	yes	national capital
+Moncton	CA	90635	yes	city (50,000+)
+Monrovia	LR	1041000	yes	national capital
+Monterrey	MX	3712000	yes	main city (1M+)
+Montevideo	UY	1513000	yes	national capital
+Monticello	US	6106	no	too small (under 15,000)
+Montreal	CA	3678000	yes	main city (1M+)
+Montserrat	MS	4400	no	too small (under 15,000)
+Moscow	RU	10452000	yes	national capital
+Mumbai	IN	18978000	yes	main city (1M+)
+Munich	DE	1275000	yes	main city (1M+)
+Muscat	OM	734697	yes	national capital
+Nairobi	KE	3010000	yes	national capital
+Naples	IT	2250000	yes	main city (1M+)
+Nassau	BS	227940	yes	national capital
+Nauru	NR	747	yes	national capital
+Ndjamena	TD	989000	yes	national capital
+New Salem	US	973	no	too small (under 15,000)
+New York	US	19040000	yes	main city (1M+)
+Niamey	NE	915000	yes	national capital
+Nice	FR	927000	yes	city (50,000+)
+Nicosia	CY	224300	yes	national capital
+Niue	NU	581	no	too small (under 15,000)
+Nome	US	3485	no	too small (under 15,000)
+Norfolk	NF	2200	no	too small (under 15,000)
+Noronha	BR	3167	no	too small (under 15,000)
+Nouakchott	MR	742144	yes	national capital
+Noumea	NC	93060	yes	territory capital, a town (5,000+)
+Novokuznetsk	RU	539616	yes	city (50,000+)
+Novosibirsk	RU	1389000	yes	main city (1M+)
+Nuuk	GL	14798	yes	territory capital, a town (5,000+)
+Ojinaga	MX	22128	yes	small city (15,000+)
+Omsk	RU	1135000	yes	main city (1M+)
+Oral	KZ	209788	yes	city (50,000+)
+Orlando	US	1350000	yes	main city (1M+)
+Osaka	JP	11294000	yes	main city (1M+)
+Oslo	NO	835000	yes	national capital
+Ottawa	CA	1145000	yes	national capital
+Ouagadougou	BF	1149000	yes	national capital
+Pago Pago	AS	12576	yes	territory capital, a town (5,000+)
+Palau	PW	11200	yes	national capital
+Panama	PA	1281000	yes	national capital
+Panama City	PA	1281000	yes	national capital
+Paramaribo	SR	254169	yes	national capital
+Paris	FR	9904000	yes	national capital
+Perth	AU	1532000	yes	main city (1M+)
+Petersburg	US	2400	no	too small (under 15,000)
+Philadelphia	US	5492000	yes	main city (1M+)
+Phnom Penh	KH	1466000	yes	national capital
+Phoenix	US	3551000	yes	main city (1M+)
+Pitcairn	PN	50	no	too small (under 15,000)
+Podgorica	ME	145850	yes	national capital
+Pohnpei	FM	4645	yes	national capital
+Pontianak	ID	607311	yes	city (50,000+)
+Port Moresby	PG	283733	yes	national capital
+Port of Spain	TT	294934	yes	national capital
+Port-au-Prince	HT	1998000	yes	national capital
+Portland	US	1875000	yes	main city (1M+)
+Porto Velho	BR	306180	yes	city (50,000+)
+Porto-Novo	BJ	300000	yes	national capital
+Prague	CZ	1162000	yes	national capital
+Puerto Rico	PR	2478905	yes	main city (1M+)
+Punta Arenas	CL	117430	yes	city (50,000+)
+Pyongyang	KP	3300000	yes	national capital
+Qatar	QA	1450000	yes	national capital
+Qostanay	KZ	236901	yes	city (50,000+)
+Qyzylorda	KZ	300000	yes	city (50,000+)
+Rankin Inlet	CA	2472	no	too small (under 15,000)
+Rarotonga	CK	5445	yes	territory capital, a town (5,000+)
+Recife	BR	3651000	yes	main city (1M+)
+Regina	CA	176183	yes	city (50,000+)
+Resolute	CA	250	no	too small (under 15,000)
+Reunion	RE	190047	yes	city (50,000+)
+Reykjavik	IS	166212	yes	national capital
+Riga	LV	742572	yes	national capital
+Rio Branco	BR	257642	yes	city (50,000+)
+Rio de Janeiro	BR	11748000	yes	main city (1M+)
+Rio Gallegos	AR	85700	yes	city (50,000+)
+Riyadh	SA	4465000	yes	national capital
+Rome	IT	3339000	yes	national capital
+Rotterdam	NL	1005000	yes	main city (1M+)
+Saipan	MP	43000	yes	territory capital, a town (5,000+)
+Sakhalin	RU	176484	yes	city (50,000+)
+Salta	AR	512686	yes	city (50,000+)
+Samara	RU	1137000	yes	main city (1M+)
+Samarkand	UZ	708000	yes	city (50,000+)
+San Diego	US	2916000	yes	main city (1M+)
+San Francisco	US	3450000	yes	main city (1M+)
+San Jose	CR	1284000	yes	national capital
+San Juan	AR	447048	yes	city (50,000+)
+San Juan	PR	2478905	yes	main city (1M+)
+San Luis	AR	432310	yes	city (50,000+)
+San Marino	SM	29579	yes	national capital
+Santarem	BR	230428	yes	city (50,000+)
+Santiago	CL	5720000	yes	national capital
+Santo Domingo	DO	2154000	yes	national capital
+Sao Paulo	BR	18845000	yes	main city (1M+)
+Sao Tome	ST	88219	yes	national capital
+Sarajevo	BA	696731	yes	national capital
+Saratov	RU	843000	yes	city (50,000+)
+Scoresbysund	GL	469	no	too small (under 15,000)
+Seattle	US	3074000	yes	main city (1M+)
+Seoul	KR	9796000	yes	national capital
+Seville	ES	1212045	yes	main city (1M+)
+Shanghai	CN	14987000	yes	main city (1M+)
+Shenzhen	CN	7581000	yes	main city (1M+)
+Simferopol	UA	358108	yes	city (50,000+)
+Singapore	SG	5183700	yes	national capital
+Sitka	US	8931	no	too small (under 15,000)
+Skopje	MK	494087	yes	national capital
+Sofia	BG	1185000	yes	national capital
+South Georgia	GS	99	no	too small (under 15,000)
+Srednekolymsk	RU	3459	no	too small (under 15,000)
+St Barthelemy	BL	10500	yes	territory capital, a town (5,000+)
+St Helena	SH	629	no	too small (under 15,000)
+St Johns	CA	131469	yes	city (50,000+)
+St Kitts	KN	21887	yes	national capital
+St Lucia	LC	37963	yes	national capital
+St Thomas	VI	14477	yes	territory capital, a town (5,000+)
+St Vincent	VC	49485	yes	national capital
+Stanley	FK	2213	no	too small (under 15,000)
+Stockholm	SE	1264000	yes	national capital
+Swift Current	CA	14906	no	too small (under 15,000)
+Sydney	AU	4630000	yes	main city (1M+)
+Tahiti	PF	131695	yes	territory capital, a town (5,000+)
+Taipei	TW	6900273	yes	national capital
+Tallinn	EE	394024	yes	national capital
+Tarawa	KI	28802	yes	national capital
+Tashkent	UZ	2184000	yes	national capital
+Tbilisi	GE	1100000	yes	national capital
+Tegucigalpa	HN	946000	yes	national capital
+Tehran	IR	7873000	yes	national capital
+Tell City	US	7595	no	too small (under 15,000)
+Thimphu	BT	98676	yes	national capital
+Thule	GL	600	no	too small (under 15,000)
+Tijuana	MX	1553000	yes	main city (1M+)
+Timisoara	RO	315053	yes	city (50,000+)
+Tirane	AL	895350	yes	national capital
+Tokyo	JP	35676000	yes	national capital
+Tomsk	RU	535479	yes	city (50,000+)
+Tongatapu	TO	42620	yes	national capital
+Toronto	CA	5213000	yes	main city (1M+)
+Tortola	VG	12603	yes	territory capital, a town (5,000+)
+Tripoli	LY	2189000	yes	national capital
+Tucuman	AR	830000	yes	city (50,000+)
+Tunis	TN	2412500	yes	national capital
+Ulaanbaatar	MN	885000	yes	national capital
+Ulyanovsk	RU	640680	yes	city (50,000+)
+Urumqi	CN	3575000	yes	main city (1M+)
+Ushuaia	AR	58028	yes	city (50,000+)
+Ust-Nera	RU	9148	no	too small (under 15,000)
+Vaduz	LI	36281	yes	national capital
+Valencia	ES	808000	yes	city (50,000+)
+Vancouver	CA	2313328	yes	main city (1M+)
+Vatican	VA	3339000	yes	national capital
+Venice	IT	270816	yes	city (50,000+)
+Vevay	US	1600	no	too small (under 15,000)
+Vienna	AT	2400000	yes	national capital
+Vientiane	LA	754000	yes	national capital
+Vilnius	LT	542366	yes	national capital
+Vincennes	US	17997	yes	small city (15,000+)
+Vladivostok	RU	587022	yes	city (50,000+)
+Volgograd	RU	984000	yes	city (50,000+)
+Wake	UM	100	no	too small (under 15,000)
+Wallis	WF	1000	no	too small (under 15,000)
+Warsaw	PL	1707000	yes	national capital
+Washington	US	4338000	yes	national capital
+Wellington	NZ	393400	yes	national capital
+Whitehorse	CA	23276	yes	small city (15,000+)
+Winamac	US	2400	no	too small (under 15,000)
+Windhoek	NA	268132	yes	national capital
+Winnipeg	CA	632063	yes	city (50,000+)
+Yakutat	US	109	no	too small (under 15,000)
+Yakutsk	RU	235600	yes	city (50,000+)
+Yangon	MM	4088000	yes	national capital
+Yekaterinburg	RU	1313000	yes	main city (1M+)
+Yerevan	AM	1102000	yes	national capital
+Zagreb	HR	722526	yes	national capital
+Zurich	CH	1108000	yes	main city (1M+)
