@@ -17,7 +17,7 @@ import java.util.Set;
 
 /**
  * What the world clocks' skies show on special days and in storms (2.27): fireworks after dark on New Year's Eve and
- * Day everywhere, on the Lunar New Year (its eve and day) in the countries that keep it, and on each country's
+ * Day everywhere, on Christmas Day everywhere (2.34, from its midnight), on the Lunar New Year (its eve and day) in the countries that keep it, and on each country's
  * independence or national day; lightning in a thunderstorm. (December's strings of Christmas lights across the
  * street, from 2.27, were taken out in 2.34.) Everything is drawn from the time alone, so the frames follow each other.
  */
@@ -53,6 +53,7 @@ final class Festive {
     static boolean fireworks(LocalDate d, String cc) {
         int m = d.getMonthValue(), day = d.getDayOfMonth();
         if ((m == 12 && day == 31) || (m == 1 && day == 1)) return true; // New Year's Eve and Day, everywhere
+        if (m == 12 && day == 25) return true; // Christmas Day, everywhere, from its midnight (2.34)
         if (cc == null || cc.isEmpty()) return false;
         String c = cc.toUpperCase(java.util.Locale.ROOT);
         Integer nat = NATIONAL.get(c);
