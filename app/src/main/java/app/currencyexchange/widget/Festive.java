@@ -75,36 +75,41 @@ final class Festive {
     private static final int[] SPARKS = {0xFFFFD27A, 0xFFFF6464, 0xFF8CFFA8, 0xFF8CCBFF, 0xFFFF9BE0, 0xFFFFF4E0};
 
     /**
-     * Fireworks over the city at {@code t} seconds, {@code strength} 0 to 1 (how dark it is): a new shell every
-     * 0.9 s or so, each rising on a faint trail, bursting into a ring of sparks that spread, sag and fade over about
-     * two seconds, a soft flash at its heart; up to three at once, all over the sky, in festive colours.
+     * Fireworks over the city at {@code t} seconds, {@code strength} 0 to 1 (how dark it is): a new shell every 0.9 s or
+     * so, each rising on a faint trail and bursting with a soft flash at its heart. Since 2.31 its sparks move as the
+     * fireworks libraries' do (fireworks-js's friction, gravity and fading trails): each flies out, slows, sags and
+     * fades, drawing a short trail behind it, some flickering as they die; three kinds of shell: a peony (sparks at all
+     * speeds, a full ball), a ring (one speed, a crisp circle) and a willow (gold, slow, long drooping trails).
      */
     static void fireworks(Canvas c, int w, int h, float px, float t, long seed, float strength, Paint p) {
         if (strength <= 0.02f) return;
-        float every = 0.9f, life = 2.6f, rise = 0.55f;
+        float every = 0.9f, rise = 0.55f;
         long last = (long) Math.floor(t / every);
         float big = Math.min(w, h);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeCap(Paint.Cap.ROUND);
-        for (long k = last - (long) Math.ceil(life / every); k <= last; k++) {
+        for (long k = last - 5; k <= last; k++) {
             float age = t - k * every;
-            if (age < 0 || age > life) continue;
+            if (age < 0) continue;
             Random r = new Random(seed * 1_000_003L + k * 7919L);
             if (r.nextFloat() < 0.18f) continue; // now and then a pause
-            float cx = w * (0.14f + 0.72f * r.nextFloat()), cy = h * (0.12f + 0.28f * r.nextFloat());
-            float reach = big * (0.2f + 0.14f * r.nextFloat());
-            int colour = SPARKS[r.nextInt(SPARKS.length)], second = SPARKS[r.nextInt(SPARKS.length)];
-            int n = 18 + r.nextInt(10);
-            float spin = r.nextFloat() * 6.2832f;
+            int kind = r.nextInt(5); // 0, 1 peony; 2, 3 ring; 4 willow
+            boolean willow = kind == 4, ring = kind == 2 || kind == 3;
+            float life = willow ? 3.6f : 2.6f;
+            if (age > life) continue;
+            float cx = w * (0.14f + 0.72f * r.nextFloat()), cy = h * (0.1f + 0.26f * r.nextFloat());
+            float reach = big * (0.17f + 0.14f * r.nextFloat()) * (willow ? 0.8f : 1f);
+            int colour = willow ? 0xFFFFC870 : SPARKS[r.nextInt(SPARKS.length)], second = SPARKS[r.nextInt(SPARKS.length)];
+            boolean flicker = r.nextBoolean();
             if (age < rise) { // the shell rising on its trail
                 float f = age / rise, y0 = h * 0.9f, y = y0 + (cy - y0) * (1 - (1 - f) * (1 - f));
                 p.setStrokeWidth(1.1f * px);
                 p.setShader(null);
                 p.setColor(Scene.alpha(0xFFFFE8C0, 0.7f * strength));
-                c.drawLine(cx, y + 6 * px, cx, y, p);
+                c.drawLine(cx, y + 7 * px, cx, y, p);
                 continue;
             }
-            float a = age - rise, span = life - rise, fade = (float) Math.pow(Math.max(0, 1 - a / span), 1.4);
+            float a = age - rise, span = life - rise, fade = (float) Math.pow(Math.max(0, 1 - a / span), willow ? 1.0 : 1.5);
             if (a < 0.25f) { // the flash at its heart
                 p.setStyle(Paint.Style.FILL);
                 p.setShader(new RadialGradient(cx, cy, reach * 0.6f, Scene.alpha(colour, 0.45f * strength * (1 - a / 0.25f)),
@@ -113,20 +118,25 @@ final class Festive {
                 p.setShader(null);
                 p.setStyle(Paint.Style.STROKE);
             }
-            for (int j = 0; j < n + n / 2; j++) { // an outer ring and an inner one, every spark a little its own way
-                boolean inner = j >= n;
-                float ang = spin + (inner ? (j - n) * 6.2832f / (n / 2) + 0.2f : j * 6.2832f / n) + (r.nextFloat() - 0.5f) * 0.22f;
-                float sp = reach * (inner ? 0.45f + 0.15f * r.nextFloat() : 0.75f + 0.4f * r.nextFloat());
-                float d1 = sp * (1 - (float) Math.exp(-a * 2.4f)), d0 = sp * (1 - (float) Math.exp(-Math.max(0, a - 0.12f) * 2.4f));
-                float sag = h * 0.06f * a * a;
-                float x1 = cx + (float) Math.cos(ang) * d1, y1 = cy + (float) Math.sin(ang) * d1 + sag;
-                float x0 = cx + (float) Math.cos(ang) * d0, y0 = cy + (float) Math.sin(ang) * d0 + sag * 0.8f;
-                int col = inner ? second : (j % 4 == 0 ? second : colour);
-                p.setStrokeWidth(1.2f * px);
-                p.setColor(Scene.alpha(col, 0.55f * fade * strength));
-                c.drawLine(x0, y0, x1, y1, p); // its streak
-                p.setStrokeWidth(1.9f * px);
-                p.setColor(Scene.alpha(Scene.mix(col, 0xFFFFFFFF, 0.45f), 0.95f * fade * strength));
+            float drag = willow ? 1.6f : 2.6f, grav = h * (willow ? 0.16f : 0.09f), trail = willow ? 0.4f : 0.14f;
+            int n = ring ? 22 + r.nextInt(8) : 30 + r.nextInt(12);
+            float spin = r.nextFloat() * 6.2832f;
+            for (int j = 0; j < n; j++) {
+                float ang = ring ? spin + j * 6.2832f / n + (r.nextFloat() - 0.5f) * 0.08f : r.nextFloat() * 6.2832f;
+                float sp = reach * (ring ? 0.95f + 0.1f * r.nextFloat() : 0.25f + 0.85f * (float) Math.sqrt(r.nextFloat()));
+                int col = j % 5 == 0 ? second : colour;
+                float a0 = Math.max(0, a - trail);
+                // out at its speed, slowed by the air, falling a little more each moment
+                float d1 = sp * (1 - (float) Math.exp(-a * drag)), d0 = sp * (1 - (float) Math.exp(-a0 * drag));
+                float x1 = cx + (float) Math.cos(ang) * d1, y1 = cy + (float) Math.sin(ang) * d1 + grav * a * a * 0.5f;
+                float x0 = cx + (float) Math.cos(ang) * d0, y0 = cy + (float) Math.sin(ang) * d0 + grav * a0 * a0 * 0.5f;
+                float lit = fade;
+                if (flicker && a > span * 0.45f) lit *= 0.45f + 0.55f * Math.abs((float) Math.sin(t * 37 + j * 2.1f));
+                p.setStrokeWidth((willow ? 0.9f : 1.1f) * px);
+                p.setColor(Scene.alpha(col, (willow ? 0.6f : 0.5f) * lit * strength));
+                c.drawLine(x0, y0, x1, y1, p); // its trail
+                p.setStrokeWidth(1.8f * px);
+                p.setColor(Scene.alpha(Scene.mix(col, 0xFFFFFFFF, 0.45f), 0.95f * lit * strength));
                 c.drawPoint(x1, y1, p); // the spark
             }
         }

@@ -32,12 +32,14 @@ final class Palette {
     /** The windows' warm glow (the video's peach), the far lights' cool cream, and the street lamps' warm light. */
     static final int WINDOW = 0xFFF8C08E, FAR_LIGHT = 0xFFE8E2FF, LAMP = 0xFFFFD6A6;
 
-    // the five lights: the sky's top, middle and horizon
-    private static final int[] NIGHT = {0xFF0C0F2E, 0xFF151B4A, 0xFF262C6A};
-    private static final int[] BLUE_HOUR = {0xFF1C1F66, 0xFF2F2E8A, 0xFF5648AA};
-    private static final int[] DUSK = {0xFF5E40A6, 0xFFA55FCB, 0xFFEB8ECB}; // the video's
-    private static final int[] GOLDEN = {0xFF7470C8, 0xFFE292B6, 0xFFFFC48E};
-    private static final int[] DAY = {0xFF3E7ADC, 0xFF6EA6EE, 0xFFBCDCF6};
+    // the five lights: the sky's top, middle and horizon. Since 2.31 punchier, after the references: the night a deep
+    // indigo with a violet horizon, the blue hour violet to magenta, dusk violet, magenta and a hot coral, the golden
+    // hour periwinkle, pink and gold, the day blue, teal and a pale mint (the pastel days of the posters)
+    private static final int[] NIGHT = {0xFF0A0B30, 0xFF141760, 0xFF2B2486};
+    private static final int[] BLUE_HOUR = {0xFF1B1672, 0xFF3A2AA2, 0xFF7E3FBE};
+    private static final int[] DUSK = {0xFF4A2B9E, 0xFFBE46A8, 0xFFFF7E78};
+    private static final int[] GOLDEN = {0xFF6A62D6, 0xFFFF86A6, 0xFFFFC160};
+    private static final int[] DAY = {0xFF3C7FE6, 0xFF66BFEE, 0xFFD6F0E4};
 
     /** Where each light is at its fullest (the sun's height, degrees) and how broad its bell is. */
     private static float bell(float e, float at, float width) {
@@ -123,7 +125,7 @@ final class Palette {
         for (int i = 0; i < ROLES.length; i++) {
             float L = mean * ROLES[i][0] + 0.085f * night; // 2.31: a moonlit blue at night, so lit windows read
             float h = Math.max(258f, Math.min(296f, top[2] - ROLES[i][1])); // within the blue to indigo band
-            float C = Math.max(0.035f + 0.03f * night, top[1] * ROLES[i][2] * (1f - 0.28f * day));
+            float C = Math.max(0.035f + 0.03f * night, top[1] * ROLES[i][2] * (1f - 0.28f * day)) * 1.15f; // punchier
             out[i] = fromLch(Math.min(0.9f, L), C, h);
         }
         // the rim along the roofs: the horizon's warmth, light
