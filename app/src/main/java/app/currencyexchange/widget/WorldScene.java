@@ -797,43 +797,83 @@ final class WorldScene {
 
     /** A box blur, {@code passes} times, over a small picture (the glow, at a quarter of the cell's size). */
     /** The punch pass's strengths (2.33): local contrast (clarity) and vibrance, matched to the graded reference. */
-    static final float PUNCH_CLARITY = 0.45f, PUNCH_VIBRANCE = 0.3f;
+    static final float PUNCH_CLARITY = 0.6f, PUNCH_VIBRANCE = 0.3f;
 
     /**
-     * The punch pass (2.33, after the graded reference): local contrast, each pixel pushed away from its blurred
-     * surroundings by {@code clarity} (crisper edges, windows and texture), then vibrance, the duller colours made
-     * richer by up to {@code vibrance} and the already rich ones left nearly alone. On a picture with see-through parts
-     * (the city over the sky), only what's drawn changes.
+     * The punch pass (2.33, after the graded reference): local contrast on the lightness only, each pixel pushed away
+     * from its surroundings (a 2 px blur at full size, weighted by what's drawn, so the see-through sky never counts as
+     * black and no edge rings) by {@code clarity}, the push softly limited on strong edges (crisper texture and windows,
+     * no halos or bands); then vibrance, the duller colours made richer by up to {@code vibrance}, the rich ones left
+     * nearly alone. On a picture with see-through parts (the city over the sky), only what's drawn changes.
      */
     static void punch(Bitmap b, float clarity, float vibrance) {
         int w = b.getWidth(), h = b.getHeight();
         if (w < 8 || h < 8) return;
-        int[] px = new int[w * h], bl = new int[w * h];
+        int n = w * h;
+        int[] px = new int[n];
         b.getPixels(px, 0, w, 0, 0, w, h);
-        Bitmap small = Bitmap.createScaledBitmap(b, Math.max(2, w / 4), Math.max(2, h / 4), true);
-        blur(small, 1);
-        Bitmap up = Bitmap.createScaledBitmap(small, w, h, true);
-        up.getPixels(bl, 0, w, 0, 0, w, h);
-        small.recycle();
-        up.recycle();
-        for (int i = 0; i < px.length; i++) {
+        float[] ya = null, aa = null;
+        if (clarity > 0f) {
+            ya = new float[n];
+            aa = new float[n];
+            for (int i = 0; i < n; i++) {
+                int c = px[i];
+                float al = (c >>> 24) / 255f;
+                ya[i] = al * (0.299f * ((c >> 16) & 255) + 0.587f * ((c >> 8) & 255) + 0.114f * (c & 255));
+                aa[i] = al;
+            }
+            float[] tmp = new float[n];
+            for (int pass = 0; pass < 2; pass++) { // two box passes of radius 2: close to a gaussian
+                boxBlur(ya, tmp, w, h, 2);
+                boxBlur(aa, tmp, w, h, 2);
+            }
+        }
+        for (int i = 0; i < n; i++) {
             int c = px[i], a = c >>> 24;
             if (a == 0) continue;
-            int q = bl[i];
             float r = (c >> 16) & 255, g = (c >> 8) & 255, bb = c & 255;
-            float k = clarity * Math.min(1f, (q >>> 24) / 255f); // never against what isn't there
-            r += k * (r - ((q >> 16) & 255));
-            g += k * (g - ((q >> 8) & 255));
-            bb += k * (bb - (q & 255));
-            float mx = Math.max(r, Math.max(g, bb)), mn = Math.min(r, Math.min(g, bb));
-            float sat = mx <= 0 ? 0 : (mx - mn) / Math.max(1f, mx), avg = (r + g + bb) / 3f;
-            float f = 1f + vibrance * (1f - Math.min(1f, sat));
-            r = avg + (r - avg) * f;
-            g = avg + (g - avg) * f;
-            bb = avg + (bb - avg) * f;
+            if (ya != null && aa[i] > 0.02f) {
+                float y = 0.299f * r + 0.587f * g + 0.114f * bb, around = ya[i] / aa[i];
+                float d = y - around;
+                d = d / (1f + Math.abs(d) / 18f); // strong edges are pushed little: no ringing
+                float k = clarity * aa[i] * aa[i]; // and nothing at the edge of what's drawn
+                r += k * d;
+                g += k * d;
+                bb += k * d;
+            }
+            if (vibrance > 0f) {
+                float mx = Math.max(r, Math.max(g, bb)), mn = Math.min(r, Math.min(g, bb));
+                float sat = mx <= 0 ? 0 : (mx - mn) / Math.max(1f, mx), avg = (r + g + bb) / 3f;
+                float f = 1f + vibrance * (1f - Math.min(1f, sat));
+                r = avg + (r - avg) * f;
+                g = avg + (g - avg) * f;
+                bb = avg + (bb - avg) * f;
+            }
             px[i] = (a << 24) | (clamp255(r) << 16) | (clamp255(g) << 8) | clamp255(bb);
         }
         b.setPixels(px, 0, w, 0, 0, w, h);
+    }
+
+    /** A box blur of radius {@code r} across then down, in place ({@code tmp} as large), its edges clamped. */
+    private static void boxBlur(float[] v, float[] tmp, int w, int h, int r) {
+        float norm = 1f / (2 * r + 1);
+        for (int y = 0; y < h; y++) {
+            int o = y * w;
+            float sum = 0;
+            for (int k = -r; k <= r; k++) sum += v[o + Math.min(w - 1, Math.max(0, k))];
+            for (int x = 0; x < w; x++) {
+                tmp[o + x] = sum * norm;
+                sum += v[o + Math.min(w - 1, x + r + 1)] - v[o + Math.max(0, x - r)];
+            }
+        }
+        for (int x = 0; x < w; x++) {
+            float sum = 0;
+            for (int k = -r; k <= r; k++) sum += tmp[Math.min(h - 1, Math.max(0, k)) * w + x];
+            for (int y = 0; y < h; y++) {
+                v[y * w + x] = sum * norm;
+                sum += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x];
+            }
+        }
     }
 
     private static int clamp255(float v) { return v <= 0 ? 0 : v >= 255 ? 255 : Math.round(v); }
