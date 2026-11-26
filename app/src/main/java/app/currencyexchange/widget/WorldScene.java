@@ -243,10 +243,12 @@ final class WorldScene {
     private static final int LAMP = 0xFFFFD6EC, POOL = 0xFFFFC496, GLOW_WINDOW = 0xFFFF7668, GLOW_LAMP = 0xFFFF5CAA,
             FLOOD = 0xFFFFA27E;
     /**
-     * At night every building is lit from the street (2.32), as the hero is: warm at its foot, fading out 60% of the way
-     * up (a landmark other than the hero by FADE_M, its height unknown here), CITY_UP strong near, less far off.
+     * At night every building is lit from the street (2.32), the hero too, alike: warm at its foot, fading out 60% of the
+     * way up but never above FADE_MAX (the street's light doesn't reach a tower's top; a landmark other than the hero by
+     * FADE_M, its height unknown here), CITY_UP strong near, less far off. The hero has a touch of moonlight besides.
      */
-    private static final float FADE_M = 45f, CITY_UP = 0.3f;
+    private static final float FADE_M = 45f, FADE_MAX = 60f, CITY_UP = 0.3f;
+    private static final int MOON = 0xFF8C9CFF;
     /** Cars' lights on the main roads at night (2.32): headlights coming, tail lights going. */
     private static final int HEAD = 0xFFFFF1D2, TAIL = 0xFFFF3C3C;
     /** Where they drive on the left (the cars' lanes, 2.32). */
@@ -385,17 +387,18 @@ final class WorldScene {
             if (kind == LM_GLASS) base = Scene.mix(base, shadeC, 0.4f);
             int col = Scene.mix(base, farHaze, fog);
             poly(path, s, x0, k);
+            if (d.main[i] && kind != LM_GLASS && lights > 0.05f) col = screen(col, MOON, 0.1f * lights); // the hero: a touch of moonlight, to stand out
             p.setColor(col);
             if (d.main[i] && kind != LM_GLASS && lights > 0.05f && heroFoot > heroTop) {
-                // the hero at night: lit softly from below, warm at its foot and fading out a little over halfway up,
-                // its faces towards us a little more (the rest of it in the night's colours)
-                double lit = d.facing[i] < 0 ? 0.5 : Math.cos(Math.toRadians(d.facing[i] - d.look - 180));
-                float up = (0.26f + 0.16f * (float) Math.max(0, lit)) * lights;
-                p.setShader(new LinearGradient(0, heroFoot, 0, heroFoot - 0.6f * (heroFoot - heroTop),
-                        screen(col, FLOOD, up), col, Shader.TileMode.CLAMP));
+                // the hero at night: lit from the street as every building is (the same strength and reach), warm at its
+                // foot and fading out 60% of the way up, never more than FADE_MAX
+                float footR = heroFoot / k, z = d.hc * f / Math.max(footR - HZ * d.h, 0.25f);
+                float hm = (heroFoot - heroTop) / k * z / f, fadeY = heroFoot - Math.min(0.6f * hm, FADE_MAX) * f / z * k;
+                if (heroFoot - fadeY > 1f)
+                    p.setShader(new LinearGradient(0, heroFoot, 0, fadeY, screen(col, FLOOD, CITY_UP * lights), col, Shader.TileMode.CLAMP));
             } else if (kind != LM_GLASS && lights > 0.05f) { // the others lit from the street, as every building is
                 float up = CITY_UP * lights * (1f - 0.7f * clamp(fog / 0.4f)), z = Math.max(d.dist[i], 20f);
-                float footY = (HZ * d.h + d.hc * f / z) * k, fadeY = (HZ * d.h - (FADE_M - d.hc) * f / z) * k;
+                float footY = (HZ * d.h + d.hc * f / z) * k, fadeY = (HZ * d.h - (Math.min(FADE_M, FADE_MAX) - d.hc) * f / z) * k;
                 if (up > 0.01f && footY - fadeY > 1f)
                     p.setShader(new LinearGradient(0, footY, 0, fadeY, screen(col, FLOOD, up), col, Shader.TileMode.CLAMP));
             }
@@ -522,7 +525,7 @@ final class WorldScene {
             float up = CITY_UP * lights * (1f - 0.7f * clamp(fog / 0.4f));
             if (up > 0.01f) { // lit from the street at night: warm at its foot, fading out 60% of the way up
                 float footY = (ay + by) / 2, dyA = Math.max(footY / k - hzr, 0.25f);
-                float fadeY = (hzr - (Math.max(10f, 0.6f * hm) - hc) * dyA / hc) * k;
+                float fadeY = (hzr - (Math.min(FADE_MAX, Math.max(10f, 0.6f * hm)) - hc) * dyA / hc) * k;
                 if (footY - fadeY > 1f) p.setShader(new LinearGradient(0, footY, 0, fadeY, screen(col, FLOOD, up), col, Shader.TileMode.CLAMP));
             }
             c.drawPath(path, p);
