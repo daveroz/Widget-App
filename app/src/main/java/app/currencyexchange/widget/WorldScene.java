@@ -58,6 +58,8 @@ final class WorldScene {
     static final class Data {
         int w, h, look, tier;
         float hc;
+        /** The lens: its focal length in cell heights (format 4; the standard 40 degree view before). */
+        float fn = FN;
         float[][] hills;
         int[] groundKind;
         float[][] ground;
@@ -134,17 +136,18 @@ final class WorldScene {
         return o.toByteArray();
     }
 
-    /** Reads format 3 (see tools/scenes/README.md). */
+    /** Reads formats 3 and 4 (see tools/scenes/README.md). */
     static Data parse(byte[] b) {
         if (b.length < 14 || b[0] != 'W' || b[1] != 'S' || b[2] != 'C' || b[3] != '3') throw new IllegalArgumentException("not a scene");
         Reader r = new Reader(b, 4);
         Data d = new Data();
-        r.u8();
+        int version = r.u8();
         d.tier = r.u8();
         d.w = r.u16();
         d.h = r.u16();
         d.look = r.u16();
         d.hc = r.u16() / 4f;
+        if (version >= 4) d.fn = r.u16() / 10000f; // a wider lens for a skyscraper (2.32)
         int nh = (int) r.uvar();
         d.hills = new float[nh][];
         for (int i = 0; i < nh; i++) d.hills[i] = r.pts();
@@ -243,7 +246,7 @@ final class WorldScene {
 
     private static void draw(Canvas c, Data d, int w, int h, CityScene.Light l, long seed, CityScene.Built built) {
         float k = h / (float) d.h, x0 = (d.w - w / k) / 2f, hz = HZ * h;
-        float f = FN * d.h; // the focal length in reference pixels
+        float f = d.fn * d.h; // the focal length in reference pixels (the scene's own lens)
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         Path path = new Path();
         float night = l.night, lights = l.lights;
