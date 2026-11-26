@@ -26,6 +26,8 @@ HERO = {'Amsterdam|NL': 'amsterdam-rijksmuseum', 'Seattle|US': 'sea-space-needle
         'Berlin|DE': 'berlin-brandenburg-gate', 'Washington|US': 'dc-us-capitol', 'Toronto|CA': 'tor-cn-tower',
         'Chicago|US': 'chi-willis-tower', 'Kuala Lumpur|MY': 'kl-petronas-towers', 'Los Angeles|US': 'la-us-bank-tower'}
 
+FOCUS = json.load(open(os.path.join(HERE, 'focus.json'))) if os.path.exists(os.path.join(HERE, 'focus.json')) else {}
+
 def jobs():
     majors = set(l.strip() for l in open(os.path.join(HERE, 'majors.txt')) if l.strip() and not l.startswith('#'))
     cur = json.load(open(os.path.join(HERE, 'cities.json')))
@@ -35,6 +37,7 @@ def jobs():
         if len(p) < 5: continue
         name, cc, tz, lat, lon = p[0], p[1], p[2], float(p[3]), float(p[4])
         k = name + '|' + cc
+        lat, lon = FOCUS.get(slug(name, cc), (lat, lon))  # the city's centre (Natural Earth), not the time zone's point
         cfg = {'tier': 1 if k in majors else 2, 'lat': lat, 'lon': lon}
         if k in CURATED: cfg.update(cur[CURATED[k]])
         elif k in HERO: cfg['main'] = HERO[k]
