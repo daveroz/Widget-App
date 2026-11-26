@@ -142,15 +142,19 @@ final class Palette {
             float L = mean * share * (1f - 0.12f * day) * (1f - 0.34f * backlit) + 0.02f * night;
             float h = Math.max(258f, Math.min(290f, top[2] - ROLES[i][1])); // within the blue to indigo band
             float C = Math.max(0.03f + 0.015f * night, top[1] * ROLES[i][2] * (1f - 0.28f * day)) * 1.1f;
-            if (i == LIT || i == NEAR || i == SHADE || i == EDGE || i == STREET) {
-                // 2.36: by full day the buildings and streets a cool concrete grey (a hint of blue; faces in shade a
-                // little bluer, as the sky lights them), not the blue of the illustration's other hours
-                float g = smooth(6f, 16f, e);
-                float greyC = i == SHADE ? 0.03f : 0.014f;
-                C += (greyC - C) * g;
-                h += (252f - h) * g;
-            }
             out[i] = fromLch(Math.min(0.9f, L), C, h);
+            float g = smooth(6f, 16f, e);
+            if (g > 0f && (i == LIT || i == NEAR || i == SHADE || i == EDGE || i == STREET)) {
+                // 2.37: by full day the city as daylight shows it, not the illustration's blue: faces in the sun a soft
+                // warm stone, faces in shade a cool blue-grey (the sky lights them), the body and edges a warm grey,
+                // the streets asphalt; blended in OKLab (no green on the way), each building's own material on top
+                float tc = i == LIT ? 0.02f : i == SHADE ? 0.04f : i == STREET ? 0.01f : i == EDGE ? 0.016f : 0.013f;
+                float th = i == LIT ? 72f : i == SHADE ? 256f : i == STREET ? 250f : 80f;
+                double r1 = Math.toRadians(h), r2 = Math.toRadians(th);
+                float a1 = (float) (C * Math.cos(r1)), b1 = (float) (C * Math.sin(r1));
+                float a2 = (float) (tc * Math.cos(r2)), b2 = (float) (tc * Math.sin(r2));
+                out[i] = rgb(Math.min(0.9f, L), a1 + (a2 - a1) * g, b1 + (b2 - b1) * g);
+            }
         }
         // the rim along the roofs: the horizon's warmth, light
         out[RIM] = fromLch(Math.min(0.94f, mean * 1.34f + 0.03f * night), hor[1] * 0.38f, hor[2]);
