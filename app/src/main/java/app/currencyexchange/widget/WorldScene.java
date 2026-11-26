@@ -82,16 +82,45 @@ final class WorldScene {
         return s + "-" + cc.toLowerCase(Locale.ROOT);
     }
 
+    private static Map<String, String> byName;
+
+    /** A scene's file by the place's name alone (a clock saved without its country): only when the name is unique. */
+    private static String byName(String city) {
+        if (byName == null) {
+            byName = new java.util.HashMap<>();
+            try {
+                String[] list = assets.list("scenes");
+                if (list != null) {
+                    for (String f : list) {
+                        if (!f.endsWith(".bin")) continue;
+                        String k = f.substring(0, Math.max(0, f.length() - 7)); // less "-cc.bin"
+                        byName.put(k, byName.containsKey(k) ? "" : f.substring(0, f.length() - 4));
+                    }
+                }
+            } catch (java.io.IOException ignored) { }
+        }
+        String k = slug(city, "xx");
+        String hit = k == null ? null : byName.get(k.substring(0, k.length() - 3));
+        return hit == null || hit.isEmpty() ? null : hit;
+    }
+
     /** The scene of {@code city} in country {@code cc}, or null when there's none (the drawn scene stays). */
     static synchronized Data load(String city, String cc) {
-        String key = slug(city, cc);
-        if (key == null || assets == null) return null;
+        if (assets == null || city == null) return null;
+        String key = cc != null ? slug(city, cc) : byName(city);
+        if (key == null) return null;
         Data d = CACHE.get(key);
         if (d == null) {
             try (InputStream in = new InflaterInputStream(assets.open("scenes/" + key + ".bin"))) {
                 d = parse(readAll(in));
             } catch (Exception e) {
                 d = NONE;
+                String alt = cc != null ? byName(city) : null; // its country as saved may differ from the list's
+                if (alt != null && !alt.equals(key)) {
+                    try (InputStream in = new InflaterInputStream(assets.open("scenes/" + alt + ".bin"))) {
+                        d = parse(readAll(in));
+                    } catch (Exception ignored) { }
+                }
             }
             CACHE.put(key, d);
         }

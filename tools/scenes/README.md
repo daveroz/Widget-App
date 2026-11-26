@@ -78,10 +78,12 @@ stolslilabs/paved#513 (windows as emissive faces given a halo by bloom, warm poo
 - **Tier 2** (every other place in the app's list, 321): a low-poly version of itself (rule 15): a 45 m grid, each cell
   with enough building in it a block as tall as its buildings on average (to 4 m), runs of equal cells joined; its real
   water, parks, main roads and hills; the camera chosen the same way.
-- Places with almost nothing to show (fewer than 30 shapes, e.g. a point at sea) get no scene and keep the drawn one.
+- Places with almost nothing to show (fewer than 30 shapes) get no scene and keep the drawn one. Scenes are centred on
+  Natural Earth's city centre (`focus.json`), not the time zone's point, which can be kilometres off.
 
 More rules: **14, the automatic camera**: of eight sides, the one with the richest view: a deep skyline round and behind
-the focus, water in view, mountains on the horizon (weighed well), nothing tall right in front of the camera; **15**: tier
+the focus, water in view, mountains on the horizon (weighed well), nothing tall right in front of the camera; **17, no
+wall in front**: a plain block nearer than the focus whose top would stand in the top sixth of the cell goes; **15**: tier
 2's low-poly blocks; **16, at screen size**: the ground simplified to 0.6 px and its specks dropped, footprints to half a
 pixel, a block showing less than 6 px dropped.
 
