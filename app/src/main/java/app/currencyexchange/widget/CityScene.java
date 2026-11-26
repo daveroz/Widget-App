@@ -34,6 +34,8 @@ final class CityScene {
         int far, near, street, front;
         /** The landmark's side facing the sun. */
         int lit;
+        /** Since 2.29 (the video's palette): faces away from the light, edges and balconies, the rims of roofs. */
+        int shade, edge, rim;
         /** 0 by day, 1 at night; how far the windows have lit up (from late afternoon). */
         float night, lights;
         boolean sunLeft, snow;
@@ -41,25 +43,42 @@ final class CityScene {
         int cloudTop, cloudUnder, horizon;
     }
 
-    static final int WINDOW = 0xFFFFD68A, FLOOD = 0xFFFFC46B, BEACON = 0xFFFF3B30;
+    /** The windows' glow (since 2.29 the video's peach), floodlights, and the red beacons. */
+    static final int WINDOW = Palette.WINDOW, FLOOD = 0xFFFFC46B, BEACON = 0xFFFF3B30;
 
-    /** The scene's light from the sky's layers; the sun on the left (morning) or the right (afternoon). */
+    /**
+     * The scene's light from the sky's layers; the sun on the left (morning) or the right (afternoon). Since 2.29 the
+     * city's colours come from {@link Palette}, after the reference video's colour logic: a cool blue to indigo city
+     * under whatever the sky is, lit faces bluer, faces in shade more violet, edges lavender, roof rims warmed by the
+     * horizon. The weather casts over it: rain greys and darkens it, snow pales it, fog veils it.
+     */
     static Light light(Sky.Layers L, boolean sunLeft) {
         Light l = new Light();
         float e = L.e;
         l.e = e;
         l.night = Sky.clamp((2f - e) / 8f);
         l.lights = Sky.clamp((7f - e) / 10f);
-        // the references' city (2.15): tinted by the sky, not black: blue by day, purple at dusk, navy at night; the
-        // landmark a middle tone, the far city hazy and pale, the near streets darkest
-        int base = 0xFF141C3A;
-        l.near = Scene.mix(Scene.mix(L.sky[1], L.sky[0], 0.5f), base, 0.38f + 0.3f * l.night);
-        l.street = Scene.mix(L.sky[0], base, 0.5f + 0.25f * l.night);
-        l.far = Scene.mix(L.sky[2], l.near, 0.42f + 0.25f * l.night);
-        l.front = Scene.mix(l.street, 0xFF05070F, 0.35f);
-        float day = 1f - l.night;
-        boolean low = e < 8f;
-        l.lit = Scene.mix(l.near, low ? 0xFFFFB27A : 0xFFFFF1DE, (low ? 0.3f : 0.2f) * day);
+        int[] k = Palette.city(e, L.morning);
+        float cast = L.rain ? 0.42f : L.snow ? 0.3f : L.fog ? 0.32f : Sky.clamp((L.cover - 0.6f) / 0.4f) * 0.22f;
+        if (cast > 0f) {
+            int veil = L.fog || L.snow ? L.sky[2] : 0xFF55607E;
+            for (int i = 0; i < k.length; i++) {
+                int c = k[i];
+                int g = Math.round(0.3f * android.graphics.Color.red(c) + 0.59f * android.graphics.Color.green(c)
+                        + 0.11f * android.graphics.Color.blue(c));
+                int grey = Scene.mix(android.graphics.Color.rgb(g, g, g), veil, 0.35f);
+                k[i] = Scene.mix(c, grey, cast * (i == Palette.FAR ? 1.3f : 1f));
+            }
+            if (L.fog) k[Palette.FAR] = Scene.mix(k[Palette.FAR], L.sky[2], 0.45f);
+        }
+        l.far = k[Palette.FAR];
+        l.lit = k[Palette.LIT];
+        l.near = k[Palette.NEAR];
+        l.shade = k[Palette.SHADE];
+        l.street = k[Palette.STREET];
+        l.front = k[Palette.FRONT];
+        l.edge = k[Palette.EDGE];
+        l.rim = k[Palette.RIM];
         l.sunLeft = sunLeft;
         l.snow = L.snow;
         l.cloudTop = L.cloud[0];
@@ -170,7 +189,8 @@ final class CityScene {
         return MAJOR.contains(key(city)) ? TOWERS : HOUSES;
     }
 
-    private static final int GLOW = 0xFFFFE2B0;
+    /** The street lamps' and porch lights' warm glow, and the far lights' cool cream (the video's, 2.29). */
+    private static final int GLOW = Palette.LAMP, FAR_GLOW = Palette.FAR_LIGHT;
 
     /**
      * Far hills along the horizon, hazy (2.27, after the video): a gentle line of hills across the cell, and after dark
@@ -201,43 +221,8 @@ final class CityScene {
             float top = ys[k] + (ys[k + 1] - ys[k]) * (f - k);
             float y = top + 0.6f + (float) Math.pow(r.nextFloat(), 0.7f) * (99.5f - top);
             float size = 0.14f + r.nextFloat() * 0.2f, bright = 0.35f + 0.65f * r.nextFloat();
-            p.setColor(Scene.alpha(r.nextFloat() < 0.75f ? GLOW : 0xFFFFC27A, l.lights * 0.75f * bright));
+            p.setColor(Scene.alpha(r.nextFloat() < 0.78f ? FAR_GLOW : 0xFFFFCBA0, l.lights * 0.75f * bright));
             c.drawCircle(x * u, y * u, size * u, p);
-        }
-    }
-
-    /**
-     * A tower's face in the video's manner (2.27): a thin pale line along every floor (its balconies), a darker line down
-     * its middle, and here and there a lit window, warm, of a size of its own, rather than a grid; by day a few panes
-     * catch the sky. In pixels: from ({@code x0}, {@code y0}) to ({@code x1}, {@code y1}), {@code unit} pixels a unit.
-     */
-    static void facade(Canvas c, float x0, float y0, float x1, float y1, float unit, Random r, Light l, float strength) {
-        Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
-        float floor = 1.7f * unit, w = x1 - x0;
-        if (w < 1.5f * unit || y1 - y0 < 2 * unit) return;
-        wp.setColor(Scene.alpha(Scene.mix(l.lit, 0xFFFFFFFF, 0.3f), (0.12f + 0.12f * (1 - l.night)) * strength));
-        for (float y = y0 + 1.3f * unit; y < y1 - 0.5f * unit; y += floor) {
-            c.drawRect(x0 + 0.25f * unit, y, x1 - 0.25f * unit, y + Math.max(0.6f, 0.2f * unit), wp);
-        }
-        wp.setColor(Scene.alpha(0xFF000000, 0.13f * strength)); // the darker line down its middle
-        float mid = (x0 + x1) / 2f;
-        c.drawRect(mid - 0.14f * unit, y0 + 0.8f * unit, mid + 0.14f * unit, y1, wp);
-        int rows = Math.max(1, (int) ((y1 - y0 - 1.6f * unit) / floor));
-        int n = Math.max(1, Math.round((w / unit) * rows / 4.5f));
-        for (int i = 0; i < n; i++) {
-            int row = r.nextInt(rows);
-            float ww = (0.6f + r.nextFloat() * 1.0f) * unit, wh = floor * (0.5f + 0.25f * r.nextFloat());
-            float x = x0 + 0.5f * unit + r.nextFloat() * Math.max(0.1f, w - ww - 1.0f * unit);
-            float y = y0 + 1.3f * unit + row * floor + 0.3f * unit;
-            float on = r.nextFloat(), bright = r.nextFloat(), kind = r.nextFloat();
-            if (l.lights > 0.03f && on < 0.7f) {
-                int col = kind < 0.12f ? 0xFFDCE8FF : kind < 0.3f ? 0xFFFFB866 : WINDOW;
-                wp.setColor(Scene.alpha(col, l.lights * (0.5f + 0.5f * bright) * strength));
-                c.drawRect(x, y, x + ww, y + wh, wp);
-            } else if (l.lights < 0.9f && kind < 0.5f) {
-                wp.setColor(Scene.alpha(Scene.mix(l.horizon, 0xFFFFFFFF, 0.3f), 0.1f * (1 - l.lights) * strength));
-                c.drawRect(x, y, x + ww, y + wh, wp);
-            }
         }
     }
 
@@ -270,52 +255,245 @@ final class CityScene {
 
     /** The side facing the sun catching the light, as a thin strip (near buildings only). */
     private static void litEdge(Canvas c, float u, Light l, float x0, float top, float x1, float bottom, Paint p) {
-        p.setColor(Scene.alpha(Scene.mix(l.lit, 0xFFFFFFFF, 0.15f), 0.3f * (1 - l.night) + 0.08f));
+        p.setColor(Scene.alpha(l.edge, 0.45f * (1 - l.night) + 0.15f));
         float sw = 0.55f;
         if (l.sunLeft) c.drawRect(x0 * u, top * u, (x0 + sw) * u, bottom * u, p);
         else c.drawRect((x1 - sw) * u, top * u, x1 * u, bottom * u, p);
     }
 
+    /** The kinds of tower, after the reference video (2.29). */
+    static final int BALCONY = 0, OFFICE = 1, SLIM = 2, STEPPED = 3, BLOCK = 4;
+
+    /**
+     * A tower in the video's structure (2.29), in pixels from ({@code x0}, {@code top}) to ({@code x1}, {@code bottom}),
+     * {@code un} pixels a unit. Every tower shows two faces, the one turned to the light bluer and the one away from it
+     * more violet and darker, with a rim of the horizon's warmth along its top. A balcony tower has a pale slab along
+     * every floor whose ends stand out past its edges, a lighter band up its face and lit windows scattered at random,
+     * warm, each its own size, some with a brighter heart; an office tower a lighter face of thin vertical ribs with its
+     * windows in columns and a crown with small lights; a slim tower is dark, with a column of tiny lights near each
+     * edge and an antenna; a stepped tower rises in setbacks; a block is low and wide with bands of windows. With
+     * {@code crown} false only its faces are drawn (a landmark's own shape).
+     */
+    static void tower(Canvas c, float x0, float top, float x1, float bottom, float un, int type, Random r, Light l,
+                      boolean crown) {
+        if (type == STEPPED) {
+            float h = bottom - top, w = x1 - x0;
+            tower(c, x0, top + h * 0.38f, x1, bottom, un, BALCONY, r, l, false);
+            tower(c, x0 + w * 0.11f, top + h * 0.15f, x1 - w * 0.11f, top + h * 0.38f + 0.5f * un, un, BALCONY, r, l, false);
+            tower(c, x0 + w * 0.24f, top, x1 - w * 0.24f, top + h * 0.15f + 0.5f * un, un, BALCONY, r, l, crown);
+            return;
+        }
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        float w = x1 - x0;
+        int lit = l.lit, shade = l.shade;
+        if (type == OFFICE) { lit = Scene.mix(l.lit, l.edge, 0.25f); shade = l.near; }
+        else if (type == SLIM) { lit = Scene.mix(l.shade, l.lit, 0.4f); shade = Scene.mix(l.shade, l.front, 0.45f); }
+        else if (type == BLOCK) { lit = l.near; shade = l.shade; }
+        float sideW = w * (type == SLIM ? 0.34f : type == BLOCK ? 0.16f : 0.28f);
+        float fl0, fr0, sl0, sr0; // the lit face and the face in shade
+        if (l.sunLeft) { fl0 = x0; fr0 = x1 - sideW; sl0 = fr0; sr0 = x1; }
+        else { sl0 = x0; sr0 = x0 + sideW; fl0 = sr0; fr0 = x1; }
+        // the crown, behind the top
+        if (crown) {
+            if (type == BALCONY) {
+                p.setColor(shade);
+                c.drawRect(x0 + w * 0.26f, top - 2.8f * un, x1 - w * 0.26f, top, p);
+                p.setColor(Scene.alpha(l.rim, 0.5f * (1 - l.night) + 0.15f));
+                c.drawRect(x0 + w * 0.26f, top - 2.8f * un, x1 - w * 0.26f, top - 2.55f * un, p);
+            } else if (type == OFFICE) {
+                p.setColor(l.near);
+                c.drawRect(x0 + w * 0.12f, top - 2.4f * un, x1 - w * 0.12f, top, p);
+                p.setColor(shade);
+                c.drawRect(x0 + w * 0.3f, top - 3.8f * un, x1 - w * 0.3f, top - 2.4f * un, p);
+                p.setColor(Scene.alpha(l.rim, 0.75f)); // the small lights along the crown, as the video's
+                for (float x = x0 + w * 0.16f; x < x1 - w * 0.14f; x += 1.15f * un) c.drawCircle(x, top - 2.4f * un, 0.3f * un, p);
+            } else if (type == SLIM) {
+                p.setColor(shade);
+                c.drawRect(x0 + w * 0.2f, top - 1.8f * un, x1 - w * 0.2f, top, p);
+                p.setStrokeWidth(Math.max(1f, 0.28f * un));
+                c.drawLine((x0 + x1) / 2f, top - 1.8f * un, (x0 + x1) / 2f, top - 5f * un, p);
+            } else if (type == BLOCK) {
+                p.setColor(shade);
+                for (int i = 0; i < 2; i++) {
+                    float bx = x0 + w * (0.15f + 0.45f * r.nextFloat());
+                    c.drawRect(bx, top - 1.1f * un, bx + 1.6f * un, top, p);
+                }
+            }
+        }
+        // its two faces
+        p.setColor(lit);
+        c.drawRect(fl0, top, fr0, bottom, p);
+        p.setColor(shade);
+        c.drawRect(sl0, top, sr0, bottom, p);
+        float floor = 1.6f * un, line = Math.max(1f, 0.3f * un);
+        float day = 1 - l.night;
+        Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
+        if (type == BALCONY) {
+            if (crown) { // the cap slab, a little wider
+                p.setColor(Scene.mix(lit, l.edge, 0.5f));
+                c.drawRect(x0 - 0.3f * un, top - 0.7f * un, x1 + 0.3f * un, top, p);
+            }
+            float band = fl0 + (fr0 - fl0) * (0.3f + 0.1f * r.nextFloat());
+            p.setColor(Scene.mix(lit, l.edge, 0.32f)); // the lighter band up its face
+            c.drawRect(band, top, band + 0.9f * un, bottom, p);
+            boolean outLeft = l.sunLeft; // the balconies stand out past the lit face's outer edge
+            for (float y = top + 1.2f * un; y < bottom - 0.4f * un; y += floor) {
+                p.setColor(l.edge);
+                float a0 = outLeft ? fl0 - 0.45f * un : fl0, a1 = outLeft ? fr0 : fr0 + 0.45f * un;
+                c.drawRect(a0, y, a1, y + line, p);
+                float tick = outLeft ? a0 : a1 - line; // the railing's end
+                c.drawRect(tick, y - 0.45f * un, tick + line, y, p);
+                p.setColor(Scene.mix(shade, l.edge, 0.35f));
+                float b0 = outLeft ? sl0 : sl0 - 0.3f * un, b1 = outLeft ? sr0 + 0.3f * un : sr0;
+                c.drawRect(b0, y, b1, y + line, p);
+            }
+            windows(c, fl0, top, fr0, bottom, un, floor, r, l, wp, true);
+            windows(c, sl0, top, sr0, bottom, un, floor, r, l, wp, false);
+        } else if (type == OFFICE) {
+            p.setStrokeWidth(Math.max(1f, 0.12f * un));
+            int rib = Scene.mix(lit, shade, 0.55f);
+            float step = 1.25f * un;
+            for (float x = fl0 + step; x < fr0 - 0.3f * un; x += step) {
+                p.setColor(rib);
+                c.drawLine(x, top, x, bottom, p);
+            }
+            p.setColor(Scene.mix(shade, l.front, 0.3f));
+            for (float x = sl0 + step; x < sr0 - 0.3f * un; x += step) c.drawLine(x, top, x, bottom, p);
+            for (float y = top + 1.0f * un; y < bottom - 0.5f * un; y += floor) {
+                for (float x = fl0 + step * 0.5f; x < fr0 - 0.3f * un; x += step) {
+                    float on = r.nextFloat();
+                    if (l.lights > 0.04f && on < 0.26f) {
+                        wp.setColor(Scene.alpha(Scene.mix(FAR_GLOW, WINDOW, 0.35f), l.lights * (0.6f + 0.4f * r.nextFloat())));
+                        c.drawRect(x - 0.24f * un, y, x + 0.24f * un, y + 0.5f * un, wp);
+                    } else if (day > 0.1f && on > 0.86f) {
+                        wp.setColor(Scene.alpha(l.edge, 0.3f * day));
+                        c.drawRect(x - 0.24f * un, y, x + 0.24f * un, y + 0.5f * un, wp);
+                    }
+                }
+            }
+        } else if (type == SLIM) {
+            p.setColor(Scene.alpha(shade, 0.35f));
+            for (float y = top + 1.2f * un; y < bottom; y += floor) c.drawRect(fl0, y, fr0, y + Math.max(1f, 0.12f * un), p);
+            float[] cols = {fl0 + 0.7f * un, fr0 - 0.7f * un};
+            for (float x : cols) {
+                for (float y = top + 1.0f * un; y < bottom - 0.4f * un; y += 1.2f * un) {
+                    if (r.nextFloat() < 0.15f) continue;
+                    wp.setColor(Scene.alpha(FAR_GLOW, l.lights * 0.85f + 0.12f * day));
+                    c.drawCircle(x, y, 0.26f * un, wp);
+                }
+            }
+            p.setColor(Scene.alpha(l.rim, 0.45f * day + 0.25f)); // the lit edge, catching the sky
+            float ex = l.sunLeft ? fl0 : fr0 - line;
+            c.drawRect(ex, top, ex + line, bottom, p);
+        } else { // a block: bands of windows
+            for (float y = top + 1.4f * un; y < bottom - 1.2f * un; y += 2.2f * un) {
+                for (float x = fl0 + 0.6f * un; x < fr0 - 0.8f * un; x += 1.25f * un) {
+                    boolean on = l.lights > 0.04f && r.nextFloat() < 0.45f;
+                    wp.setColor(on ? Scene.alpha(WINDOW, l.lights * (0.6f + 0.4f * r.nextFloat()))
+                            : Scene.alpha(l.edge, 0.16f * day + 0.04f));
+                    c.drawRect(x, y, x + 0.75f * un, y + 0.85f * un, wp);
+                }
+            }
+        }
+        // the rim along its top, warmed by the horizon
+        p.setColor(Scene.alpha(l.rim, 0.6f * day + 0.25f));
+        c.drawRect(fl0, top, fr0, top + Math.max(1f, 0.3f * un), p);
+        if (l.snow) {
+            p.setColor(Scene.mix(0xFFF4F7FC, l.horizon, 0.12f + 0.4f * l.night));
+            c.drawRect(x0, top, x1, top + 1.2f * un, p);
+        }
+    }
+
+    /** A face's lit windows, scattered as the video's: warm, of sizes of their own, the larger with a brighter heart. */
+    private static void windows(Canvas c, float x0, float top, float x1, float bottom, float un, float floor, Random r,
+                                Light l, Paint wp, boolean litFace) {
+        float w = x1 - x0;
+        if (w < 1.2f * un) return;
+        int rows = Math.max(1, (int) ((bottom - top - 1.4f * un) / floor));
+        int n = Math.max(1, Math.round(w / un * rows / (litFace ? 7f : 9f))); // sparse, as the video's
+        for (int i = 0; i < n; i++) {
+            int row = r.nextInt(rows);
+            float ww = (0.7f + r.nextFloat() * 0.9f) * un, wh = floor * (0.5f + 0.2f * r.nextFloat());
+            float x = x0 + 0.4f * un + r.nextFloat() * Math.max(0.1f, w - ww - 0.8f * un);
+            float y = top + 1.2f * un + row * floor + Math.max(1f, 0.22f * un) + 0.12f * un;
+            float on = r.nextFloat(), bright = r.nextFloat();
+            if (l.lights > 0.03f && on < 0.72f) {
+                wp.setColor(Scene.alpha(WINDOW, l.lights * (0.55f + 0.45f * bright) * (litFace ? 1f : 0.8f)));
+                c.drawRect(x, y, x + ww, y + wh, wp);
+                if (ww > 1.2f * un) { // a brighter heart: a lamp, a curtain lit from inside
+                    wp.setColor(Scene.alpha(Scene.mix(WINDOW, 0xFFFFFFFF, 0.4f), l.lights * 0.8f));
+                    c.drawRect(x + ww * 0.3f, y + wh * 0.25f, x + ww * 0.7f, y + wh * 0.75f, wp);
+                }
+            } else if (l.lights < 0.9f && on > 0.8f) {
+                wp.setColor(Scene.alpha(l.edge, 0.22f * (1 - l.lights)));
+                c.drawRect(x, y, x + ww, y + wh, wp);
+            }
+        }
+    }
+
+    /** A far tower: a hazy silhouette with a face in shade, now and then a crown, tiny cool lights after dark. */
+    private static void farTower(Canvas c, float x0, float top, float x1, float u, Random r, Light l) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        float w = x1 - x0;
+        int col = Scene.mix(l.far, l.horizon, r.nextFloat() * 0.12f);
+        p.setColor(col);
+        if (r.nextFloat() < 0.35f) c.drawRect(x0 + w * 0.25f, top - 1.6f * u, x1 - w * 0.25f, top, p);
+        c.drawRect(x0, top, x1, 100 * u, p);
+        p.setColor(Scene.mix(col, l.shade, 0.25f));
+        float side = w * 0.3f;
+        if (l.sunLeft) c.drawRect(x1 - side, top, x1, 100 * u, p);
+        else c.drawRect(x0, top, x0 + side, 100 * u, p);
+        if (r.nextFloat() < 0.5f) { // faint balconies
+            p.setColor(Scene.alpha(l.edge, 0.18f));
+            for (float y = top + 1.2f * u; y < 100 * u; y += 1.5f * u) c.drawRect(x0, y, x1, y + Math.max(1f, 0.16f * u), p);
+        }
+        if (l.lights > 0.05f) {
+            for (float y = top + 1.0f * u; y < 99 * u; y += 1.4f * u) {
+                for (float x = x0 + 0.6f * u; x < x1 - 0.4f * u; x += 1.1f * u) {
+                    if (r.nextFloat() > 0.3f) continue;
+                    p.setColor(Scene.alpha(r.nextFloat() < 0.7f ? FAR_GLOW : WINDOW, l.lights * 0.6f));
+                    c.drawCircle(x, y, 0.18f * u, p);
+                }
+            }
+        }
+    }
+
     private static void towers(Canvas c, float u, float wide, Light l, Random r, boolean near) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         float x = -1;
-        float towerL = wide * (0.12f + r.nextFloat() * 0.08f), towerR = wide * (0.74f + r.nextFloat() * 0.1f);
+        float towerL = wide * (0.1f + r.nextFloat() * 0.08f), towerR = wide * (0.72f + r.nextFloat() * 0.1f);
         boolean doneL = false, doneR = false;
         while (x < wide + 1) {
-            float w = near ? 4 + r.nextFloat() * 6 : 3 + r.nextFloat() * 5, hgt;
-            float mid = Math.abs(x + w / 2 - wide / 2) / (wide / 2);
-            if (near) {
-                if (!doneL && x + w > towerL) { w = 7 + r.nextFloat() * 3; hgt = 34 + r.nextFloat() * 8; doneL = true; }
-                else if (!doneR && x + w > towerR) { w = 7 + r.nextFloat() * 3; hgt = 36 + r.nextFloat() * 10; doneR = true; }
-                else hgt = (mid < 0.3f ? 5 + r.nextFloat() * 6 : 9 + r.nextFloat() * 15);
+            if (!near) {
+                float w = 3 + r.nextFloat() * 5, hgt = 10 + r.nextFloat() * 20;
+                farTower(c, x * u, (100 - hgt) * u, (x + w) * u, u, r, l);
+                x += w + (r.nextFloat() < 0.4f ? 2 + r.nextFloat() * 5 : r.nextFloat() * 0.8f); // room for the hills
+                continue;
+            }
+            float w, hgt;
+            int type;
+            float mid = Math.abs(x + 4 - wide / 2) / (wide / 2);
+            if (!doneL && x + 6 > towerL) {
+                w = 7 + r.nextFloat() * 3; hgt = 36 + r.nextFloat() * 8; doneL = true;
+                type = r.nextBoolean() ? BALCONY : SLIM;
+            } else if (!doneR && x + 6 > towerR) {
+                w = 8 + r.nextFloat() * 3; hgt = 38 + r.nextFloat() * 9; doneR = true;
+                type = r.nextBoolean() ? OFFICE : STEPPED;
+            } else if (mid < 0.3f) {
+                w = 6 + r.nextFloat() * 4; hgt = 5 + r.nextFloat() * 6; type = BLOCK;
             } else {
-                hgt = 14 + r.nextFloat() * 20;
+                w = 5 + r.nextFloat() * 5; hgt = 12 + r.nextFloat() * 14;
+                float k = r.nextFloat();
+                type = k < 0.4f ? BALCONY : k < 0.7f ? OFFICE : BLOCK;
             }
             float l0 = x, r0 = x + w, top = 100 - hgt;
-            int col = tone(l, near, r);
-            p.setColor(col);
-            c.drawRect(l0 * u, top * u, r0 * u, 100 * u, p);
-            // its other face, away from the sun, a shade darker (the video's towers show two)
-            p.setColor(Scene.alpha(0xFF000000, near ? 0.16f : 0.08f));
-            float side = w * 0.3f;
-            if (l.sunLeft) c.drawRect((r0 - side) * u, top * u, r0 * u, 100 * u, p);
-            else c.drawRect(l0 * u, top * u, (l0 + side) * u, 100 * u, p);
-            if (hgt > 16 && r.nextFloat() < 0.55f) { // a smaller block on its roof
-                float inset = w * (0.18f + 0.12f * r.nextFloat()), rh = 1.4f + r.nextFloat() * 2f;
-                p.setColor(col);
-                c.drawRect((l0 + inset) * u, (top - rh) * u, (r0 - inset) * u, top * u, p);
-                snowOn(c, u, l, near, l0 + inset, top - rh, r0 - inset, p);
+            tower(c, l0 * u, top * u, r0 * u, 100 * u, u, type, r, l, true);
+            if (hgt > 30 && l.night > 0.3f) {
+                p.setColor(Scene.alpha(BEACON, 0.7f * l.night));
+                float bt = type == SLIM ? top - 5.2f : type == OFFICE ? top - 4f : top - 3f;
+                c.drawCircle((l0 + w / 2) * u, bt * u, 0.5f * u, p);
             }
-            snowOn(c, u, l, near, l0, top, r0, p);
-            if (near) {
-                litEdge(c, u, l, l0, top, r0, 100, p);
-                if (hgt > 30 && l.night > 0.3f) {
-                    p.setColor(Scene.alpha(BEACON, 0.7f * l.night));
-                    c.drawCircle((l0 + w / 2) * u, (top - 0.8f) * u, 0.55f * u, p);
-                }
-            }
-            facade(c, l0 * u, top * u, r0 * u, 100 * u, u, r, l, near ? 1f : 0.6f);
-            x = r0 + (near ? r.nextFloat() * 0.4f : r.nextFloat() * 0.8f);
+            x = r0 + r.nextFloat() * 0.5f;
         }
     }
 
@@ -569,7 +747,7 @@ final class CityScene {
 
         /** The landmark's colour, shaded across {@code a}..{@code b}: lighter on the side facing the sun. */
         Pen body(float a, float b) {
-            int s = l.lit, d = l.near;
+            int s = l.lit, d = Scene.mix(l.near, l.shade, 0.55f); // lit to the side in shade (2.29)
             p.setShader(new LinearGradient(X(a), 0, X(b), 0, l.sunLeft ? s : d, l.sunLeft ? d : s, Shader.TileMode.CLAMP));
             return this;
         }
@@ -622,7 +800,11 @@ final class CityScene {
          * darker line down its middle, and here and there a lit window (warm at night, catching the sky by day).
          */
         void windows(float l0, float t, float r0, float b) {
-            facade(c, X(l0), Y(t), X(r0), Y(b), S(1), r, l, 1f);
+            Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG), p2 = new Paint(Paint.ANTI_ALIAS_FLAG);
+            float un = S(1), floor = 1.6f * un, line = Math.max(1f, 0.22f * un);
+            p2.setColor(Scene.alpha(l.edge, 0.55f)); // a pale line along every floor (2.29, the video's balconies)
+            for (float y = Y(t) + 1.2f * un; y < Y(b) - 0.4f * un; y += floor) c.drawRect(X(l0), y, X(r0), y + line, p2);
+            CityScene.windows(c, X(l0), Y(t), X(r0), Y(b), un, floor, r, l, wp, true);
         }
 
         /** A building: its shaded block, the edge and roof catching the light, its windows. */
@@ -635,13 +817,12 @@ final class CityScene {
         /** The side facing the sun and the roof's edge catching the light (a rim of sky light at night). */
         void edges(float l0, float t, float r0, float b) {
             Paint e = new Paint(Paint.ANTI_ALIAS_FLAG);
-            int hi = Scene.mix(l.lit, 0xFFFFFFFF, 0.2f * (1 - l.night));
-            float a = 0.5f * (1 - l.night) + 0.1f;
-            e.setColor(Scene.alpha(hi, a));
+            float a = 0.55f * (1 - l.night) + 0.2f;
+            e.setColor(Scene.alpha(l.edge, a)); // the edge facing the light, lavender (2.29)
             float sw = 0.7f;
             if (l.sunLeft) c.drawRect(X(l0), Y(t), X(l0 + sw), Y(b), e);
             else c.drawRect(X(r0 - sw), Y(t), X(r0), Y(b), e);
-            e.setColor(Scene.alpha(hi, a * 0.8f));
+            e.setColor(Scene.alpha(l.rim, 0.55f * (1 - l.night) + 0.15f)); // the roof's rim, warmed by the horizon
             c.drawRect(X(l0), Y(t), X(r0), Y(t + 0.5f), e);
         }
 
@@ -1285,33 +1466,15 @@ final class CityScene {
     private static void genericTowers(Pen p, List<float[]> beacons, Random r) {
         float x = 98.5f;
         int n = 0;
-        while (x > 48 && n < 9) {
-            float w = 5 + r.nextFloat() * 5, t = 100 - (14 + r.nextFloat() * 22 + (x > 70 ? 10 : 0));
+        int[] kinds = {BALCONY, OFFICE, SLIM, STEPPED, BALCONY, OFFICE, BLOCK};
+        while (x > 48 && n < 8) {
+            int type = kinds[(n + Math.abs(r.nextInt())) % kinds.length];
+            float w = (type == SLIM ? 4.5f : 6f) + r.nextFloat() * 4;
+            float t = 100 - (type == BLOCK ? 9 + r.nextFloat() * 5 : 16 + r.nextFloat() * 22 + (x > 70 ? 10 : 0));
             float l0 = x - w;
-            p.body(l0, x);
-            switch (r.nextInt(6)) {
-                case 0: // a spire
-                    p.rect(l0, t, x, 100);
-                    p.poly(l0 + w * 0.3f, t + 0.2f, l0 + w / 2, t - 8, l0 + w * 0.7f, t + 0.2f);
-                    beacons.add(new float[]{l0 + w / 2, t - 8});
-                    break;
-                case 1: // set back
-                    p.rect(l0, t + 6, x, 100);
-                    p.rect(l0 + w * 0.2f, t, x - w * 0.2f, t + 6.2f);
-                    break;
-                case 2: // a slanted top
-                    p.poly(l0, 100, l0, t + 4, x, t, x, 100);
-                    break;
-                case 3: // an antenna
-                    p.rect(l0, t, x, 100);
-                    p.line(l0 + w / 2, t, l0 + w / 2, t - 6, 0.4f);
-                    beacons.add(new float[]{l0 + w / 2, t - 6});
-                    break;
-                default:
-                    p.rect(l0, t, x, 100);
-            }
-            p.edges(l0, t, x, 100);
-            p.windows(l0, t, x, 100);
+            tower(p.c, p.X(l0), p.Y(t), p.X(x), p.Y(100), p.S(1), type, r, p.l, true);
+            if (type == SLIM) beacons.add(new float[]{l0 + w / 2, t - 5f});
+            else if (type == OFFICE && t < 64) beacons.add(new float[]{l0 + w / 2, t - 3.8f});
             x = l0 - 0.6f - r.nextFloat() * 1.6f;
             n++;
         }
