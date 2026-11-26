@@ -138,14 +138,8 @@ final class Sky {
 
         // the sun (2.31, after the references): a small bright disc in a wide soft glare, with faint rays by day; low
         // down it grows a little and warms, and a long glow lies along the horizon
-        float sAlt, sAz;
-        if (sun != null) {
-            sAlt = (float) Math.toDegrees(sun[0]);
-            sAz = (float) sun[1];
-        } else {
-            sAlt = e;
-            sAz = (float) (sunLeft ? -Math.PI / 3 : Math.PI / 3);
-        }
+        // its height is always the light's (so the sky and the sun never disagree); where it stands across, the real one's
+        float sAlt = e, sAz = sun != null ? (float) sun[1] : (float) (sunLeft ? -Math.PI / 3 : Math.PI / 3);
         if (sAlt > -4f) {
             float low = 1f - clamp((sAlt - 1f) / 9f); // 1 at the horizon, 0 from 10 degrees up
             float sunR = w * (0.045f + 0.02f * low);

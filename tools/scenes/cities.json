@@ -19,16 +19,15 @@
   "zoom": 0.72
  },
  "tokyo": {
-  "main": "tokyo-tower",
-  "az": 315
+  "main": "tokyo-skytree"
  },
  "charlotte": {
   "main": "bank-of-america-corporate-center",
   "az": 200
  },
  "mexico-city": {
-  "main": "mexico-city-angel-de-la-independencia",
-  "az": 60
+  "main": "mexico-city-torre-latinoamericana",
+  "az": 325
  },
  "dubai": {
   "main": "dubai-burj-khalifa",

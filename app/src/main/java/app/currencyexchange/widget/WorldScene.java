@@ -225,7 +225,8 @@ final class WorldScene {
     // ------------------------------------------------------------------ drawing
 
     private static final int[] WARM = {0xFFFFDC8C, 0xFFFFC46E, 0xFFFFB27A, 0xFFFFE8B0, 0xFFFFCD96};
-    private static final int LAMP = 0xFFFFD6EC, POOL = 0xFFFFC496, GLOW_WINDOW = 0xFFFF7668, GLOW_LAMP = 0xFFFF5CAA;
+    private static final int LAMP = 0xFFFFD6EC, POOL = 0xFFFFC496, GLOW_WINDOW = 0xFFFF7668, GLOW_LAMP = 0xFFFF5CAA,
+            FLOOD = 0xFFFFC46B;
 
     /**
      * The still picture of {@code city}'s scene ({@code w} x {@code h} pixels) for the light {@code l}, or null when the
@@ -339,6 +340,10 @@ final class WorldScene {
             }
             if (kind == LM || kind == LM_ROOF) base = tint(base, d.hue[i], d.chroma[i]);
             if (kind == LM_GLASS) base = Scene.mix(base, shadeC, 0.4f);
+            if (d.main[i] && kind != LM_GLASS && lights > 0.25f) { // the hero floodlit at night, warm (as most are)
+                double lit = d.facing[i] < 0 ? 0.5 : Math.cos(Math.toRadians(d.facing[i] - d.look - 180));
+                base = Scene.mix(base, FLOOD, (0.35f + 0.25f * (float) Math.max(0, lit)) * lights);
+            }
             int col = Scene.mix(base, farHaze, fog);
             poly(path, s, x0, k);
             p.setColor(col);
