@@ -17,7 +17,8 @@ package app.currencyexchange.widget;
  * 19, the body 0.81 and 16, streets 0.72 and 13, faces in shade 0.67 and 3, trees and palms in front 0.66 and 8, edges
  * and balconies 1.04 and 10 (a lavender), and the rims of roofs 1.34 in the horizon's own hue (its warmth).</li>
  * </ol>
- * By day the city is a little softer (less colour), at night lifted a touch so it never goes black.
+ * By day the city is a little softer (less colour), at night lifted to a moonlit blue (2.31) so it never goes black and
+ * the lit windows read against it, as the reference poster's.
  */
 final class Palette {
     private Palette() {}
@@ -120,9 +121,9 @@ final class Palette {
         float day = smooth(4f, 18f, e), night = 1f - smooth(-12f, -2f, e);
         int[] out = new int[8];
         for (int i = 0; i < ROLES.length; i++) {
-            float L = mean * ROLES[i][0] + 0.045f * night;
+            float L = mean * ROLES[i][0] + 0.085f * night; // 2.31: a moonlit blue at night, so lit windows read
             float h = Math.max(258f, Math.min(296f, top[2] - ROLES[i][1])); // within the blue to indigo band
-            float C = Math.max(0.035f, top[1] * ROLES[i][2] * (1f - 0.28f * day));
+            float C = Math.max(0.035f + 0.03f * night, top[1] * ROLES[i][2] * (1f - 0.28f * day));
             out[i] = fromLch(Math.min(0.9f, L), C, h);
         }
         // the rim along the roofs: the horizon's warmth, light
@@ -166,13 +167,13 @@ final class Palette {
         return 0xFF000000 | (enc(r) << 16) | (enc(g) << 8) | enc(bb);
     }
 
-    private static float[] lch(int c) {
+    static float[] lch(int c) {
         float[] lab = lab(c);
         float h = (float) Math.toDegrees(Math.atan2(lab[2], lab[1]));
         return new float[]{lab[0], (float) Math.hypot(lab[1], lab[2]), h < 0 ? h + 360 : h};
     }
 
-    private static int fromLch(float L, float C, float h) {
+    static int fromLch(float L, float C, float h) {
         double r = Math.toRadians(h);
         return rgb(L, C * (float) Math.cos(r), C * (float) Math.sin(r));
     }

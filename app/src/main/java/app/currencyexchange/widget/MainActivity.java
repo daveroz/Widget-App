@@ -759,6 +759,14 @@ public class MainActivity extends Activity {
         statusRow(false, "Weather", wxErr.isEmpty() && Store.weather(this) != null,
                 !wxErr.isEmpty() ? wxErr : (Store.weather(this) == null ? "Waiting for first update" : "Open-Meteo"));
 
+        int scenes = 0; // the real cities behind the clocks (2.31), and the credit their map data asks for
+        try {
+            String[] list = getAssets().list("scenes");
+            scenes = list == null ? 0 : list.length;
+        } catch (java.io.IOException ignored) { }
+        statusRow(false, "City scenes", scenes > 0, scenes + " places · map © OpenStreetMap contributors, Overture Maps"
+                + " (ODbL) · landmarks CC0 (alexwohlbruck/landmarks) · terrain Mapzen");
+
         SharedPreferences sp = Store.sp(this);
         long ok = sp.getLong("clockOkAt", 0), bad = sp.getLong("clockErrAt", 0);
         java.text.SimpleDateFormat hms = new java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault());

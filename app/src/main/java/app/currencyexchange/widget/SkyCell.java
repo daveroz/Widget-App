@@ -75,15 +75,15 @@ final class SkyCell {
             hit.cc = cc;
             return hit;
         }
-        SkyCell made = new SkyCell(spec, city, lat, lon, zone, el, sunLeft, cloud, code, wind, w, h, px, corners, r, moon);
-        made.cc = cc;
+        SkyCell made = new SkyCell(spec, city, cc, lat, lon, zone, el, sunLeft, cloud, code, wind, w, h, px, corners, r, moon);
         CELLS.put(spec, made);
         return made;
     }
 
-    private SkyCell(String spec, String city, double lat, double lon, ZoneId zone, float el, boolean sunLeft, int cloud,
-                    int code, int wind, int w, int h, float px, int corners, float r, double[] moon) {
+    private SkyCell(String spec, String city, String cc, double lat, double lon, ZoneId zone, float el, boolean sunLeft,
+                    int cloud, int code, int wind, int w, int h, float px, int corners, float r, double[] moon) {
         this.spec = spec;
+        this.cc = cc;
         this.zone = zone;
         this.seed = city == null ? 0 : city.hashCode();
         this.px = px;
@@ -92,7 +92,10 @@ final class SkyCell {
         double[] sun = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.sun(lat, lon, now());
         sky = Sky.layers(w, h, px, el, cloud, code, seed, sunLeft, moon, sun);
         light = CityScene.light(sky, sunLeft);
-        built = CityScene.build(city, lat, zone, w, h, px, light, seed); // its streets as its continent's (2.27)
+        // the city as it really is, from open map data (2.31; its streets, landmarks, water and hills), or else the drawn
+        // scene (its streets as its continent's, 2.27)
+        CityScene.Built real = WorldScene.build(city, cc, w, h, px, light, seed);
+        built = real != null ? real : CityScene.build(city, lat, zone, w, h, px, light, seed);
         // the clouds cross their strip (twice the cell) in about eight minutes in a breeze, faster in a wind
         drift = 2f * w / 480f * (0.6f + Math.min(40, wind < 0 ? 8 : wind) / 25f);
         out = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
