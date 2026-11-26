@@ -1,0 +1,56 @@
+{
+ "paris": {
+  "main": "eiffel-tower",
+  "az": 314
+ },
+ "sydney": {
+  "main": "sydney-opera-house",
+  "az": 150
+ },
+ "new-york": {
+  "main": "empire-state-building",
+  "az": 200
+ },
+ "london": {
+  "main": "london-tower-bridge",
+  "az": 287,
+  "foot": 0.74,
+  "hmin": 40,
+  "zoom": 0.72
+ },
+ "tokyo": {
+  "main": "tokyo-tower",
+  "az": 315
+ },
+ "charlotte": {
+  "main": "bank-of-america-corporate-center",
+  "az": 200
+ },
+ "mexico-city": {
+  "main": "mexico-city-angel-de-la-independencia",
+  "az": 60
+ },
+ "dubai": {
+  "main": "dubai-burj-khalifa",
+  "az": 120
+ },
+ "barcelona": {
+  "main": "barcelona-sagrada-familia",
+  "az": 150
+ },
+ "istanbul": {
+  "main": "istanbul-hagia-sophia",
+  "az": 160
+ },
+ "san-francisco": {
+  "main": "sf-transamerica-pyramid",
+  "az": 45
+ },
+ "bruges": {
+  "lat": 51.2085,
+  "lon": 3.2247,
+  "height": 85,
+  "width": 40,
+  "az": 200
+ }
+}

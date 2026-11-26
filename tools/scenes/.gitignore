@@ -1,0 +1,5 @@
+baked/
+terr/
+idx_*.json
+__pycache__/
+*.log
