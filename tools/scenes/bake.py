@@ -222,7 +222,7 @@ def hero_near(lat, lon, radius=6000.0):
     return best
 
 
-def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None):
+def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None, cands=None):
     """Rule 14, the automatic camera: of eight sides, the one with the richest view: a deep skyline round and behind
     the focus, water in view, and nothing tall right in front of the camera."""
     R = d + T['far'] * 0.6
@@ -249,7 +249,7 @@ def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None):
     P = np.array(pts) if pts else np.zeros((0, 3))
     fpx = FN * REF_H
     best, bs = 200, -1e18
-    for az in range(0, 360, 45):
+    for az in (cands if cands is not None else range(0, 360, 45)):
         a = math.radians(az)
         cx, cz = math.sin(a) * d, -math.cos(a) * d
         lk = math.radians((az + 180) % 360)
@@ -301,24 +301,53 @@ def bake(key, cfg):
         allv = np.vstack([x[0] for x in m])
         hF = float(allv[:, 1].max())
         wF = float(max(np.ptp(allv[:, 0]), np.ptp(allv[:, 2])))
-    d = D_BASE * (max(hF, 30.0) / 60.0) ** D_EXP  # rule 18
-    d = max(d, wF * FN0 / 0.62, cfg.get('min_dist', 0))  # a wide one fits across a square cell
-    d *= cfg.get('zoom', 1.0)
-    foot, fn = cfg.get('foot', FOOT), FN0
-    if foot - hF * fn / d < TOP_MARGIN:  # its top must keep clear of the top edge: first its foot lower,
-        foot = max(foot, min(FOOT_LOW, TOP_MARGIN + hF * fn / d))
-    if foot - hF * fn / d < TOP_MARGIN:  # then a wider lens,
-        fn = max(FN_WIDE, (foot - TOP_MARGIN) * d / hF)
-    if foot - hF * fn / d < TOP_MARGIN:  # and only then a step back
-        d = hF * fn / (foot - TOP_MARGIN)
-    hc = d * (foot - HZ) / fn
-    hmin = cfg.get('hmin', HMIN)
-    if hc < hmin:  # rule 9: never lower than HMIN: the foot a little lower, else a step back
-        foot = min(FOOT_LOW, HZ + hmin * fn / d)
-        d = max(d, hmin * fn / (foot - HZ))
-        hc = hmin
+    def compose(wv):  # rule 18 for a landmark wv metres wide as seen
+        d = D_BASE * (max(hF, 30.0) / 60.0) ** D_EXP  # rule 18
+        d = max(d, wv * FN0 / 0.62, cfg.get('min_dist', 0))  # a wide one fits across a square cell
+        d *= cfg.get('zoom', 1.0)
+        foot, fn = cfg.get('foot', FOOT), FN0
+        if foot - hF * fn / d < TOP_MARGIN:  # its top must keep clear of the top edge: first its foot lower,
+            foot = max(foot, min(FOOT_LOW, TOP_MARGIN + hF * fn / d))
+        if foot - hF * fn / d < TOP_MARGIN:  # then a wider lens,
+            fn = max(FN_WIDE, (foot - TOP_MARGIN) * d / hF)
+        if foot - hF * fn / d < TOP_MARGIN:  # and only then a step back
+            d = hF * fn / (foot - TOP_MARGIN)
+        hc = d * (foot - HZ) / fn
+        hmin = cfg.get('hmin', HMIN)
+        if hc < hmin:  # rule 9: never lower than HMIN: the foot a little lower, else a step back
+            foot = min(FOOT_LOW, HZ + hmin * fn / d)
+            d = max(d, hmin * fn / (foot - HZ))
+            hc = hmin
+        return d, hc, fn, foot
+    d, hc, fn, foot = compose(wF)
     FN = fn  # this city's lens, for everything below (and the scene file)
-    if 'az' not in cfg:
+    # rule 19 (2.32): the landmark seen from a corner, as a photographer moves a couple of blocks from the front view:
+    # its faces' directions from its footprint (the smallest rectangle round it), the camera at one of the four
+    # diagonals between them; a hand-set side moves to the nearest corner (the better view of two equally near), an
+    # automatic camera takes the corner with the richest view
+    corners = None
+    if main and cfg.get('diagonal', True):
+        rect = shapely.MultiPoint(allv[:, [0, 2]]).convex_hull.minimum_rotated_rectangle
+        if rect.geom_type == 'Polygon':
+            rc = np.array(rect.exterior.coords)
+            ex, ez = rc[1] - rc[0]
+            edge = math.degrees(math.atan2(ex, -ez)) % 90  # x east, z south: compass bearing of one side
+            corners = [round((edge + 45 + 90 * i) % 360, 1) for i in range(4)]
+    if corners is not None:
+        if 'az' in cfg:
+            a0 = cfg['az']
+            off = lambda a: abs((a - a0 + 180) % 360 - 180)
+            near = sorted(corners, key=off)
+            az_new = near[0] if off(near[1]) - off(near[0]) > 10 else choose_az(f, inv, d, hc, T, hF, lon0, lat0, cands=near[:2])
+        else:
+            az_new = choose_az(f, inv, d, hc, T, hF, lon0, lat0, cands=corners)
+        cfg = dict(cfg, az=az_new)
+        # seen from a corner a wide landmark is narrower than from its side: the distance again, for its width as seen
+        a_ = math.radians(cfg['az'])
+        wv = float(np.ptp(allv[:, 0] * -math.cos(a_) + allv[:, 2] * -math.sin(a_)))
+        d, hc, fn, foot = compose(wv)
+        FN = fn
+    elif 'az' not in cfg:
         cfg = dict(cfg, az=choose_az(f, inv, d, hc, T, hF, lon0, lat0))
     az = math.radians(cfg['az'])
     cam = Cam(math.sin(az) * d, -math.cos(az) * d, hc, (cfg['az'] + 180) % 360)
@@ -334,7 +363,7 @@ def bake(key, cfg):
     lo1, la0 = inv(max(xs), max(zs))
     box = (lo0, la0, lo1, la1)
     wedge = Polygon(pts)
-    stats = {'city': key, 'tier': cfg.get('tier', 1), 'main': main, 'az': cfg['az']}
+    stats = {'city': key, 'tier': cfg.get('tier', 1), 'main': main, 'az': cfg['az'], 'corners': corners}
 
     air = max(140.0, 0.2 * d)  # rule 10: nothing stands in the air round the camera
     cam_pt = shapely.Point(cam.c[0], cam.c[2])

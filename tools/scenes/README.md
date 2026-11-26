@@ -59,7 +59,14 @@ before:
   from the standard 40, as a photographer shoots a skyscraper: Tokyo, Dubai), and only then the camera steps back;
 - the camera never lower than 50 m (the foot lower, else a step back).
 
-2.31's distances were 400 m to 1.9 km; 2.32's are 340 m to about 920 m (Dubai, wide lens). `cities.json` holds each city's camera DNA: the main landmark (`main`, a catalog id;
+2.31's distances were 400 m to 1.9 km; 2.32's are 340 m to about 920 m (Dubai, wide lens).
+
+**Rule 19, from a corner** (2.32): the landmark is seen as a photographer would after walking a couple of blocks from
+the front view: its faces' directions come from its footprint (the smallest rectangle round its model), and the camera
+stands on one of the four diagonals between them, so two of its sides show. A hand-set side (`az`) moves to the nearest
+corner (of two equally near, the one with the better view by rule 14); an automatic camera takes the corner with the
+richest view. Seen from a corner a wide landmark is narrower, so its distance is worked out again for its width as seen
+(Tower Bridge comes nearer). `"diagonal": false` in `cities.json` keeps a city's set side. `cities.json` holds each city's camera DNA: the main landmark (`main`, a catalog id;
 or `lat`/`lon` and a focus `height` and `width`), the side it's seen from (`az`: the direction from the landmark to the
 camera) and, where a city needs it, `foot` (where the landmark's foot stands; nearer the horizon brings the camera down,
 so a low, wide landmark such as Tower Bridge stands against the sky), `hmin` (the lowest camera) and `zoom`.
