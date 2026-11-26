@@ -142,6 +142,14 @@ final class Palette {
             float L = mean * share * (1f - 0.12f * day) * (1f - 0.34f * backlit) + 0.02f * night;
             float h = Math.max(258f, Math.min(290f, top[2] - ROLES[i][1])); // within the blue to indigo band
             float C = Math.max(0.03f + 0.015f * night, top[1] * ROLES[i][2] * (1f - 0.28f * day)) * 1.1f;
+            if (i == LIT || i == NEAR || i == SHADE || i == EDGE || i == STREET) {
+                // 2.36: by full day the buildings and streets a cool concrete grey (a hint of blue; faces in shade a
+                // little bluer, as the sky lights them), not the blue of the illustration's other hours
+                float g = smooth(6f, 16f, e);
+                float greyC = i == SHADE ? 0.03f : 0.014f;
+                C += (greyC - C) * g;
+                h += (252f - h) * g;
+            }
             out[i] = fromLch(Math.min(0.9f, L), C, h);
         }
         // the rim along the roofs: the horizon's warmth, light
