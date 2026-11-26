@@ -3,8 +3,11 @@ package app.currencyexchange.widget;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -41,6 +44,8 @@ final class CityScene {
         boolean sunLeft, snow;
         float e;
         int cloudTop, cloudUnder, horizon;
+        /** The sky's middle (2.30), for the water to take. */
+        int mid;
     }
 
     /** The windows' glow (since 2.29 the video's peach), floodlights, and the red beacons. */
@@ -84,6 +89,7 @@ final class CityScene {
         l.cloudTop = L.cloud[0];
         l.cloudUnder = L.cloud[1];
         l.horizon = L.sky[2];
+        l.mid = L.sky[1];
         return l;
     }
 
@@ -115,21 +121,40 @@ final class CityScene {
     static Built build(String city, double lat, java.time.ZoneId zone, int w, int h, float px, Light l, long seed) {
         Built b = new Built();
         b.still = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
+        Bitmap own = Bitmap.createBitmap(b.still.getWidth(), b.still.getHeight(), Bitmap.Config.ARGB_8888);
+        Bitmap far = Bitmap.createBitmap(b.still.getWidth(), b.still.getHeight(), Bitmap.Config.ARGB_8888);
         float u = h / 100f, wide = 100f * w / h;
         String key = key(city);
         Float centre = CENTRE.get(key);
-        Pen pen = new Pen(new Canvas(b.still), u, wide, centre == null ? 73f : centre, l, seed);
+        Canvas scene = new Canvas(b.still);
+        Pen pen = new Pen(new Canvas(own), new Canvas(far), u, wide, centre == null ? 73f : centre, l, seed);
         List<float[]> beacons = new ArrayList<>();
-        // the references' layout (2.15): the far city across the whole width, the landmark in the middle, the near
-        // streets in front of its foot
         int style = style(city, zone);
-        if (!MOUNTAINS.contains(key)) {
-            hills(pen.c, u, wide, l, seed); // the far hills and their lights (2.27)
-            skyline(pen.c, u, wide, l, seed, false, style);
+        boolean water = WATER.contains(key), backdrop = MOUNTAINS.contains(key), desert = "cairo".equals(key) || "giza".equals(key);
+        Random r = new Random(seed ^ 0x6E0L);
+        // the landmark first, on its own layer (and its mountains on theirs), to be set into the view below
+        boolean own0 = landmark(key, pen, b, beacons, l, wide);
+        if (!own0) generic(pen, b, beacons, l, lat, wide, key.hashCode(), style);
+        // the video's view (2.30): from high over the city, across it to the horizon at 64% of the way down. The hills
+        // and the far city along the horizon; then the water (a bay, a river) or the city's blocks receding, their roofs
+        // seen from above; the landmark standing on the near shore with its depth; the low roofs and lamps in front
+        ground(scene, u, wide, l, water);
+        if (!backdrop) hills(scene, u, wide, l, seed, water);
+        if (!backdrop) farCity(scene, u, wide, l, seed, style);
+        scene.drawBitmap(far, 0, 0, null); // a landmark's mountains, on the horizon
+        if (water) {
+            water(scene, u, wide, l, r);
+            if (r.nextFloat() < 0.6f) bridge(scene, u, wide, l, r);
+        } else {
+            rows(scene, u, wide, l, r, style);
         }
-        if (!landmark(key, pen, b, beacons, l, wide)) generic(pen, b, beacons, l, lat, wide, key.hashCode(), style);
-        if (!"cairo".equals(key) && !"giza".equals(key)) skyline(pen.c, u, wide, l, seed, true, style);
-        finish(pen.c, b.still.getWidth(), b.still.getHeight(), l);
+        haze(scene, b.still.getWidth(), b.still.getHeight(), l); // over what's far, not the landmark
+        double absLat = Double.isNaN(lat) ? 40 : Math.abs(lat);
+        shore(scene, u, wide, l, r, water, absLat < 28);
+        depth(scene, own, l, u);
+        if (!own0 && style == TOWERS) leftTowers(scene, u, wide, l, r);
+        if (!desert) front(scene, u, wide, l, r, style);
+        finish(scene, b.still.getWidth(), b.still.getHeight(), l);
         b.beacons = new float[beacons.size() * 2];
         for (int i = 0; i < beacons.size(); i++) {
             b.beacons[2 * i] = pen.X(beacons.get(i)[0]);
@@ -141,6 +166,455 @@ final class CityScene {
             t.height *= u * 0.85f; // small, in front of the streets (2.15)
         }
         return b;
+    }
+
+    /** The horizon (2.30, the video's view from above), as a share of the cell's height; under it, land or water. */
+    static final float HORIZON = 0.64f;
+    private static final float HZ = HORIZON * 100f;
+    /** Where the far shore meets the water, and where a landmark's foot stands (on the near shore), in units. */
+    private static final float SHORE = HZ + 1.6f, FOOT = 88f;
+    /** How much of a thing's height under the horizon its depth shows (roofs seen from above), and its side. */
+    private static final float DEEP = 0.14f, SIDE = 1.0f;
+
+    /** Cities on a bay, a coast, a river or canals: their view crosses water (2.30). */
+    private static final java.util.Set<String> WATER = new java.util.HashSet<>(java.util.Arrays.asList(
+            "new york", "new york city", "nyc", "manhattan", "brooklyn", "chicago", "miami", "miami beach",
+            "san francisco", "seattle", "boston", "sydney", "melbourne", "brisbane", "perth", "auckland", "wellington",
+            "gold coast", "cairns", "darwin", "hobart", "hong kong", "macau", "singapore", "tokyo", "yokohama", "osaka",
+            "shanghai", "busan", "seoul", "taipei", "bangkok", "ho chi minh city", "jakarta", "manila", "rio de janeiro",
+            "rio", "buenos aires", "montevideo", "valparaiso", "lima", "vancouver", "toronto", "montreal", "quebec",
+            "dubai", "abu dhabi", "doha", "kuwait city", "manama", "muscat", "jeddah", "mumbai", "chennai", "kolkata",
+            "kochi", "goa", "colombo", "karachi", "istanbul", "tel aviv", "beirut", "london", "paris", "amsterdam",
+            "rotterdam", "lisbon", "porto", "barcelona", "valencia", "bilbao", "seville", "sevilla", "marseille", "nice",
+            "bordeaux", "lyon", "nantes", "strasbourg", "genoa", "genova", "naples", "napoli", "venice", "venezia",
+            "rome", "roma", "florence", "firenze", "stockholm", "copenhagen", "kobenhavn", "oslo", "helsinki",
+            "reykjavik", "budapest", "prague", "praha", "bratislava", "belgrade", "kyiv", "kiev", "moscow", "moskva",
+            "saint petersburg", "st petersburg", "warsaw", "warszawa", "riga", "tallinn", "gdansk", "hamburg",
+            "bremen", "cologne", "koln", "dusseldorf", "frankfurt", "antwerp", "antwerpen", "bruges", "brugge", "ghent",
+            "gent", "dublin", "cork", "glasgow", "liverpool", "bristol", "zurich", "geneva", "geneve", "lausanne",
+            "lucerne", "luzern", "cape town", "durban", "lagos", "alexandria", "tunis", "algiers", "casablanca",
+            "dakar", "accra", "abidjan", "luanda", "mombasa", "dar es salaam", "zanzibar", "maputo", "havana",
+            "san juan", "santo domingo", "cartagena", "panama city", "panama", "san diego", "honolulu", "washington",
+            "washington dc", "philadelphia", "new orleans", "pittsburgh", "portland", "detroit", "cleveland",
+            "milwaukee", "cancun", "acapulco", "puerto vallarta", "guayaquil", "salvador", "fortaleza", "recife",
+            "florianopolis", "mar del plata", "manaus", "victoria", "port louis"));
+
+    /** The ground under the horizon: water, as the sky lit on it (2.30), or land, hazy far off and darker near. */
+    private static void ground(Canvas c, float u, float wide, Light l, boolean water) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+        int far, near;
+        if (water) { // the video's: the horizon's colour on the water, deeper near
+            far = Scene.mix(l.horizon, l.mid, 0.12f);
+            near = Scene.mix(Scene.mix(l.horizon, l.mid, 0.55f), l.near, 0.3f);
+        } else {
+            far = Scene.mix(l.far, l.horizon, 0.3f);
+            near = Scene.mix(l.street, l.far, 0.15f);
+        }
+        p.setShader(new LinearGradient(0, HZ * u, 0, 100 * u, far, near, Shader.TileMode.CLAMP));
+        c.drawRect(0, (HZ - 0.5f) * u, wide * u, 100 * u, p);
+        p.setShader(null);
+    }
+
+    /** The far hills' line (2.27; on the horizon since 2.30), {@code steps + 1} heights across the cell. */
+    private static float[] ridge(float wide, long seed, int steps) {
+        Random r = new Random(seed ^ 0x411L);
+        float a = r.nextFloat() * 6f, b = r.nextFloat() * 6f;
+        float[] ys = new float[steps + 1];
+        for (int i = 0; i <= steps; i++) {
+            float x = wide * i / steps;
+            ys[i] = HZ - 4.6f - 2.6f * (float) Math.sin(x / 9f + a) - 1.8f * (float) Math.sin(x / 4.3f + b);
+        }
+        return ys;
+    }
+
+    /**
+     * The far city along the horizon (2.30): the city's own kind of buildings ({@link #skyline}) drawn small on the
+     * far shore, as far off as the hills behind them.
+     */
+    private static void farCity(Canvas c, float u, float wide, Light l, long seed, int style) {
+        float k = style == TOWERS ? 0.34f : 0.5f;
+        c.save();
+        c.translate(0, SHORE * u);
+        c.scale(k, k);
+        c.translate(0, -100 * u);
+        skyline(c, u, wide / k, l, seed, false, style);
+        c.restore();
+    }
+
+    /**
+     * The water (2.30, after the video): the hills' reflection under the far shore, long pale glints across it, and
+     * after dark the far lights' reflections, broken by the ripples.
+     */
+    private static void water(Canvas c, float u, float wide, Light l, Random r) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        // the far shore's shadow on the water, then the glints, thicker towards the near shore
+        p.setShader(new LinearGradient(0, SHORE * u, 0, (SHORE + 3.5f) * u, Scene.alpha(l.far, 0.4f), l.far & 0x00FFFFFF,
+                Shader.TileMode.CLAMP));
+        c.drawRect(0, SHORE * u, wide * u, (SHORE + 3.5f) * u, p);
+        p.setShader(null);
+        int glint = Scene.mix(l.horizon, 0xFFFFFFFF, 0.3f + 0.2f * (1 - l.night));
+        int n = Math.round(wide * 0.5f);
+        for (int i = 0; i < n; i++) {
+            float f = r.nextFloat(), y = SHORE + 1.2f + f * f * 0.85f * (90 - SHORE);
+            float len = (2f + r.nextFloat() * 8f) * (0.4f + (y - HZ) / 30f), x = r.nextFloat() * wide;
+            p.setColor(Scene.alpha(glint, 0.22f + 0.3f * r.nextFloat()));
+            c.drawRect(x * u, y * u, (x + len) * u, (y + 0.22f + 0.18f * (y - HZ) / 30f) * u, p);
+        }
+        if (l.lights < 0.05f) return;
+        int m = Math.round(wide * 1.1f);
+        for (int i = 0; i < m; i++) { // the far lights, drawn down the water in dashes
+            float x = r.nextFloat() * wide, y = SHORE + 0.4f;
+            int col = r.nextFloat() < 0.7f ? FAR_GLOW : WINDOW;
+            float a = l.lights * (0.25f + 0.35f * r.nextFloat()), wd = 0.18f + 0.22f * r.nextFloat();
+            int dashes = 1 + r.nextInt(3);
+            for (int d = 0; d < dashes; d++) {
+                float len = 0.5f + r.nextFloat() * 1.4f;
+                p.setColor(Scene.alpha(col, a * (1 - d * 0.28f)));
+                c.drawRect((x - wd) * u, y * u, (x + wd) * u, (y + len) * u, p);
+                y += len + 0.4f + r.nextFloat() * 0.9f;
+                x += (r.nextFloat() - 0.5f) * 0.5f;
+            }
+        }
+    }
+
+    /** A long low bridge across the water (2.30, as the video's): piers and arches, its lamps lit at night. */
+    private static void bridge(Canvas c, float u, float wide, Light l, Random r) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        float y = SHORE + 5.5f + r.nextFloat() * 3.5f, deck = 0.75f, rise = 2.3f + (y - SHORE) * 0.12f;
+        boolean right = r.nextBoolean();
+        float x0 = right ? wide * (0.3f + 0.25f * r.nextFloat()) : -1, x1 = right ? wide + 1 : wide * (0.45f + 0.25f * r.nextFloat());
+        int col = Scene.mix(l.far, l.near, 0.45f), under = Scene.mix(col, l.shade, 0.5f);
+        float span = 4.5f + r.nextFloat() * 2f;
+        // its reflection first, faint
+        p.setColor(Scene.alpha(under, 0.25f));
+        for (float x = x0 + span * 0.5f; x < x1; x += span) c.drawRect((x - 0.4f) * u, (y + rise) * u, (x + 0.4f) * u, (y + rise * 1.8f) * u, p);
+        // the piers and arches
+        p.setColor(under);
+        Paint arc = new Paint(Paint.ANTI_ALIAS_FLAG);
+        arc.setStyle(Paint.Style.STROKE);
+        arc.setStrokeWidth(Math.max(1f, 0.35f * u));
+        arc.setColor(under);
+        for (float x = x0 + span * 0.5f; x < x1; x += span) {
+            c.drawRect((x - 0.4f) * u, y * u, (x + 0.4f) * u, (y + rise) * u, p);
+            c.drawArc(new RectF((x + 0.4f) * u, (y + deck * 0.5f) * u, (x + span - 0.4f) * u, (y + rise * 1.4f) * u), 180, 180,
+                    false, arc);
+        }
+        p.setColor(col);
+        c.drawRect(x0 * u, (y - deck) * u, x1 * u, y * u, p);
+        p.setColor(Scene.alpha(l.edge, 0.55f + 0.2f * l.night)); // its rail catching the light
+        c.drawRect(x0 * u, (y - deck) * u, x1 * u, (y - deck + 0.22f) * u, p);
+        if (l.lights > 0.05f) {
+            for (float x = x0 + 0.8f; x < x1; x += 1.7f) {
+                p.setColor(Scene.alpha(GLOW, 0.85f * l.lights));
+                c.drawCircle(x * u, (y - deck - 0.25f) * u, 0.24f * u, p);
+                p.setColor(Scene.alpha(GLOW, 0.3f * l.lights)); // and on the water
+                c.drawRect((x - 0.15f) * u, (y + rise + 0.3f) * u, (x + 0.15f) * u, (y + rise + 1.4f) * u, p);
+            }
+        }
+    }
+
+    /** A block seen from above (2.30): its front, its side in shade, its roof (flat or pitched), in units. */
+    private static void block(Canvas c, float u, Light l, float x0, float x1, float base, float top, int front, boolean pitched,
+                              Paint p) {
+        float rd = Math.max(0f, (top - HZ) * DEEP), sk = (l.sunLeft ? 1 : -1) * rd * 0.45f;
+        float sx = l.sunLeft ? x1 : x0;
+        Path side = new Path();
+        side.moveTo(sx * u, base * u);
+        side.lineTo(sx * u, top * u);
+        side.lineTo((sx + sk) * u, (top - rd) * u);
+        side.lineTo((sx + sk) * u, (base - rd) * u);
+        side.close();
+        p.setColor(Scene.mix(front, l.shade, 0.55f));
+        c.drawPath(side, p);
+        p.setColor(front);
+        c.drawRect(x0 * u, top * u, x1 * u, base * u, p);
+        if (rd <= 0f) return;
+        if (pitched) { // the near slope darker, the far one catching the sky, the ridge between them
+            float my = top - rd * 0.5f, mk = sk * 0.5f;
+            Path nearSlope = new Path(), farSlope = new Path();
+            nearSlope.moveTo(x0 * u, top * u);
+            nearSlope.lineTo(x1 * u, top * u);
+            nearSlope.lineTo((x1 + mk) * u, my * u);
+            nearSlope.lineTo((x0 + mk) * u, my * u);
+            nearSlope.close();
+            farSlope.moveTo((x0 + mk) * u, my * u);
+            farSlope.lineTo((x1 + mk) * u, my * u);
+            farSlope.lineTo((x1 + sk) * u, (top - rd) * u);
+            farSlope.lineTo((x0 + sk) * u, (top - rd) * u);
+            farSlope.close();
+            p.setColor(Scene.mix(front, l.shade, 0.35f));
+            c.drawPath(nearSlope, p);
+            p.setColor(Scene.mix(front, l.rim, 0.42f));
+            c.drawPath(farSlope, p);
+        } else {
+            Path roof = new Path();
+            roof.moveTo(x0 * u, top * u);
+            roof.lineTo(x1 * u, top * u);
+            roof.lineTo((x1 + sk) * u, (top - rd) * u);
+            roof.lineTo((x0 + sk) * u, (top - rd) * u);
+            roof.close();
+            p.setColor(Scene.mix(front, l.rim, 0.32f));
+            c.drawPath(roof, p);
+            p.setColor(Scene.alpha(l.rim, 0.5f * (1 - l.night) + 0.2f)); // its edge
+            c.drawRect(x0 * u, top * u, x1 * u, top * u + Math.max(1f, 0.18f * u), p);
+        }
+    }
+
+    /**
+     * The city's blocks receding to the horizon (2.30, an inland city): rows of them, smaller and hazier the further
+     * they are, each with its roof seen from above; their windows and the streets' lights at night.
+     */
+    private static void rows(Canvas c, float u, float wide, Light l, Random r, int style) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        float[] bases = {68.5f, 71.6f, 75.2f, 79.4f, 84.2f};
+        for (float base : bases) {
+            float f = (base - HZ) / (100 - HZ), sc = 0.25f + 1.1f * f;
+            int tone = Scene.mix(l.street, l.far, (1 - f) * 0.85f);
+            List<float[]> row = new ArrayList<>();
+            float x = -2 - r.nextFloat() * 3;
+            while (x < wide + 2) {
+                float w = (4f + r.nextFloat() * 5f) * sc, hgt;
+                if (style == TOWERS) hgt = (r.nextFloat() < 0.2f ? 7f + r.nextFloat() * 9f : 2f + r.nextFloat() * 4f) * sc;
+                else if (style == EURO) hgt = (2.4f + r.nextFloat() * 1.8f) * sc;
+                else hgt = (1.4f + r.nextFloat()) * sc;
+                row.add(new float[]{x, x + w, base - hgt, r.nextFloat()});
+                x += w + (style == EURO ? 0.15f * sc : style == TOWERS ? (0.5f + r.nextFloat()) * sc : (1f + 2f * r.nextFloat()) * sc);
+            }
+            if (!l.sunLeft) java.util.Collections.reverse(row); // each block's side is hidden by the next one's front
+            for (float[] k : row) {
+                int col = Scene.mix(tone, l.horizon, k[3] * 0.1f);
+                block(c, u, l, k[0], k[1], base, k[2], col, style != TOWERS, p);
+                if (style == HOUSES && k[3] < 0.5f) { // a garden tree beside it
+                    p.setColor(Scene.mix(l.front, l.far, (1 - f) * 0.6f));
+                    float tx = k[1] + 0.9f * sc;
+                    c.drawOval((tx - 0.9f * sc) * u, (base - 2.2f * sc) * u, (tx + 0.9f * sc) * u, (base + 0.1f) * u, p);
+                }
+                // its windows: lit at night, catching the sky by day
+                float ww = Math.max(0.2f, 0.42f * sc), fl = Math.max(0.5f, 1.1f * sc);
+                for (float y = k[2] + 0.5f * sc; y < base - 0.6f * sc; y += fl) {
+                    for (float wx = k[0] + 0.5f * sc; wx < k[1] - 0.5f * sc; wx += ww * 2.3f) {
+                        float on = r.nextFloat();
+                        if (l.lights > 0.05f && on < 0.35f) p.setColor(Scene.alpha(on < 0.08f ? 0xFFFFB866 : WINDOW, l.lights * (0.45f + 0.4f * f)));
+                        else if (on > 0.82f) p.setColor(Scene.alpha(l.edge, 0.18f * (1 - l.lights)));
+                        else continue;
+                        c.drawRect(wx * u, y * u, (wx + ww) * u, (y + ww * 0.9f) * u, p);
+                    }
+                }
+            }
+            if (l.lights > 0.05f) { // the street lights along the row's front
+                for (float sx = r.nextFloat() * 2f; sx < wide; sx += (1.2f + r.nextFloat() * 2.2f) * sc) {
+                    p.setColor(Scene.alpha(r.nextFloat() < 0.75f ? FAR_GLOW : GLOW, l.lights * (0.5f + 0.4f * r.nextFloat())));
+                    c.drawCircle(sx * u, (base + 0.55f * sc) * u, (0.12f + 0.16f * sc) * u, p);
+                }
+            }
+        }
+    }
+
+    /**
+     * The near shore the landmark stands on (2.30): its edge along the water, a jetty now and then, and at night pools
+     * of lamplight on the ground, cream, as the video's. Inland, the ground in front with its own lights.
+     */
+    private static void shore(Canvas c, float u, float wide, Light l, Random r, boolean water, boolean palms) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        int land = Scene.mix(l.street, l.near, 0.25f);
+        float edge = water ? 84.5f + r.nextFloat() * 1.5f : 88f;
+        if (water) {
+            Path shore = new Path();
+            float tilt = (r.nextFloat() - 0.5f) * 3f;
+            shore.moveTo(-1, 101 * u);
+            shore.lineTo(-1, (edge + tilt) * u);
+            float jet = wide * (0.15f + 0.7f * r.nextFloat());
+            for (int i = 0; i <= 12; i++) {
+                float x = wide * i / 12f, y = edge + tilt * (1 - 2f * i / 12f) + (float) Math.sin(i * 1.7f + tilt) * 0.5f;
+                shore.lineTo(x * u, y * u);
+            }
+            shore.lineTo((wide + 1) * u, 101 * u);
+            shore.close();
+            p.setColor(land);
+            c.drawPath(shore, p);
+            // a jetty out into the water, and the shore's edge catching the light
+            float jy = edge - 3.2f - r.nextFloat() * 2f;
+            p.setColor(Scene.mix(land, l.edge, 0.2f));
+            c.drawRect((jet - 0.5f) * u, jy * u, (jet + 0.5f) * u, (edge + 1) * u, p);
+            c.drawRect((jet - 2.8f) * u, jy * u, (jet + 2.8f) * u, (jy + 0.6f) * u, p);
+            Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
+            rim.setStyle(Paint.Style.STROKE);
+            rim.setStrokeWidth(Math.max(1f, 0.3f * u));
+            rim.setColor(Scene.alpha(l.edge, 0.6f + 0.2f * l.night));
+            Path line = new Path();
+            for (int i = 0; i <= 12; i++) {
+                float x = wide * i / 12f, y = edge + tilt * (1 - 2f * i / 12f) + (float) Math.sin(i * 1.7f + tilt) * 0.5f;
+                if (i == 0) line.moveTo(x * u, y * u); else line.lineTo(x * u, y * u);
+            }
+            c.drawPath(line, rim);
+        } else {
+            p.setShader(new LinearGradient(0, (edge - 4) * u, 0, 100 * u, land & 0x00FFFFFF, land, Shader.TileMode.CLAMP));
+            c.drawRect(0, (edge - 4) * u, wide * u, 100 * u, p);
+            p.setShader(null);
+        }
+        if (l.lights >= 0.05f) {
+            int n = Math.round(wide * 0.45f);
+            for (int i = 0; i < n; i++) { // pools of lamplight
+                float x = r.nextFloat() * wide, y = edge + 1.5f + r.nextFloat() * (98.5f - edge), rx = 0.7f + r.nextFloat() * 1.5f;
+                p.setColor(Scene.alpha(Scene.mix(GLOW, 0xFFFFFFFF, 0.35f), 0.7f * l.lights));
+                c.drawOval((x - rx) * u, (y - rx * 0.36f) * u, (x + rx) * u, (y + rx * 0.36f) * u, p);
+            }
+        }
+        // the trees along it, in clumps, as the video's waterfront: cut-paper crowns, or small palms near the equator
+        int crown = Scene.mix(l.front, l.near, 0.25f), lit = Scene.mix(crown, l.lit, 0.35f * (1 - 0.6f * l.night));
+        float x = r.nextFloat() * 6f;
+        while (x < wide) {
+            int clump = 2 + r.nextInt(4);
+            for (int i = 0; i < clump && x < wide; i++) {
+                float y = edge + 1.2f + r.nextFloat() * 2.2f;
+                if (palms) palmlet(c, u, l, x, y, 3.2f + r.nextFloat() * 2f, r, p);
+                else crownlet(c, u, x, y, 0.9f + r.nextFloat() * 0.7f, crown, lit, l.sunLeft, r, p);
+                x += 1.6f + r.nextFloat() * 1.4f;
+            }
+            x += 6f + r.nextFloat() * 10f;
+        }
+    }
+
+    /** A small far tree (2.30): a ragged crown, as cut from paper, its side to the light lighter, on a short trunk. */
+    private static void crownlet(Canvas c, float u, float x, float ground, float size, int col, int lit, boolean sunLeft,
+                                 Random r, Paint p) {
+        p.setColor(col);
+        c.drawRect((x - 0.1f) * u, (ground - size * 0.9f) * u, (x + 0.1f) * u, ground * u, p);
+        float cy = ground - size * 1.5f;
+        Path crown = new Path(), litSide = new Path();
+        int n = 11;
+        for (int i = 0; i < n; i++) {
+            double a = (i + r.nextFloat() * 0.4f) / n * Math.PI * 2;
+            float d = size * (i % 2 == 0 ? 1f : 0.78f + 0.1f * r.nextFloat());
+            float px = x + (float) Math.cos(a) * d * 1.1f, py = cy + (float) Math.sin(a) * d * 0.9f;
+            if (i == 0) crown.moveTo(px * u, py * u); else crown.lineTo(px * u, py * u);
+        }
+        crown.close();
+        c.drawPath(crown, p);
+        float lx = x + (sunLeft ? -0.3f : 0.3f) * size;
+        litSide.addOval((lx - size * 0.6f) * u, (cy - size * 0.75f) * u, (lx + size * 0.6f) * u, (cy + size * 0.2f) * u,
+                Path.Direction.CW);
+        c.save();
+        c.clipPath(crown);
+        p.setColor(lit);
+        c.drawPath(litSide, p);
+        c.restore();
+    }
+
+    /** A small far palm (2.30): a thin curved trunk and a few drooping fronds. */
+    private static void palmlet(Canvas c, float u, Light l, float x, float ground, float h, Random r, Paint p) {
+        Paint s = new Paint(Paint.ANTI_ALIAS_FLAG);
+        s.setStyle(Paint.Style.STROKE);
+        s.setStrokeCap(Paint.Cap.ROUND);
+        s.setColor(Scene.mix(l.front, l.near, 0.2f));
+        float lean = (r.nextFloat() - 0.5f) * 0.25f * h, tx = x + lean, ty = ground - h;
+        s.setStrokeWidth(Math.max(1f, 0.22f * u));
+        Path trunk = new Path();
+        trunk.moveTo(x * u, ground * u);
+        trunk.quadTo((x + lean * 0.2f) * u, (ground - h * 0.5f) * u, tx * u, ty * u);
+        c.drawPath(trunk, s);
+        s.setStrokeWidth(Math.max(1f, 0.3f * u));
+        for (float a : new float[]{-170, -140, -110, -70, -40, -10}) {
+            double rad = Math.toRadians(a);
+            float len = h * (0.32f + 0.08f * r.nextFloat());
+            float ex = tx + (float) Math.cos(rad) * len, ey = ty + (float) Math.sin(rad) * len * 0.5f + len * 0.35f;
+            Path f = new Path();
+            f.moveTo(tx * u, ty * u);
+            f.quadTo((tx + (float) Math.cos(rad) * len * 0.6f) * u, (ty + (float) Math.sin(rad) * len * 0.6f) * u, ex * u, ey * u);
+            c.drawPath(f, s);
+        }
+    }
+
+    /**
+     * The landmark's depth (2.30): the video's view is from high up, so what stands below the horizon shows its roof
+     * and what rises above it doesn't, and every building shows its side away from the light. Its own layer is swept
+     * back towards the horizon and the side in shade (as a box's back face, smaller and nearer the horizon), its side
+     * in the shade colour, its roofs lighter, then the landmark itself over them.
+     */
+    private static void depth(Canvas c, Bitmap own, Light l, float u) {
+        int w = own.getWidth(), h = own.getHeight();
+        int[] px = new int[w * h];
+        own.getPixels(px, 0, w, 0, 0, w, h);
+        boolean any = false;
+        for (int i = 0; i < px.length; i++) { // only what's solid (not a floodlight's glow)
+            px[i] = (px[i] >>> 24) >= 150 ? 0xFFFFFFFF : 0;
+            any |= px[i] != 0;
+        }
+        if (!any) return;
+        Bitmap mask = Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888);
+        float hz = HZ * u, dx = (l.sunLeft ? 1 : -1) * SIDE * u;
+        Paint side = new Paint(Paint.FILTER_BITMAP_FLAG), roof = new Paint(Paint.FILTER_BITMAP_FLAG);
+        side.setColorFilter(new PorterDuffColorFilter(Scene.mix(l.shade, l.front, 0.3f), PorterDuff.Mode.SRC_IN));
+        roof.setColorFilter(new PorterDuffColorFilter(Scene.mix(l.near, l.rim, 0.45f), PorterDuff.Mode.SRC_IN));
+        int steps = 16;
+        Matrix m = new Matrix();
+        for (int i = steps; i >= 1; i--) {
+            float t = i / (float) steps;
+            m.setScale(1f, 1f - t * DEEP, 0, hz);
+            m.postTranslate(t * dx, 0);
+            c.drawBitmap(mask, m, side);
+        }
+        c.save();
+        c.clipRect(0, hz, w, h); // roofs show only below the horizon
+        for (int i = steps; i >= 1; i--) {
+            m.setScale(1f, 1f - i / (float) steps * DEEP, 0, hz);
+            c.drawBitmap(mask, m, roof);
+        }
+        c.restore();
+        c.drawBitmap(own, 0, 0, null);
+    }
+
+    /** A city of towers with no landmark of its own: tall towers on the left, as the video's. */
+    private static void leftTowers(Canvas c, float u, float wide, Light l, Random r) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        float x = -1.5f + r.nextFloat() * 2.5f, base = 93f;
+        float w2 = 6f + r.nextFloat() * 1.5f, h2 = 34f + r.nextFloat() * 6f;
+        tower(c, (x + 6.5f) * u, (base - h2) * u, (x + 6.5f + w2) * u, base * u, u, r.nextBoolean() ? OFFICE : SLIM, r, l, true);
+        float w1 = 7.5f + r.nextFloat() * 2f, h1 = 46f + r.nextFloat() * 8f;
+        tower(c, x * u, (base - h1) * u, (x + w1) * u, base * u, u, r.nextBoolean() ? BALCONY : STEPPED, r, l, true);
+        if (l.night > 0.3f) {
+            p.setColor(Scene.alpha(BEACON, 0.7f * l.night));
+            c.drawCircle((x + w1 / 2) * u, (base - h1 - 3f) * u, 0.5f * u, p);
+        }
+    }
+
+    /**
+     * What's nearest (2.30): low buildings along the bottom, seen from above (their roofs, flat or pitched as the city
+     * builds them), with open ground between them, and the street lamps.
+     */
+    private static void front(Canvas c, float u, float wide, Light l, Random r, int style) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        List<float[]> blocks = new ArrayList<>();
+        float x = -3 - r.nextFloat() * 4;
+        while (x < wide + 3) {
+            float w = (style == HOUSES ? 7f : 9f) + r.nextFloat() * 7f;
+            float mid = Math.abs(x + w / 2 - wide / 2) / (wide / 2);
+            if (mid > 0.4f || r.nextFloat() < 0.25f) {
+                float hgt = style == TOWERS ? 4f + r.nextFloat() * 3f : style == EURO ? 3.5f + r.nextFloat() * 2f : 2.6f + r.nextFloat();
+                blocks.add(new float[]{x, x + w, 101.5f - hgt, r.nextFloat()});
+                x += w + (style == EURO ? 0.3f : 1f + r.nextFloat() * 3f);
+            } else {
+                x += 4f + r.nextFloat() * 6f; // open ground
+            }
+        }
+        if (!l.sunLeft) java.util.Collections.reverse(blocks);
+        for (float[] k : blocks) {
+            int col = Scene.mix(l.street, 0xFF000000, 0.06f + k[3] * 0.08f);
+            block(c, u, l, k[0], k[1], 101.5f, k[2], col, style != TOWERS, p);
+            if (style == TOWERS && k[3] < 0.6f) { // a plant room on the roof
+                float rd = (k[2] - HZ) * DEEP, bx = k[0] + (k[1] - k[0]) * (0.2f + 0.4f * k[3]);
+                block(c, u, l, bx, bx + 2.4f, k[2] - rd * 0.35f, k[2] - rd * 0.35f - 1.4f, Scene.mix(col, l.shade, 0.3f), false, p);
+            }
+            if (l.lights > 0.05f) { // a lit window or two in front
+                for (int i = 0; i < 3; i++) {
+                    if (r.nextFloat() > 0.6f) continue;
+                    float wx = k[0] + 1f + r.nextFloat() * Math.max(0.5f, k[1] - k[0] - 3f);
+                    p.setColor(Scene.alpha(WINDOW, 0.85f * l.lights));
+                    c.drawRect(wx * u, (k[2] + 0.9f) * u, (wx + 1.1f) * u, (k[2] + 2f) * u, p);
+                }
+            }
+        }
+        lamps(c, u, wide, l, r);
     }
 
     /** Where each landmark's middle is in its design units: it's drawn at the middle of the clock (2.15). */
@@ -194,33 +668,41 @@ final class CityScene {
 
     /**
      * Far hills along the horizon, hazy (2.27, after the video): a gentle line of hills across the cell, and after dark
-     * thousands of tiny lights scattered over them, as a city's lights on the hills across a bay.
+     * thousands of tiny lights scattered over them, as a city's lights on the hills across a bay. Since 2.30 they stand
+     * on the horizon, and over water they're mirrored in it, faintly.
      */
-    private static void hills(Canvas c, float u, float wide, Light l, long seed) {
-        Random r = new Random(seed ^ 0x411L);
+    private static void hills(Canvas c, float u, float wide, Light l, long seed, boolean water) {
+        Random r = new Random(seed ^ 0x412L);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        Path hill = new Path();
-        float a = r.nextFloat() * 6f, b = r.nextFloat() * 6f;
-        hill.moveTo(0, 100 * u);
         int steps = 24;
-        float[] ys = new float[steps + 1];
+        float[] ys = ridge(wide, seed, steps);
+        int col = Scene.mix(l.far, l.horizon, 0.38f);
+        Path hill = new Path(), mirror = new Path();
+        hill.moveTo(0, (SHORE + 0.5f) * u);
+        mirror.moveTo(0, SHORE * u);
         for (int i = 0; i <= steps; i++) {
             float x = wide * i / steps;
-            ys[i] = 83f - 3.2f * (float) Math.sin(x / 9f + a) - 2.2f * (float) Math.sin(x / 4.3f + b);
             hill.lineTo(x * u, ys[i] * u);
+            mirror.lineTo(x * u, (SHORE + (SHORE - ys[i]) * 0.45f) * u);
         }
-        hill.lineTo(wide * u, 100 * u);
+        hill.lineTo(wide * u, (SHORE + 0.5f) * u);
         hill.close();
-        p.setColor(Scene.mix(l.far, l.horizon, 0.38f));
+        mirror.lineTo(wide * u, SHORE * u);
+        mirror.close();
+        if (water) {
+            p.setColor(Scene.alpha(col, 0.35f));
+            c.drawPath(mirror, p);
+        }
+        p.setColor(col);
         c.drawPath(hill, p);
         if (l.lights < 0.05f) return;
-        int n = Math.round(wide * 5.5f);
+        int n = Math.round(wide * 4f);
         for (int i = 0; i < n; i++) { // its lights: tiny, cream and warm, thicker towards the shore
             float x = r.nextFloat() * wide, f = x / wide * steps;
             int k = Math.min(steps - 1, (int) f);
             float top = ys[k] + (ys[k + 1] - ys[k]) * (f - k);
-            float y = top + 0.6f + (float) Math.pow(r.nextFloat(), 0.7f) * (99.5f - top);
-            float size = 0.14f + r.nextFloat() * 0.2f, bright = 0.35f + 0.65f * r.nextFloat();
+            float y = top + 0.4f + (float) Math.pow(r.nextFloat(), 0.6f) * (SHORE - top);
+            float size = 0.1f + r.nextFloat() * 0.14f, bright = 0.35f + 0.65f * r.nextFloat();
             p.setColor(Scene.alpha(r.nextFloat() < 0.78f ? FAR_GLOW : 0xFFFFCBA0, l.lights * 0.75f * bright));
             c.drawCircle(x * u, y * u, size * u, p);
         }
@@ -684,22 +1166,31 @@ final class CityScene {
             "los angeles", "la", "hollywood", "sydney"));
 
     /**
-     * The finishing light over the corner (2.06): the buildings darker towards the ground, a fine grain on them so they
-     * aren't flat, the horizon's haze over their feet by day and the streets' warm glow at night.
+     * The finishing light over the corner (2.06): since 2.30 just the streets' warm glow low down at night (the
+     * horizon's haze is laid over what's far before the landmark, {@link #haze}).
      */
     private static void finish(Canvas c, int w, int h, Light l) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
         // no grain since 2.27: flat and clean, as the video's buildings
-        float day = 1 - l.night;
-        if (day > 0.02f) {
-            p.setShader(new LinearGradient(0, h, 0, h * 0.8f, Scene.alpha(l.horizon, 0.3f * day), l.horizon & 0x00FFFFFF,
+        if (l.night > 0.02f) {
+            p.setShader(new LinearGradient(0, h, 0, h * 0.8f, Scene.alpha(0xFFFFA860, 0.15f * l.night), 0x00FFA860,
                     Shader.TileMode.CLAMP));
             c.drawRect(0, h * 0.8f, w, h, p);
         }
-        if (l.night > 0.02f) {
-            p.setShader(new LinearGradient(0, h, 0, h * 0.72f, Scene.alpha(0xFFFFA860, 0.22f * l.night), 0x00FFA860,
-                    Shader.TileMode.CLAMP));
-            c.drawRect(0, h * 0.72f, w, h, p);
+        p.setShader(null);
+    }
+
+    /** The horizon's haze (2.30) over the far hills, city and water by day: the further, the paler. */
+    private static void haze(Canvas c, int w, int h, Light l) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+        float day = 1 - l.night, hz = HORIZON * h;
+        if (day > 0.02f) {
+            p.setShader(new LinearGradient(0, hz - 0.08f * h, 0, hz + 0.012f * h, l.horizon & 0x00FFFFFF,
+                    Scene.alpha(l.horizon, 0.32f * day), Shader.TileMode.CLAMP));
+            c.drawRect(0, hz - 0.08f * h, w, hz + 0.012f * h, p);
+            p.setShader(new LinearGradient(0, hz + 0.012f * h, 0, hz + 0.1f * h, Scene.alpha(l.horizon, 0.32f * day),
+                    l.horizon & 0x00FFFFFF, Shader.TileMode.CLAMP));
+            c.drawRect(0, hz + 0.012f * h, w, hz + 0.1f * h, p);
         }
         p.setShader(null);
     }
@@ -719,17 +1210,24 @@ final class CityScene {
      * shrunk by {@link #K} towards the bottom right corner (so the clock's text stays above it).
      */
     private static final class Pen {
-        /** How big a landmark is drawn: zoomed in (2.09, eased a little in 2.12), so its details and motion show. */
-        static final float K = 1.15f;
-        final Canvas c;
+        /**
+         * How big a landmark is drawn: zoomed in (2.09, eased a little in 2.12), so its details and motion show; since
+         * 2.30 at its true size, as it stands back in the middle of the view.
+         */
+        static final float K = 1f;
+        /** Where it's drawing: the landmark's own layer (given its depth after, {@link #depth}) or the scene behind. */
+        Canvas c;
+        final Canvas layer, scene;
         final float u, wide, cx;
         final Light l;
         final Random r;
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
 
         /** {@code cx}: the landmark's middle in its design units, drawn at the middle of the cell (2.15). */
-        Pen(Canvas c, float u, float wide, float cx, Light l, long seed) {
-            this.c = c;
+        Pen(Canvas layer, Canvas scene, float u, float wide, float cx, Light l, long seed) {
+            this.c = layer;
+            this.layer = layer;
+            this.scene = scene;
             this.u = u;
             this.wide = wide;
             this.cx = cx;
@@ -741,13 +1239,26 @@ final class CityScene {
         /** The cell's left and right edges, in design units. */
         float left() { return cx - wide / (2f * K); }
         float right() { return cx + wide / (2f * K); }
-        float Y(float y) { return (100f - (100f - y) * K) * u; }
+        /**
+         * Since 2.30 the landmark's foot (its design's 100) stands at {@link #FOOT}, on the near shore; its mountains'
+         * on the far shore, on the horizon, a little lower than drawn.
+         */
+        float Y(float y) { return (far ? SHORE - (100f - y) * 0.75f : FOOT - (100f - y) * K) * u; }
+
+        private boolean far;
+
+        /** Draws the landmark's mountains, far off on the horizon behind the city, not on its own layer. */
+        Pen behind() { c = scene; far = true; return this; }
+
+        /** Draws on the landmark's own layer again (the default). */
+        Pen own() { c = layer; far = false; return this; }
         /** A length in units, in pixels. */
         float S(float v) { return v * K * u; }
 
         /** The landmark's colour, shaded across {@code a}..{@code b}: lighter on the side facing the sun. */
         Pen body(float a, float b) {
             int s = l.lit, d = Scene.mix(l.near, l.shade, 0.55f); // lit to the side in shade (2.29)
+            p.setColor(0xFF000000); // opaque: a shader takes the paint's alpha, maybe left low by a window (2.30)
             p.setShader(new LinearGradient(X(a), 0, X(b), 0, l.sunLeft ? s : d, l.sunLeft ? d : s, Shader.TileMode.CLAMP));
             return this;
         }
@@ -755,6 +1266,7 @@ final class CityScene {
         /** The landmark's colour, washed towards {@code tint} by {@code k} (a floodlight, a gilded statue). */
         Pen tinted(float a, float b, int tint, float k) {
             int s = Scene.mix(l.lit, tint, k), d = Scene.mix(l.near, tint, k * 0.8f);
+            p.setColor(0xFF000000);
             p.setShader(new LinearGradient(X(a), 0, X(b), 0, l.sunLeft ? s : d, l.sunLeft ? d : s, Shader.TileMode.CLAMP));
             return this;
         }
@@ -973,13 +1485,13 @@ final class CityScene {
             }
             case "bogota": case "bogota dc": case "santa fe de bogota": {
                 // Monserrate behind, its sanctuary on the top, and the Colpatria and Bacatá towers
-                p.solid(l.far).poly(p.left() - 2, 100, p.left() + 10, 90, 40, 78, 56, 62, 66, 53.5f, 72, 56, 86, 64, p.right() + 2, 74, p.right() + 2, 100);
+                p.behind().solid(Scene.mix(l.far, l.horizon, 0.3f)).poly(p.left() - 2, 100, p.left() + 10, 90, 40, 78, 56, 62, 66, 53.5f, 72, 56, 86, 64, p.right() + 2, 74, p.right() + 2, 100);
                 int church = Scene.mix(Scene.mix(l.far, 0xFFFFFFFF, 0.45f * (1 - night)), FLOOD, 0.8f * night);
                 p.solid(church).rect(64.2f, 50, 68.4f, 54);
                 p.poly(64, 50.2f, 66.3f, 48.2f, 68.6f, 50.2f);
                 p.rect(65.6f, 46.5f, 67, 49);
                 p.glow(66.3f, 51, 6, FLOOD, 0.35f * night);
-                p.tower(66, 76, 73, 100);
+                p.own().tower(66, 76, 73, 100);
                 p.body(74, 80).poly(74, 100, 74, 57, 80, 54.5f, 80, 100);
                 p.windows(74, 57, 80, 100);
                 p.tower(82, 51, 88, 100);
@@ -1170,9 +1682,9 @@ final class CityScene {
             }
             case "seattle": {
                 // Mount Rainier far behind and the Space Needle
-                p.solid(l.far).poly(14, 100, 38, 74, 44, 70, 50, 75, 74, 100);
+                p.behind().solid(Scene.mix(l.far, l.horizon, 0.3f)).poly(14, 100, 38, 74, 44, 70, 50, 75, 74, 100);
                 p.solid(Scene.mix(l.far, 0xFFFFFFFF, 0.5f * (1 - night) + 0.15f)).poly(38.8f, 73.4f, 44, 70, 48.6f, 74, 46, 75, 43.5f, 73.8f, 41, 75.6f);
-                p.body(74, 86).poly(74.5f, 100, 79.3f, 71, 76.6f, 53.5f, 78.2f, 53.5f, 80, 68, 81.8f, 53.5f, 83.4f, 53.5f, 80.7f, 71, 85.5f, 100, 84, 100, 80, 75, 76, 100);
+                p.own().body(74, 86).poly(74.5f, 100, 79.3f, 71, 76.6f, 53.5f, 78.2f, 53.5f, 80, 68, 81.8f, 53.5f, 83.4f, 53.5f, 80.7f, 71, 85.5f, 100, 84, 100, 80, 75, 76, 100);
                 p.body(72, 88).oval(72, 48, 88, 54);
                 if (l.lights > 0.05f) p.solid(Scene.alpha(WINDOW, 0.75f * l.lights)).rect(73, 50.6f, 87, 51.6f);
                 p.body(75.5f, 84.5f).poly(75.5f, 48.2f, 80, 44.5f, 84.5f, 48.2f);
@@ -1184,8 +1696,8 @@ final class CityScene {
             }
             case "rio de janeiro": case "rio": {
                 // Sugarloaf far off, Corcovado with Christ the Redeemer, white and floodlit at night
-                p.solid(l.far).poly(26, 100, 30, 82, 36, 74, 42, 73, 47, 80, 52, 100);
-                p.body(54, 100).poly(54, 100, 66, 80, 74, 67, 79, 62.5f, 82, 62.5f, 88, 70, p.right() + 2, 86, p.right() + 2, 100);
+                p.behind().solid(Scene.mix(l.far, l.horizon, 0.3f)).poly(26, 100, 30, 82, 36, 74, 42, 73, 47, 80, 52, 100);
+                p.own().body(54, 100).poly(54, 100, 66, 80, 74, 67, 79, 62.5f, 82, 62.5f, 88, 70, p.right() + 2, 86, p.right() + 2, 100);
                 int stone = Scene.mix(Scene.mix(l.lit, 0xFFFFFFFF, 0.4f * (1 - night)), 0xFFFFF4E0, 0.85f * night);
                 p.glow(80.5f, 56, 9, 0xFFFFF4E0, 0.35f * night);
                 p.solid(stone).rect(79.9f, 53, 81.1f, 62.6f);
@@ -1287,8 +1799,8 @@ final class CityScene {
             }
             case "los angeles": case "la": case "hollywood": {
                 // hills far behind, the US Bank Tower's crown, and tall thin palms
-                p.solid(l.far).poly(p.left() - 1, 100, p.left() + 6, 82, 40, 76, 60, 82, 80, 77, 100, 84, p.right() + 1, 86, p.right() + 1, 100);
-                p.tower(76, 54, 84, 100);
+                p.behind().solid(Scene.mix(l.far, l.horizon, 0.3f)).poly(p.left() - 1, 100, p.left() + 6, 82, 40, 76, 60, 82, 80, 77, 100, 84, p.right() + 1, 86, p.right() + 1, 100);
+                p.own().tower(76, 54, 84, 100);
                 p.body(76, 84).poly(76, 54.2f, 77, 51.5f, 83, 51.5f, 84, 54.2f);
                 beacons.add(new float[]{80, 51.5f});
                 p.tower(64, 66, 72, 100);

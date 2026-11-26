@@ -1,125 +1,183 @@
 package app.currencyexchange.widget;
 
 /**
- * The world clocks' colours through the day (2.29), after the reference video's colour logic, measured off its dusk
- * frames. Its rules, kept at every hour so the cycle stays one family:
- * <ul>
- * <li>The sky runs from a deep cool colour at the top to a light warm one at the horizon (at the video's dusk: violet
- * #5E40A6, purple-magenta #A55FCB, pink #EB8ECB); by day blue to pale, at night navy to indigo.</li>
- * <li>The city stays in a cool blue to indigo band whatever the sky: the far hills and city a lighter periwinkle
- * (#5B74D4), the faces turned to the light blue (#5766C0), the faces away from it more violet and darker (#4B3D83),
- * the streets in between (#484893), the trees and palms in front the deepest indigo (#433C81), never black.</li>
- * <li>Edges and balconies catch a lavender light (#8384C2); the tops of roofs a rim of the horizon's warmth (#DBB8D1);
- * windows glow peach (#F2B48A); the far lights are a cool cream.</li>
- * </ul>
- * The video's own tones are the evening's dusk and sunset; every other hour (night, blue hour, first light, dawn,
- * sunrise, the golden hours, morning, afternoon, midday) is set by the same rules, and the colours glide between them
- * by the sun's height (and from the morning's set to the evening's by its direction).
+ * The world clocks' colours for every light of the day (2.30): one rule, not tables. The reference video gives a single
+ * light, its dusk; from it two things were measured and kept for every hour:
+ * <ol>
+ * <li><b>The sky's shape.</b> Deep and cool at the top, warm and light at the horizon. The sky at any moment is a blend,
+ * in the perceptual OKLab space, of five lights that rise and fade smoothly with the sun's height (each a soft bell, so
+ * the day glides with no step): the night, the blue hour, the video's dusk (violet #5E40A6, purple-magenta #A55FCB,
+ * pink #EB8ECB, at the sun 1.5 degrees down), the golden hour and the day. Mornings follow the same rule turned a little
+ * cooler and rosier (their warm colours rotated towards pink, a touch softer and lighter), so dawn isn't a copy of dusk.
+ * </li>
+ * <li><b>How the city takes the sky.</b> The city is never painted for an hour: it's worked out from the sky by the
+ * video's relationships, so it follows every light. In OKLCH: every role's hue sits a fixed step bluer than the sky's
+ * top (kept within the blue to indigo band), its lightness a fixed ratio of the sky's mean, its colour a fixed share of
+ * the sky top's. Measured off the video: far hills 0.96 of the mean lightness and 23 degrees bluer, lit faces 0.89 and
+ * 19, the body 0.81 and 16, streets 0.72 and 13, faces in shade 0.67 and 3, trees and palms in front 0.66 and 8, edges
+ * and balconies 1.04 and 10 (a lavender), and the rims of roofs 1.34 in the horizon's own hue (its warmth).</li>
+ * </ol>
+ * By day the city is a little softer (less colour), at night lifted a touch so it never goes black.
  */
 final class Palette {
     private Palette() {}
 
-    /** The sun's heights (degrees) at which the colours below are set. */
-    static final float[] AT = {-18f, -12f, -8f, -5f, -2f, 1f, 5f, 12f, 25f};
+    /** The range of the sun's height the colours are worked out over (beyond it they hold). */
+    static final float[] AT = {-18f, 25f};
 
     /** The city's colours, by role. */
     static final int FAR = 0, LIT = 1, NEAR = 2, SHADE = 3, STREET = 4, FRONT = 5, EDGE = 6, RIM = 7;
 
-    // ---------------------------------------------------------------- the evening
-    /** The evening's skies: top, middle, horizon. */
-    private static final int[][] SKY_EVENING = {
-            {0xFF0C0F2E, 0xFF141A48, 0xFF242B68},   // night: navy to indigo
-            {0xFF121546, 0xFF1E2262, 0xFF36347E},   // the night coming on
-            {0xFF1C1F66, 0xFF2E2D88, 0xFF5448A8},   // the blue hour: indigo, a violet horizon
-            {0xFF2E2A80, 0xFF573CA2, 0xFF9C58BE},   // late dusk: indigo, purple, magenta
-            {0xFF5E40A6, 0xFFA55FCB, 0xFFEB8ECB},   // dusk: the video's violet, purple-magenta, pink
-            {0xFF6A45AE, 0xFFC068C8, 0xFFFFA2B8},   // sunset: the video's, its horizon warmer
-            {0xFF7A6CC4, 0xFFE08AB8, 0xFFFFC28E},   // the golden evening: lilac, rose, peach
-            {0xFF5482D8, 0xFF8CB0EA, 0xFFE6DDEA},   // afternoon: blue to a warm white
-            {0xFF3E7ADC, 0xFF6EA6EE, 0xFFBCDCF6},   // midday: blue to pale
-    };
-    /**
-     * The evening's clouds: lit edge, body. As the video's, soft streaks a little lighter and pinker than the sky behind
-     * them when the sun is low (not dark bodies with bright rims), white heaps by day, navy at night.
-     */
-    private static final int[][] CLOUD_EVENING = {
-            {0xFF2C3170, 0xFF161A4C}, {0xFF363C82, 0xFF1E225E}, {0xFF5A58AE, 0xFF333384}, {0xFFB67ACC, 0xFF7450B0},
-            {0xFFF0A0D4, 0xFFB46CCC}, {0xFFFFB0C8, 0xFFCC7EC8}, {0xFFFFD0B0, 0xFFE0A2BC}, {0xFFFFF6F0, 0xFFC6D2EE},
-            {0xFFFFFFFF, 0xFFC8D8F0}};
-    /** The evening's city: far, lit face, body, face in shade, streets, front, edges, rims. */
-    private static final int[][] CITY_EVENING = {
-            {0xFF262C68, 0xFF262E6C, 0xFF20265F, 0xFF181C4E, 0xFF151946, 0xFF0E1134, 0xFF343C86, 0xFF3E4690},
-            {0xFF2C3474, 0xFF2E3878, 0xFF262E6C, 0xFF1E2258, 0xFF1A1F50, 0xFF12153C, 0xFF3E4794, 0xFF4C509C},
-            {0xFF3A4896, 0xFF3A4A9C, 0xFF313E8C, 0xFF282E74, 0xFF232A6A, 0xFF191D52, 0xFF5260B0, 0xFF7064B8},
-            {0xFF4A5CB8, 0xFF4A58B0, 0xFF414AA0, 0xFF393486, 0xFF383C88, 0xFF2E2A6E, 0xFF6C70BC, 0xFFB07EC8},
-            {0xFF5B74D4, 0xFF5766C0, 0xFF5158A9, 0xFF4B3D83, 0xFF484893, 0xFF433C81, 0xFF8384C2, 0xFFDBB8D1},
-            {0xFF6478D6, 0xFF5E6CC6, 0xFF5560AE, 0xFF4E428C, 0xFF4A4C98, 0xFF443E84, 0xFF8C8CCA, 0xFFF2C2C8},
-            {0xFF7A88D8, 0xFF6C7ACC, 0xFF5E68B4, 0xFF534C96, 0xFF50529E, 0xFF463F86, 0xFFA0A4DA, 0xFFFFD6B0},
-            {0xFF94A8E0, 0xFF7C92D8, 0xFF6A7EC8, 0xFF5260A8, 0xFF4E5CA4, 0xFF3E4888, 0xFFB4C2EE, 0xFFFFF2E6},
-            {0xFFA2B8EA, 0xFF82A0E0, 0xFF7088D0, 0xFF5468B2, 0xFF5064AC, 0xFF3E4C90, 0xFFC0D0F4, 0xFFFFFFFF},
-    };
-
-    // ---------------------------------------------------------------- the morning
-    /** The morning's skies: cooler and pinker than the evening's at the same height. */
-    private static final int[][] SKY_MORNING = {
-            {0xFF0C0F2E, 0xFF141A48, 0xFF242B68},   // night
-            {0xFF121546, 0xFF1E2462, 0xFF2E3A84},   // the night lifting
-            {0xFF1C2468, 0xFF2A3A8C, 0xFF4C5CAE},   // the blue hour
-            {0xFF2C3A8E, 0xFF5A5AB0, 0xFFA688C8},   // first light: indigo, periwinkle, lavender
-            {0xFF4E58B8, 0xFFA07CC8, 0xFFF4A2C0},   // dawn: violet, lavender, pink
-            {0xFF6A6EC4, 0xFFD88CC0, 0xFFFFC0A0},   // sunrise: lilac, rose, peach
-            {0xFF7A88D0, 0xFFE8A8B8, 0xFFFFD8A8},   // the golden morning
-            {0xFF4C88DC, 0xFF84B6EE, 0xFFDCEAF6},   // morning
-            {0xFF3E7ADC, 0xFF6EA6EE, 0xFFBCDCF6},   // midday
-    };
-    private static final int[][] CLOUD_MORNING = {
-            {0xFF2C3170, 0xFF161A4C}, {0xFF363C82, 0xFF1E2460}, {0xFF5A62B0, 0xFF333C88}, {0xFFB89AD4, 0xFF7066B4},
-            {0xFFF6B0CC, 0xFFB08ED0}, {0xFFFFC8B8, 0xFFD69EC6}, {0xFFFFE0C0, 0xFFE6BCC2}, {0xFFFFFFFF, 0xFFC8D6EE},
-            {0xFFFFFFFF, 0xFFC8D8F0}};
-    private static final int[][] CITY_MORNING = {
-            {0xFF262C68, 0xFF262E6C, 0xFF20265F, 0xFF181C4E, 0xFF151946, 0xFF0E1134, 0xFF343C86, 0xFF3E4690},
-            {0xFF2C3676, 0xFF2E3A7A, 0xFF262F6E, 0xFF1E235A, 0xFF1A2052, 0xFF12163E, 0xFF3E4A96, 0xFF4C56A0},
-            {0xFF3A4C98, 0xFF3A4E9E, 0xFF31418E, 0xFF283076, 0xFF232C6C, 0xFF191E54, 0xFF5266B2, 0xFF7070BC},
-            {0xFF4A60BA, 0xFF4A5CB2, 0xFF414EA2, 0xFF393A88, 0xFF383E8A, 0xFF2E2C70, 0xFF7078C0, 0xFFB894CC},
-            {0xFF5C78D6, 0xFF586CC4, 0xFF525CAC, 0xFF4A4288, 0xFF484C96, 0xFF433E84, 0xFF8890C8, 0xFFE8BED0},
-            {0xFF6880D8, 0xFF6072C8, 0xFF5664B0, 0xFF4E4890, 0xFF4A509A, 0xFF444086, 0xFF96A0D2, 0xFFFFCCC0},
-            {0xFF7E8EDA, 0xFF6E80CE, 0xFF606CB6, 0xFF545098, 0xFF5056A0, 0xFF464288, 0xFFA8B0DE, 0xFFFFE0BC},
-            {0xFF96ACE2, 0xFF7E96DA, 0xFF6C82CA, 0xFF5464AA, 0xFF5060A6, 0xFF3E4A8A, 0xFFB8C8F0, 0xFFFFFFFF},
-            {0xFFA2B8EA, 0xFF82A0E0, 0xFF7088D0, 0xFF5468B2, 0xFF5064AC, 0xFF3E4C90, 0xFFC0D0F4, 0xFFFFFFFF},
-    };
-
     /** The windows' warm glow (the video's peach), the far lights' cool cream, and the street lamps' warm light. */
     static final int WINDOW = 0xFFF8C08E, FAR_LIGHT = 0xFFE8E2FF, LAMP = 0xFFFFD6A6;
 
+    // the five lights: the sky's top, middle and horizon
+    private static final int[] NIGHT = {0xFF0C0F2E, 0xFF151B4A, 0xFF262C6A};
+    private static final int[] BLUE_HOUR = {0xFF1C1F66, 0xFF2F2E8A, 0xFF5648AA};
+    private static final int[] DUSK = {0xFF5E40A6, 0xFFA55FCB, 0xFFEB8ECB}; // the video's
+    private static final int[] GOLDEN = {0xFF7470C8, 0xFFE292B6, 0xFFFFC48E};
+    private static final int[] DAY = {0xFF3E7ADC, 0xFF6EA6EE, 0xFFBCDCF6};
+
+    /** Where each light is at its fullest (the sun's height, degrees) and how broad its bell is. */
+    private static float bell(float e, float at, float width) {
+        float x = (e - at) / width;
+        return (float) Math.exp(-x * x);
+    }
+
+    private static float smooth(float a, float b, float x) {
+        float t = Math.max(0f, Math.min(1f, (x - a) / (b - a)));
+        return t * t * (3 - 2 * t);
+    }
+
+    /** How much of each light there is with the sun {@code e} degrees up: night, blue hour, dusk, golden, day. */
+    private static float[] weights(float e) {
+        float[] w = {1f - smooth(-15f, -9f, e), bell(e, -8f, 2.8f), bell(e, -1.5f, 2.6f), bell(e, 5f, 3.2f), smooth(6f, 20f, e)};
+        float sum = 0;
+        for (float v : w) sum += v;
+        for (int i = 0; i < w.length; i++) w[i] /= Math.max(1e-4f, sum);
+        return w;
+    }
+
     /** The sky (top, middle, horizon) for the sun {@code e} degrees up, {@code morning} 0 (evening) to 1 (morning). */
     static int[] sky(float e, float morning) {
-        return mix(blend(SKY_EVENING, e), blend(SKY_MORNING, e), morning);
+        float[] w = weights(e);
+        int[][] lights = {NIGHT, BLUE_HOUR, DUSK, GOLDEN, DAY};
+        int[] out = new int[3];
+        for (int k = 0; k < 3; k++) {
+            float L = 0, a = 0, b = 0;
+            for (int i = 0; i < lights.length; i++) {
+                float[] lab = lab(lights[i][k]);
+                if (morning > 0f && (i == 2 || i == 3)) lab = dawn(lab, morning, k);
+                L += w[i] * lab[0];
+                a += w[i] * lab[1];
+                b += w[i] * lab[2];
+            }
+            out[k] = rgb(L, a, b);
+        }
+        return out;
     }
 
-    /** The clouds: lit edge and shaded body. */
+    /**
+     * The morning's turn on a warm light (the rule, not a table): its warmth rotated towards rose (the horizon most),
+     * a little less colour and a little lighter, {@code m} of the way.
+     */
+    private static float[] dawn(float[] lab, float m, int stop) {
+        double turn = Math.toRadians((stop == 2 ? 16 : stop == 1 ? 10 : 6) * m); // towards pink and lilac
+        float c = (float) Math.cos(turn), s = (float) Math.sin(turn);
+        float a = lab[1] * c - lab[2] * s, b = lab[1] * s + lab[2] * c;
+        float soft = 1f - 0.1f * m;
+        return new float[]{Math.min(0.97f, lab[0] + 0.02f * m), a * soft, b * soft};
+    }
+
+    /** The clouds: lit edge, body. As the video's: soft streaks a little lighter than the sky behind them. */
     static int[] cloud(float e, float morning) {
-        return mix(blend(CLOUD_EVENING, e), blend(CLOUD_MORNING, e), morning);
+        int[] sky = sky(e, morning);
+        float day = smooth(4f, 18f, e);
+        float[] mid = lab(sky[1]), hor = lab(sky[2]);
+        float[] body = lerp(mid, hor, 0.4f);
+        body[0] += 0.035f;
+        body = lerp(body, lab(0xFFF4F6FA), 0.62f * day);
+        float[] lit = lerp(hor, lab(0xFFFFFFFF), 0.25f + 0.65f * day);
+        return new int[]{rgb(lit[0], lit[1], lit[2]), rgb(body[0], body[1], body[2])};
     }
 
-    /** The city's colours, by role ({@link #FAR} ... {@link #RIM}). */
+    /** Each role's lightness (a share of the sky's mean), hue step bluer than the sky's top, and share of its colour. */
+    private static final float[][] ROLES = {
+            {0.96f, 23f, 0.95f},   // far
+            {0.89f, 19f, 0.89f},   // lit face
+            {0.81f, 16f, 0.82f},   // body
+            {0.67f, 3f, 0.72f},    // face in shade
+            {0.72f, 13f, 0.76f},   // streets
+            {0.66f, 8f, 0.71f},    // front: trees, palms
+            {1.04f, 10f, 0.59f},   // edges and balconies
+    };
+
+    /** The city's colours, by role ({@link #FAR} ... {@link #RIM}), worked out from the sky by the video's rule. */
     static int[] city(float e, float morning) {
-        return mix(blend(CITY_EVENING, e), blend(CITY_MORNING, e), morning);
-    }
-
-    private static int[] blend(int[][] set, float e) {
-        float x = Math.max(AT[0], Math.min(AT[AT.length - 1], e));
-        int i = 0;
-        while (i < AT.length - 2 && x > AT[i + 1]) i++;
-        float t = Math.max(0f, Math.min(1f, (x - AT[i]) / (AT[i + 1] - AT[i])));
-        t = t * t * (3 - 2 * t); // eased, so no keyframe shows as a kink
-        int[] out = new int[set[i].length];
-        for (int k = 0; k < out.length; k++) out[k] = Scene.mix(set[i][k], set[i + 1][k], t);
+        int[] sky = sky(e, morning);
+        float[] top = lch(sky[0]), hor = lch(sky[2]);
+        float mean = (top[0] + hor[0]) / 2f;
+        float day = smooth(4f, 18f, e), night = 1f - smooth(-12f, -2f, e);
+        int[] out = new int[8];
+        for (int i = 0; i < ROLES.length; i++) {
+            float L = mean * ROLES[i][0] + 0.045f * night;
+            float h = Math.max(258f, Math.min(296f, top[2] - ROLES[i][1])); // within the blue to indigo band
+            float C = Math.max(0.035f, top[1] * ROLES[i][2] * (1f - 0.28f * day));
+            out[i] = fromLch(Math.min(0.9f, L), C, h);
+        }
+        // the rim along the roofs: the horizon's warmth, light
+        out[RIM] = fromLch(Math.min(0.94f, mean * 1.34f + 0.03f * night), hor[1] * 0.38f, hor[2]);
         return out;
     }
 
-    private static int[] mix(int[] a, int[] b, float t) {
-        int[] out = new int[a.length];
-        for (int k = 0; k < a.length; k++) out[k] = Scene.mix(a[k], b[k], t);
-        return out;
+    // ---------------------------------------------------------------- OKLab
+
+    private static float lin(int c) {
+        float v = c / 255f;
+        return v <= 0.04045f ? v / 12.92f : (float) Math.pow((v + 0.055f) / 1.055f, 2.4f);
+    }
+
+    private static int enc(float v) {
+        v = Math.max(0f, Math.min(1f, v));
+        float s = v <= 0.0031308f ? 12.92f * v : (float) (1.055f * Math.pow(v, 1 / 2.4) - 0.055f);
+        return Math.round(Math.max(0f, Math.min(1f, s)) * 255f);
+    }
+
+    static float[] lab(int c) {
+        float r = lin((c >> 16) & 0xFF), g = lin((c >> 8) & 0xFF), b = lin(c & 0xFF);
+        float l = (float) Math.cbrt(0.4122214708f * r + 0.5363325363f * g + 0.0514459929f * b);
+        float m = (float) Math.cbrt(0.2119034982f * r + 0.6806995451f * g + 0.1073969566f * b);
+        float s = (float) Math.cbrt(0.0883024619f * r + 0.2817188376f * g + 0.6299787005f * b);
+        return new float[]{0.2104542553f * l + 0.7936177850f * m - 0.0040720468f * s,
+                1.9779984951f * l - 2.4285922050f * m + 0.4505937099f * s,
+                0.0259040371f * l + 0.7827717662f * m - 0.8086757660f * s};
+    }
+
+    static int rgb(float L, float a, float b) {
+        float l = L + 0.3963377774f * a + 0.2158037573f * b;
+        float m = L - 0.1055613458f * a - 0.0638541728f * b;
+        float s = L - 0.0894841775f * a - 1.2914855480f * b;
+        l = l * l * l;
+        m = m * m * m;
+        s = s * s * s;
+        float r = 4.0767416621f * l - 3.3077115913f * m + 0.2309699292f * s;
+        float g = -1.2684380046f * l + 2.6097574011f * m - 0.3413193965f * s;
+        float bb = -0.0041960863f * l - 0.7034186147f * m + 1.7076147010f * s;
+        return 0xFF000000 | (enc(r) << 16) | (enc(g) << 8) | enc(bb);
+    }
+
+    private static float[] lch(int c) {
+        float[] lab = lab(c);
+        float h = (float) Math.toDegrees(Math.atan2(lab[2], lab[1]));
+        return new float[]{lab[0], (float) Math.hypot(lab[1], lab[2]), h < 0 ? h + 360 : h};
+    }
+
+    private static int fromLch(float L, float C, float h) {
+        double r = Math.toRadians(h);
+        return rgb(L, C * (float) Math.cos(r), C * (float) Math.sin(r));
+    }
+
+    private static float[] lerp(float[] a, float[] b, float t) {
+        return new float[]{a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t};
     }
 }

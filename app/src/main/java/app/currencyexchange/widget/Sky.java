@@ -122,9 +122,11 @@ final class Sky {
         L.back = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(L.back);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-        // its warm band rises behind the city, as the video's pink does (2.29: middle at 40%, horizon from 70%)
-        p.setShader(new LinearGradient(0, 0, 0, h, new int[]{sky[0], sky[1], sky[2], sky[2]}, new float[]{0f, 0.4f, 0.7f, 1f},
-                Shader.TileMode.CLAMP));
+        // its warm band rises behind the city, as the video's pink does (2.29); since 2.30 the horizon is the video's,
+        // at 64% of the way down, the middle a little over halfway to it
+        float hz = CityScene.HORIZON;
+        p.setShader(new LinearGradient(0, 0, 0, h, new int[]{sky[0], sky[1], sky[2], sky[2]},
+                new float[]{0f, hz * 0.56f, hz - 0.03f, 1f}, Shader.TileMode.CLAMP));
         c.drawRect(0, 0, w, h, p);
         p.setShader(null);
         float glow = (float) Math.exp(-Math.pow((e - 0.5f) / 6f, 2));
@@ -141,7 +143,7 @@ final class Sky {
             sAz = (float) (sunLeft ? -Math.PI / 3 : Math.PI / 3);
         }
         if (sAlt > -4f) {
-            float sx = w * (0.5f + 0.42f * (float) Math.sin(sAz)), sy = h * (0.8f - 0.72f * clamp(sAlt / 60f));
+            float sx = w * (0.5f + 0.42f * (float) Math.sin(sAz)), sy = h * (hz - (hz - 0.08f) * clamp(sAlt / 60f));
             float vis = (1f - 0.75f * cover) * clamp((sAlt + 4f) / 3f);
             int edge = sAlt < 0 ? 0xFFFFB896 : sAlt < 4 ? (sunLeft ? 0xFFFFE08A : 0xFFFFD27A) : sAlt < 15 ? 0xFFFFEFB8 : 0xFFFFF8E8;
             int core = Scene.mix(edge, 0xFFFFFFFF, 0.35f);
@@ -165,7 +167,7 @@ final class Sky {
             float dark = clamp((1f - e) / 7f);
             float vis = clamp((altD + 0.5f) / 1.5f) * (1f - 0.8f * cover) * (0.35f + 0.62f * dark);
             if (litF > 0.03f && vis > 0.02f) {
-                float mx = w * (0.5f + 0.42f * (float) Math.sin(moon[1])), my = h * (0.8f - 0.72f * clamp(altD / 60f));
+                float mx = w * (0.5f + 0.42f * (float) Math.sin(moon[1])), my = h * (hz - (hz - 0.08f) * clamp(altD / 60f));
                 float mr = 0.11f * w;
                 moonX = mx;
                 moonY = my;
@@ -221,12 +223,12 @@ final class Sky {
         Random sr = new Random(seed ^ 0x5EEDL);
         for (int i = 0; i < n; i++) {
             L.sx[i] = sr.nextFloat() * w;
-            L.sy[i] = sr.nextFloat() * h * 0.7f;
+            L.sy[i] = sr.nextFloat() * h * (hz - 0.06f);
             // stars are behind the moon (2.27): none on its disc or just round it, where its light hides them
             for (int tries = 0; moonR > 0 && tries < 8
                     && Math.hypot(L.sx[i] - moonX, L.sy[i] - moonY) < moonR * 1.35f; tries++) {
                 L.sx[i] = sr.nextFloat() * w;
-                L.sy[i] = sr.nextFloat() * h * 0.7f;
+                L.sy[i] = sr.nextFloat() * h * (hz - 0.06f);
             }
             L.ss[i] = (0.35f + sr.nextFloat() * 0.6f) * px * 1.15f;
             L.sa[i] = (0.3f + sr.nextFloat() * 0.7f) * stars;
