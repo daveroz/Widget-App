@@ -419,6 +419,18 @@ def bake(key, cfg):
                 continue
         kept.append((q, h))
     merged = kept
+    # rule 17: no wall of a tower right in front: a plain block nearer than the focus whose top would stand in the top
+    # sixth of the cell goes (a near tower would fill the view, the wide cell's most of all)
+    kept, giants = [], 0
+    for q, h in merged:
+        cq = q.centroid
+        ok, along = in_view(cq.x, cq.y)
+        if ok and along < d and HZ * REF_H - (h - cam.c[1]) / max(along, 1) * cam.f < REF_H / 6:
+            giants += 1
+            continue
+        kept.append((q, h))
+    merged = kept
+    stats['giants_cleared'] = giants
     stats['cleared_for_view'] = cleared
     stats['blocks'] = len(merged)
     blocks = []  # each block once: its footprint on the ground and its height; the app rebuilds its walls and roof
