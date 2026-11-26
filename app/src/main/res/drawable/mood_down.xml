@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The market down: a sad face in a cracked ring (2.33; the same drawing as art/mood/mood_down.svg, without its glow, which the widget adds) -->
+<!-- The market down: a sad face in a chipped ring (2.33): the supplied drawing (art/mood/wealth_contrast_icons.svg), this face in its own square, the ring
+     at the same place in both faces; the widget adds its glow -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="100dp" android:height="100dp"
-    android:viewportWidth="100" android:viewportHeight="100">
-    <path android:pathData="M60.81,34.37 A33.8,33.8 0 1 1 53.75,30.12 L56.45,33.12 L54.26,33.54 A29.1,29.1 0 1 0 58.6,36.16 L57.39,33.69 Z">
-        <aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="0" android:startY="0" android:endX="100" android:endY="100"><item android:offset="0" android:color="#FFF2F5FB"/><item android:offset="0.55" android:color="#FFC3C8D4"/><item android:offset="1" android:color="#FF8A91A2"/></gradient></aapt:attr>
-    </path>
-    <path android:pathData="M26.6,62.6 Q30,54.2 35.8,58.2" android:strokeWidth="3.6" android:strokeLineCap="round" android:strokeLineJoin="round">
-        <aapt:attr name="android:strokeColor"><gradient android:type="linear" android:startX="0" android:startY="0" android:endX="100" android:endY="100"><item android:offset="0" android:color="#FFF2F5FB"/><item android:offset="0.55" android:color="#FFC3C8D4"/><item android:offset="1" android:color="#FF8A91A2"/></gradient></aapt:attr>
-    </path>
-    <path android:pathData="M44.2,58.2 Q50,54.2 53.4,62.6" android:strokeWidth="3.6" android:strokeLineCap="round" android:strokeLineJoin="round">
-        <aapt:attr name="android:strokeColor"><gradient android:type="linear" android:startX="0" android:startY="0" android:endX="100" android:endY="100"><item android:offset="0" android:color="#FFF2F5FB"/><item android:offset="0.55" android:color="#FFC3C8D4"/><item android:offset="1" android:color="#FF8A91A2"/></gradient></aapt:attr>
-    </path>
-    <path android:pathData="M30.2,77.2 Q40,64.2 49.8,77.2" android:strokeWidth="3.6" android:strokeLineCap="round" android:strokeLineJoin="round">
-        <aapt:attr name="android:strokeColor"><gradient android:type="linear" android:startX="0" android:startY="0" android:endX="100" android:endY="100"><item android:offset="0" android:color="#FFF2F5FB"/><item android:offset="0.55" android:color="#FFC3C8D4"/><item android:offset="1" android:color="#FF8A91A2"/></gradient></aapt:attr>
-    </path>
+    android:viewportWidth="380" android:viewportHeight="380">
+    <group android:translateX="-1062" android:translateY="-215">
+        <path android:pathData="M1268,319 C1232,310 1195,309 1163,324 C1118,344 1084,388 1075,435 C1061,510 1113,559 1190,565 C1266,571 1326,529 1340,466 C1349,426 1334,389 1302,368 L1272,365 Z" android:strokeColor="#FFF5F4FA" android:strokeWidth="18"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M1122,458 Q1151,463 1177,445 Q1173,477 1147,477 Q1132,474 1122,458Z" android:fillColor="#FFF5F4FA" />
+        <path android:pathData="M1238,445 Q1265,464 1294,458 Q1284,478 1262,476 Q1244,471 1238,445Z" android:fillColor="#FFF5F4FA" />
+        <path android:pathData="M1171,522 Q1208,478 1245,522 Q1208,505 1171,522Z" android:fillColor="#FFF5F4FA" android:strokeColor="#FFF5F4FA"
+            android:strokeWidth="7" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    </group>
 </vector>

@@ -1,30 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
-  <!-- The market's up or flat (2.33): a crowned, laughing face with two sparkles, in polished silver. -->
-  <defs>
-    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="0.55" stop-color="#DADDE5"/>
-      <stop offset="1" stop-color="#9AA0AE"/>
-    </linearGradient>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="b"/>
-      <feFlood flood-color="#FFFFFF" flood-opacity="0.45"/>
-      <feComposite in2="b" operator="in" result="g"/>
-      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <g filter="url(#glow)" fill="url(#silver)">
-    <!-- the ring, thicker towards the lower left -->
-    <path fill-rule="evenodd" d="M73.8,61 A33.8,33.8 0 1 1 6.2,61 A33.8,33.8 0 1 1 73.8,61 Z M70.6,59.7 A29.1,29.1 0 1 0 12.4,59.7 A29.1,29.1 0 1 0 70.6,59.7 Z"/>
-    <!-- the crown -->
-    <path d="M19.7,27.6 L56.9,27.6 L56.1,9.9 L47,17.7 L38.1,6.8 L29.6,17.7 L20.5,9.9 Z"/>
-    <!-- the sparkles -->
-    <path d="M78.2,6 Q79.2,14.9 86.8,15.9 Q79.2,16.9 78.2,25.8 Q77.2,16.9 69.6,15.9 Q77.2,14.9 78.2,6 Z"/>
-    <path d="M90.4,26 Q91.1,32.6 96.6,33.3 Q91.1,34 90.4,40.6 Q89.7,34 84.2,33.3 Q89.7,32.6 90.4,26 Z"/>
-    <!-- the mouth, laughing -->
-    <path d="M28,71.6 Q28,70.4 29.2,70.4 L47.1,70.4 Q48.3,70.4 48.3,71.6 C48.3,79.6 44,85.6 38.15,85.6 C32.3,85.6 28,79.6 28,71.6 Z"/>
-    <!-- the eyes, shut with laughing -->
-    <path fill="none" stroke="url(#silver)" stroke-width="3.6" stroke-linecap="round" d="M15.4,63.2 Q21.2,51.8 27,63.2"/>
-    <path fill="none" stroke="url(#silver)" stroke-width="3.6" stroke-linecap="round" d="M47.4,63.2 Q53.2,51.8 59,63.2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="372 220 380 380" width="512" height="512" role="img">
+  <title>The market up or flat: a crowned, laughing face</title>
+  <!-- from wealth_contrast_icons.svg (the supplied drawing), one face in its own square, the ring at the same place in both -->
+  <g fill="none" stroke="#F5F4FA" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="20" d="M439,448 Q463,405 488,448"/>
+    <path stroke-width="20" d="M551,448 Q577,405 603,448"/>
+    <path stroke-width="20" d="M646,445 A124,124 0 1 1 398,445 A124,124 0 1 1 646,445 Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M483,487 H563 Q559,531 523,531 Q487,531 483,487Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M450,268 L489,287 L523,243 L557,287 L595,269 L578,315 Q523,299 468,315Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M673,241 C673,266 685,278 708,278 C685,278 673,290 673,315 C673,290 661,278 638,278 C661,278 673,266 673,241Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M718,319 C718,337 727,346 744,346 C727,346 718,355 718,373 C718,355 709,346 692,346 C709,346 718,337 718,319Z"/>
   </g>
 </svg>
