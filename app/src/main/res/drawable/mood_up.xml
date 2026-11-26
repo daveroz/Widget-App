@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The market up or flat: a crowned, laughing face with two sparkles (2.33): the supplied drawing (art/mood/wealth_contrast_icons.svg), this face in its own square, the ring
+     in its middle in both faces; the widget adds its glow -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp" android:height="100dp"
+    android:viewportWidth="450" android:viewportHeight="450">
+    <group android:translateX="-297" android:translateY="-220">
+        <path android:pathData="M439,448 Q463,405 488,448" android:strokeColor="#FFF5F4FA" android:strokeWidth="20"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M551,448 Q577,405 603,448" android:strokeColor="#FFF5F4FA" android:strokeWidth="20"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M646,445 A124,124 0 1 1 398,445 A124,124 0 1 1 646,445 Z" android:strokeColor="#FFF5F4FA" android:strokeWidth="20"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M483,487 H563 Q559,531 523,531 Q487,531 483,487Z" android:fillColor="#FFF5F4FA" />
+        <path android:pathData="M450,268 L489,287 L523,243 L557,287 L595,269 L578,315 Q523,299 468,315Z" android:fillColor="#FFF5F4FA" />
+        <path android:pathData="M673,241 C673,266 685,278 708,278 C685,278 673,290 673,315 C673,290 661,278 638,278 C661,278 673,266 673,241Z" android:fillColor="#FFF5F4FA" />
+        <path android:pathData="M718,319 C718,337 727,346 744,346 C727,346 718,355 718,373 C718,355 709,346 692,346 C709,346 718,337 718,319Z" android:fillColor="#FFF5F4FA" />
+    </group>
+</vector>

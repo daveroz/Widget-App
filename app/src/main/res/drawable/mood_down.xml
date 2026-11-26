@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The market down: a sad face in a chipped ring (2.33): the supplied drawing (art/mood/wealth_contrast_icons.svg), this face in its own square, the ring
+     in its middle in both faces; the widget adds its glow -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp" android:height="100dp"
+    android:viewportWidth="450" android:viewportHeight="450">
+    <group android:translateX="-987" android:translateY="-215">
+        <path android:pathData="M1268,319 C1232,310 1195,309 1163,324 C1118,344 1084,388 1075,435 C1061,510 1113,559 1190,565 C1266,571 1326,529 1340,466 C1349,426 1334,389 1302,368 L1272,365 Z" android:strokeColor="#FFF5F4FA" android:strokeWidth="18"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M1122,458 Q1151,463 1177,445 Q1173,477 1147,477 Q1132,474 1122,458Z" android:fillColor="#FFF5F4FA" />
+        <path android:pathData="M1238,445 Q1265,464 1294,458 Q1284,478 1262,476 Q1244,471 1238,445Z" android:fillColor="#FFF5F4FA" />
+        <path android:pathData="M1171,522 Q1208,478 1245,522 Q1208,505 1171,522Z" android:fillColor="#FFF5F4FA" android:strokeColor="#FFF5F4FA"
+            android:strokeWidth="7" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    </group>
+</vector>

@@ -32,14 +32,16 @@ final class Palette {
     /** The windows' warm glow (the video's peach), the far lights' cool cream, and the street lamps' warm light. */
     static final int WINDOW = 0xFFF8C08E, FAR_LIGHT = 0xFFE8E2FF, LAMP = 0xFFFFD6A6;
 
-    // the five lights: the sky's top, middle and horizon. Since 2.31 punchier, after the references: the night a deep
-    // indigo with a violet horizon, the blue hour violet to magenta, dusk violet, magenta and a hot coral, the golden
-    // hour periwinkle, pink and gold, the day blue, teal and a pale mint (the pastel days of the posters)
-    private static final int[] NIGHT = {0xFF0A0B30, 0xFF141760, 0xFF2B2486};
-    private static final int[] BLUE_HOUR = {0xFF1B1672, 0xFF3A2AA2, 0xFF7E3FBE};
-    private static final int[] DUSK = {0xFF4A2B9E, 0xFFBE46A8, 0xFFFF7E78};
-    private static final int[] GOLDEN = {0xFF6A62D6, 0xFFFF86A6, 0xFFFFC160};
-    private static final int[] DAY = {0xFF3C7FE6, 0xFF66BFEE, 0xFFD6F0E4};
+    // the five lights: the sky's top, middle and horizon. Since 2.33 after the graded reference (measured in OKLCH): the
+    // night a deep navy (hue 265, not violet), darker and calmer; the blue hour navy to a violet horizon; dusk violet,
+    // a crimson-magenta and orange; the golden hour plum, coral and amber; the day a quieter, deeper blue to a pale
+    // haze. (2.31's punchier lights: night 0A0B30 141760 2B2486, blue hour 1B1672 3A2AA2 7E3FBE, dusk 4A2B9E BE46A8
+    // FF7E78, golden 6A62D6 FF86A6 FFC160, day 3C7FE6 66BFEE D6F0E4.)
+    private static final int[] NIGHT = {0xFF030A2B, 0xFF061645, 0xFF152861};
+    private static final int[] BLUE_HOUR = {0xFF0B1649, 0xFF1E2769, 0xFF503C8A};
+    private static final int[] DUSK = {0xFF442D7D, 0xFFBC467C, 0xFFF77C56};
+    private static final int[] GOLDEN = {0xFFB5596D, 0xFFDA645C, 0xFFF89845};
+    private static final int[] DAY = {0xFF3B70C2, 0xFF67A1D6, 0xFFB9D6E8};
 
     /** Where each light is at its fullest (the sun's height, degrees) and how broad its bell is. */
     private static float bell(float e, float at, float width) {
@@ -99,8 +101,11 @@ final class Palette {
         float[] mid = lab(sky[1]), hor = lab(sky[2]);
         float[] body = lerp(mid, hor, 0.4f);
         body[0] += 0.035f;
-        body = lerp(body, lab(0xFFF4F6FA), 0.62f * day);
-        float[] lit = lerp(hor, lab(0xFFFFFFFF), 0.25f + 0.65f * day);
+        body = lerp(body, lab(0xFFE2E9F4), 0.55f * day); // 2.33: a cool steel white by day, not paper white
+        float[] lit = lerp(hor, lab(0xFFFFFFFF), 0.12f + 0.78f * day); // 2.33: less white at night
+        float night = 1f - smooth(-12f, -2f, e), deep = 1f + 0.6f * night; // and a deeper, more vivid navy body, as the reference's
+        body[1] *= deep;
+        body[2] *= deep;
         return new int[]{rgb(lit[0], lit[1], lit[2]), rgb(body[0], body[1], body[2])};
     }
 
@@ -115,17 +120,28 @@ final class Palette {
             {1.04f, 10f, 0.59f},   // edges and balconies
     };
 
+    /**
+     * 2.33: each role's lightness share by full day (the night's are {@link #ROLES}'): the graded reference's daylight
+     * is punchier, its sunlit faces bright and its shaded faces deep, so the spread between them widens with the day.
+     */
+    private static final float[] DAY_L = {0.96f, 1.0f, 0.8f, 0.46f, 0.6f, 0.52f, 1.04f};
+
     /** The city's colours, by role ({@link #FAR} ... {@link #RIM}), worked out from the sky by the video's rule. */
     static int[] city(float e, float morning) {
         int[] sky = sky(e, morning);
         float[] top = lch(sky[0]), hor = lch(sky[2]);
         float mean = (top[0] + hor[0]) / 2f;
         float day = smooth(4f, 18f, e), night = 1f - smooth(-12f, -2f, e);
+        // 2.33: with the sun low the city stands against the bright sky, backlit, deep (the reference's sunset)
+        float backlit = bell(e, 3f, 6f);
         int[] out = new int[8];
         for (int i = 0; i < ROLES.length; i++) {
-            float L = mean * ROLES[i][0] + 0.085f * night; // 2.31: a moonlit blue at night, so lit windows read
-            float h = Math.max(258f, Math.min(296f, top[2] - ROLES[i][1])); // within the blue to indigo band
-            float C = Math.max(0.035f + 0.03f * night, top[1] * ROLES[i][2] * (1f - 0.28f * day)) * 1.15f; // punchier
+            // 2.33, after the graded reference: deeper, so the lights and the sky stand out (by day 0.88 of 2.31's, at
+            // night a faint moonlit lift instead of 2.31's strong one); calmer at night
+            float share = ROLES[i][0] + (DAY_L[i] - ROLES[i][0]) * day;
+            float L = mean * share * (1f - 0.12f * day) * (1f - 0.34f * backlit) + 0.02f * night;
+            float h = Math.max(258f, Math.min(290f, top[2] - ROLES[i][1])); // within the blue to indigo band
+            float C = Math.max(0.03f + 0.015f * night, top[1] * ROLES[i][2] * (1f - 0.28f * day)) * 1.1f;
             out[i] = fromLch(Math.min(0.9f, L), C, h);
         }
         // the rim along the roofs: the horizon's warmth, light

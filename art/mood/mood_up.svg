@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="297 220 450 450" width="512" height="512" role="img">
+  <title>The market up or flat: a crowned, laughing face</title>
+  <!-- from wealth_contrast_icons.svg (the supplied drawing), one face in its own square, the ring in its middle in both -->
+  <g fill="none" stroke="#F5F4FA" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="20" d="M439,448 Q463,405 488,448"/>
+    <path stroke-width="20" d="M551,448 Q577,405 603,448"/>
+    <path stroke-width="20" d="M646,445 A124,124 0 1 1 398,445 A124,124 0 1 1 646,445 Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M483,487 H563 Q559,531 523,531 Q487,531 483,487Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M450,268 L489,287 L523,243 L557,287 L595,269 L578,315 Q523,299 468,315Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M673,241 C673,266 685,278 708,278 C685,278 673,290 673,315 C673,290 661,278 638,278 C661,278 673,266 673,241Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M718,319 C718,337 727,346 744,346 C727,346 718,355 718,373 C718,355 709,346 692,346 C709,346 718,337 718,319Z"/>
+  </g>
+</svg>

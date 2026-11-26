@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="987 215 450 450" width="512" height="512" role="img">
+  <title>The market down: a sad face</title>
+  <!-- from wealth_contrast_icons.svg (the supplied drawing), one face in its own square, the ring in its middle in both -->
+  <g fill="none" stroke="#F5F4FA" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="18" d="M1268,319 C1232,310 1195,309 1163,324 C1118,344 1084,388 1075,435 C1061,510 1113,559 1190,565 C1266,571 1326,529 1340,466 C1349,426 1334,389 1302,368 L1272,365 Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M1122,458 Q1151,463 1177,445 Q1173,477 1147,477 Q1132,474 1122,458Z"/>
+    <path fill="#F5F4FA" stroke="none" d="M1238,445 Q1265,464 1294,458 Q1284,478 1262,476 Q1244,471 1238,445Z"/>
+    <path fill="#F5F4FA" stroke-width="7" d="M1171,522 Q1208,478 1245,522 Q1208,505 1171,522Z"/>
+  </g>
+</svg>

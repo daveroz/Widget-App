@@ -239,8 +239,11 @@ final class WorldScene {
 
     // ------------------------------------------------------------------ drawing
 
-    private static final int[] WARM = {0xFFFFDC8C, 0xFFFFC46E, 0xFFFFB27A, 0xFFFFE8B0, 0xFFFFCD96};
-    private static final int LAMP = 0xFFFFD6EC, POOL = 0xFFFFC496, GLOW_WINDOW = 0xFFFF7668, GLOW_LAMP = 0xFFFF5CAA,
+    // the lights (2.33, after the graded reference): warm amber and gold windows (the brightest two first), warm white
+    // lamps, and the bloom round the brightest lights amber rather than 2.31's salmon and pink
+    private static final int[] WARM = {0xFFFFF4D2, 0xFFFFDC8A, 0xFFFFB85C, 0xFFFFA552, 0xFFFFC57E}; // the brightest near white-hot
+    private static final int LAMP = 0xFFFFE2BC, POOL = 0xFFFFC496, GLOW_WINDOW = 0xFFFFA650, GLOW_LAMP = 0xFFFF9248,
+            HALATION = 0xFFFF5A36,
             FLOOD = 0xFFFFA27E;
     /**
      * At night every building is lit from the street (2.32), the hero too, alike: warm at its foot, fading out 60% of the
@@ -267,6 +270,7 @@ final class WorldScene {
         b.still = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
         draw(new Canvas(b.still), d, w, h, l, seed, b, cc != null && LEFT_HAND.contains(cc.toUpperCase(Locale.ROOT)),
                 "Paris".equalsIgnoreCase(city) && (cc == null || "FR".equalsIgnoreCase(cc)));
+        punch(b.still, PUNCH_CLARITY, PUNCH_VIBRANCE);
         return b;
     }
 
@@ -295,7 +299,8 @@ final class WorldScene {
         p.setShader(new LinearGradient(0, hz, 0, hz + (h - hz) / 2.2f, landFar, landNear, Shader.TileMode.CLAMP));
         c.drawRect(0, hz - 0.5f * k, w, h, p);
         p.setShader(null);
-        int waterFar = Scene.mix(l.horizon, l.mid, 0.12f), waterNear = Scene.mix(Scene.mix(l.horizon, l.mid, 0.55f), l.near, 0.3f);
+        // the water: the sky in it, deeper (2.33: the graded reference's water is darker than the sky it mirrors)
+        int waterFar = Scene.mix(Scene.mix(l.horizon, l.mid, 0.3f), l.near, 0.32f), waterNear = Scene.mix(Scene.mix(l.horizon, l.mid, 0.65f), l.near, 0.6f);
         int park = Scene.mix(l.front, l.street, 0.35f), road = Scene.mix(l.street, l.edge, 0.18f);
         int[] order = {PARK, WATER, ROAD};
         // the roads' traffic at night (2.32): where a road shows (it, less everything later drawn over it), at half size
@@ -437,12 +442,30 @@ final class WorldScene {
             if (kind == LM_GLASS && lights > 0.05f) glassWindows(c, glow, gp, p, s, x0, k, share, lights, fog, i);
         }
         // the glow: blurred, laid over by screen (the bloom)
+        // the haze on the far distance (2.33): a thin veil of the horizon's light along it, about 8% at its densest
+        float hzY = HZ * h;
+        int haze = Scene.mix(l.horizon, l.far, 0.4f);
+        p.setShader(new LinearGradient(0, hzY - 0.035f * h, 0, hzY + 0.07f * h, new int[]{haze & 0x00FFFFFF,
+                Scene.alpha(haze, 0.08f), haze & 0x00FFFFFF}, new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
+        c.drawRect(0, hzY - 0.035f * h, w, hzY + 0.07f * h, p);
+        p.setShader(null);
         if (glowBmp != null) {
             Bitmap small = Bitmap.createScaledBitmap(glowBmp, Math.max(2, glowBmp.getWidth() / 2), Math.max(2, glowBmp.getHeight() / 2), true);
             blur(small, 1);
+            // the halation (2.33): the same lights spread wider and redder, faintly, as film does round tiny highlights
+            // (the city's lights only: never the sun or the moon, which are the sky's)
+            Bitmap wide = Bitmap.createScaledBitmap(small, Math.max(2, small.getWidth() / 2), Math.max(2, small.getHeight() / 2), true);
+            blur(wide, 2);
+            Paint hp = new Paint(Paint.FILTER_BITMAP_FLAG);
+            hp.setColorFilter(new android.graphics.PorterDuffColorFilter(HALATION, PorterDuff.Mode.SRC_IN));
+            hp.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
+            hp.setAlpha(Math.round(255 * 0.45f * lights));
+            c.drawBitmap(wide, new Rect(0, 0, wide.getWidth(), wide.getHeight()), new Rect(0, 0, w, h), hp);
+            wide.recycle();
+            // the bloom round the brightest lights
             Paint sp = new Paint(Paint.FILTER_BITMAP_FLAG);
             sp.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
-            sp.setAlpha(Math.round(255 * Math.min(1f, 0.75f + 0.25f * night)));
+            sp.setAlpha(Math.round(255 * Math.min(1f, 0.85f + 0.15f * night)));
             c.drawBitmap(small, new Rect(0, 0, small.getWidth(), small.getHeight()), new Rect(0, 0, w, h), sp);
         }
         if (bestTop < HZ * d.h && night > 0.3f) built.beacons = new float[]{(bestX - x0) * k, bestTop * k + 1.5f * k};
@@ -629,7 +652,7 @@ final class WorldScene {
         float busy = busyOf[rw.nextInt(busyOf.length)];
         float fshare = share * busy * (merged == 1 ? 1f : merged <= 4 ? 0.7f : 0.45f);
         float span = merged == 1 ? 0.56f : 0.34f;
-        float aCore = Math.min(1f, lights * 1.1f) * (1 - 0.6f * fog);
+        float aCore = Math.min(1f, lights * 1.25f) * (1 - 0.5f * fog); // 2.33: brighter, as the reference's lights
         int drawn = 0;
         for (int fl = 0; fl < floors && drawn < 48; fl++) {
             if (hm > 8 && fl == 0 && floors > 2) continue;
@@ -649,12 +672,19 @@ final class WorldScene {
                     if (m == 0) path.moveTo(q[0], q[1]); else path.lineTo(q[2 * m], q[2 * m + 1]);
                 }
                 path.close();
-                p.setColor(Scene.alpha(WARM[rw.nextInt(WARM.length)], aCore));
+                int ci = rw.nextInt(WARM.length);
+                p.setColor(Scene.alpha(WARM[ci], aCore));
                 c.drawPath(path, p);
-                if (glow != null) {
+                if (ci == 0) { // the brightest: a white-hot point at its heart (2.33), as the reference's lights pop
+                    float cx = (q[0] + q[2] + q[4] + q[6]) / 4, cy = (q[1] + q[3] + q[5] + q[7]) / 4;
+                    float cr = Math.max(0.55f, Math.min(1.4f, (float) Math.hypot(q[2] - q[0], q[3] - q[1]) * 0.45f));
+                    p.setColor(Scene.alpha(0xFFFFFCF2, aCore));
+                    c.drawCircle(cx, cy, cr, p);
+                }
+                if (glow != null && ci < 2) { // the bloom: only round the brightest windows (2.33)
                     float gx = (q[0] + q[2] + q[4] + q[6]) / 4, gy = (q[1] + q[3] + q[5] + q[7]) / 4;
                     float gr = Math.max(1f, Math.min(5f, (float) Math.hypot(q[2] - q[0], q[3] - q[1]) * 1.2f));
-                    gp.setColor(Scene.alpha(GLOW_WINDOW, 0.33f * lights));
+                    gp.setColor(Scene.alpha(GLOW_WINDOW, 0.5f * lights));
                     glow.drawOval(gx - gr, gy - gr * 0.8f, gx + gr, gy + gr * 0.8f, gp);
                 }
                 drawn++;
@@ -677,10 +707,11 @@ final class WorldScene {
             for (float x = (float) Math.floor(minx / sx) * sx; x < maxx; x += sx) {
                 float cx = x + sx / 2, cy = y + sy / 2;
                 if (!inside(s, (cx / k) + x0, cy / k) || rw.nextFloat() > share * 0.8f) continue;
-                p.setColor(Scene.alpha(WARM[rw.nextInt(WARM.length)], 0.9f * lights * (1 - 0.6f * fog)));
+                int gi = rw.nextInt(WARM.length);
+                p.setColor(Scene.alpha(WARM[gi], 0.9f * lights * (1 - 0.6f * fog)));
                 c.drawRect(cx - 0.8f, cy - 0.8f, cx + 0.8f, cy + 0.8f, p);
-                if (glow != null) {
-                    gp.setColor(Scene.alpha(GLOW_WINDOW, 0.27f * lights));
+                if (glow != null && gi < 2) {
+                    gp.setColor(Scene.alpha(GLOW_WINDOW, 0.32f * lights));
                     glow.drawOval(cx - 2f, cy - 1.6f, cx + 2f, cy + 1.6f, gp);
                 }
             }
@@ -765,6 +796,88 @@ final class WorldScene {
     }
 
     /** A box blur, {@code passes} times, over a small picture (the glow, at a quarter of the cell's size). */
+    /** The punch pass's strengths (2.33): local contrast (clarity) and vibrance, matched to the graded reference. */
+    static final float PUNCH_CLARITY = 0.6f, PUNCH_VIBRANCE = 0.3f;
+
+    /**
+     * The punch pass (2.33, after the graded reference): local contrast on the lightness only, each pixel pushed away
+     * from its surroundings (a 2 px blur at full size, weighted by what's drawn, so the see-through sky never counts as
+     * black and no edge rings) by {@code clarity}, the push softly limited on strong edges (crisper texture and windows,
+     * no halos or bands); then vibrance, the duller colours made richer by up to {@code vibrance}, the rich ones left
+     * nearly alone. On a picture with see-through parts (the city over the sky), only what's drawn changes.
+     */
+    static void punch(Bitmap b, float clarity, float vibrance) {
+        int w = b.getWidth(), h = b.getHeight();
+        if (w < 8 || h < 8) return;
+        int n = w * h;
+        int[] px = new int[n];
+        b.getPixels(px, 0, w, 0, 0, w, h);
+        float[] ya = null, aa = null;
+        if (clarity > 0f) {
+            ya = new float[n];
+            aa = new float[n];
+            for (int i = 0; i < n; i++) {
+                int c = px[i];
+                float al = (c >>> 24) / 255f;
+                ya[i] = al * (0.299f * ((c >> 16) & 255) + 0.587f * ((c >> 8) & 255) + 0.114f * (c & 255));
+                aa[i] = al;
+            }
+            float[] tmp = new float[n];
+            for (int pass = 0; pass < 2; pass++) { // two box passes of radius 2: close to a gaussian
+                boxBlur(ya, tmp, w, h, 2);
+                boxBlur(aa, tmp, w, h, 2);
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            int c = px[i], a = c >>> 24;
+            if (a == 0) continue;
+            float r = (c >> 16) & 255, g = (c >> 8) & 255, bb = c & 255;
+            if (ya != null && aa[i] > 0.02f) {
+                float y = 0.299f * r + 0.587f * g + 0.114f * bb, around = ya[i] / aa[i];
+                float d = y - around;
+                d = d / (1f + Math.abs(d) / 18f); // strong edges are pushed little: no ringing
+                float k = clarity * aa[i] * aa[i]; // and nothing at the edge of what's drawn
+                r += k * d;
+                g += k * d;
+                bb += k * d;
+            }
+            if (vibrance > 0f) {
+                float mx = Math.max(r, Math.max(g, bb)), mn = Math.min(r, Math.min(g, bb));
+                float sat = mx <= 0 ? 0 : (mx - mn) / Math.max(1f, mx), avg = (r + g + bb) / 3f;
+                float f = 1f + vibrance * (1f - Math.min(1f, sat));
+                r = avg + (r - avg) * f;
+                g = avg + (g - avg) * f;
+                bb = avg + (bb - avg) * f;
+            }
+            px[i] = (a << 24) | (clamp255(r) << 16) | (clamp255(g) << 8) | clamp255(bb);
+        }
+        b.setPixels(px, 0, w, 0, 0, w, h);
+    }
+
+    /** A box blur of radius {@code r} across then down, in place ({@code tmp} as large), its edges clamped. */
+    private static void boxBlur(float[] v, float[] tmp, int w, int h, int r) {
+        float norm = 1f / (2 * r + 1);
+        for (int y = 0; y < h; y++) {
+            int o = y * w;
+            float sum = 0;
+            for (int k = -r; k <= r; k++) sum += v[o + Math.min(w - 1, Math.max(0, k))];
+            for (int x = 0; x < w; x++) {
+                tmp[o + x] = sum * norm;
+                sum += v[o + Math.min(w - 1, x + r + 1)] - v[o + Math.max(0, x - r)];
+            }
+        }
+        for (int x = 0; x < w; x++) {
+            float sum = 0;
+            for (int k = -r; k <= r; k++) sum += tmp[Math.min(h - 1, Math.max(0, k)) * w + x];
+            for (int y = 0; y < h; y++) {
+                v[y * w + x] = sum * norm;
+                sum += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x];
+            }
+        }
+    }
+
+    private static int clamp255(float v) { return v <= 0 ? 0 : v >= 255 ? 255 : Math.round(v); }
+
     private static void blur(Bitmap b, int passes) {
         int w = b.getWidth(), h = b.getHeight();
         int[] px = new int[w * h], tmp = new int[w * h];
@@ -926,8 +1039,10 @@ final class WorldScene {
                 float trail = Math.max(rad, Math.min(5f * px, 7f * tr.fk / z)); // about 7 m
                 float ex = sl > 0.01f ? x - sx / sl * trail : x, ey = sl > 0.01f ? y - sy / sl * trail : y;
                 if (rad > 0.7f) {
-                    p.setColor(Scene.alpha(col, 0.2f * a));
-                    c.drawCircle(x, y, rad * 2.8f, p);
+                    p.setColor(Scene.alpha(HALATION, 0.04f * a)); // its halation, faint and wide (2.33)
+                    c.drawCircle(x, y, rad * 5.5f, p);
+                    p.setColor(Scene.alpha(col, 0.18f * a));
+                    c.drawCircle(x, y, rad * 2.6f, p);
                 }
                 p.setStyle(Paint.Style.STROKE);
                 p.setStrokeCap(Paint.Cap.ROUND);

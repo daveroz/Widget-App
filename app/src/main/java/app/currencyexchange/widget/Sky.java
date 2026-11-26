@@ -104,11 +104,11 @@ final class Sky {
             cover = Math.max(cover, 0.85f);
             // the sky keeps its hour's glow behind the gaps at dawn and dusk; grey by day, a dark navy at night; the
             // clouds heavy over it, their edges warm when the sun is low, grey by day
-            int grey = Scene.mix(Scene.mix(0xFF4A4C68, 0xFF6E7488, day), 0xFF141C36, night);
+            int grey = Scene.mix(Scene.mix(0xFF414468, 0xFF5F749E, day), 0xFF0B152D, night); // 2.33: steel blue, not grey
             sky = new int[]{Scene.mix(sky[0], grey, 0.35f + 0.3f * day), Scene.mix(sky[1], grey, 0.3f + 0.35f * day),
                     Scene.mix(sky[2], grey, 0.15f + 0.45f * day)};
             shade = Scene.mix(shade, Scene.mix(Scene.mix(0xFF3A3A58, 0xFF5A6074, day), 0xFF161E38, night), 0.75f);
-            lit = Scene.mix(lit, Scene.mix(lit, 0xFFB4B8C6, day), 0.6f);
+            lit = Scene.mix(lit, Scene.mix(lit, 0xFF9DABC5, day), 0.6f);
         } else if (L.snow) {
             cover = Math.max(cover, 0.85f);
             // a paler, softer sky: pale grey by day, mauve and rose at dawn and dusk, a soft blue at night; gentle clouds
@@ -197,9 +197,10 @@ final class Sky {
                 int pale = 0xFFF1EEE2;
                 if (dark > 0.3f) { // its glow on the night: wide and faint, brighter close round it
                     float hl = (0.4f + 0.6f * litF) * vis * dark;
-                    p.setShader(new RadialGradient(mx, my, mr * 4.2f, new int[]{Scene.alpha(0xFFE4EAFF, 0.42f * hl),
-                            Scene.alpha(0xFFDCE4FF, 0.14f * hl), 0x00DCE6FF}, new float[]{0.2f, 0.45f, 1f}, Shader.TileMode.CLAMP));
-                    c.drawCircle(mx, my, mr * 4.2f, p);
+                    p.setAlpha(255);
+                    p.setShader(new RadialGradient(mx, my, mr * 3.6f, new int[]{Scene.alpha(0xFFEEF2FF, 0.5f * hl),
+                            Scene.alpha(0xFFDCE4FF, 0.14f * hl), 0x00DCE6FF}, new float[]{0.25f, 0.45f, 1f}, Shader.TileMode.CLAMP)); // brighter, tighter (2.33)
+                    c.drawCircle(mx, my, mr * 3.6f, p);
                     p.setShader(null);
                 }
                 c.saveLayer(mx - mr * 1.5f, my - mr * 1.5f, mx + mr * 1.5f, my + mr * 1.5f, null);
@@ -221,15 +222,17 @@ final class Sky {
                     litPart.lineTo(k * (float) Math.cos(t), mr * (float) Math.sin(t));
                 }
                 litPart.close();
-                float ma = Math.min(1f, 1.2f * vis); // its lit part as good as solid: the brightest thing in the night
-                p.setShader(new RadialGradient(-mr * 0.25f, -mr * 0.25f, mr * 1.3f, Scene.alpha(0xFFFFFEF6, ma),
-                        Scene.alpha(0xFFF6F2E2, ma), Shader.TileMode.CLAMP));
+                float ma = Math.min(1f, 1.2f * vis) * (0.35f + 0.65f * dark); // solid at night, the brightest thing in it; faint by day
+                ma *= dark + (1f - dark) * clamp(altD / 10f); // and by day gone near the horizon, never a second sun
+                p.setAlpha(255); // (2.33: the dark side's faint alpha used to carry over and dim the lit part to a grey)
+                p.setShader(new RadialGradient(-mr * 0.25f, -mr * 0.25f, mr * 1.3f, Scene.alpha(0xFFFFFFFC, ma),
+                        Scene.alpha(0xFFFBF8EE, ma), Shader.TileMode.CLAMP));
                 c.drawPath(litPart, p);
                 p.setShader(null);
                 c.restore();
                 Paint sea = new Paint(Paint.ANTI_ALIAS_FLAG);
                 sea.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP));
-                sea.setColor(Scene.alpha(0xFFC4C2C8, 0.38f));
+                sea.setColor(Scene.alpha(0xFFCFCFD8, 0.24f)); // its seas faint, so it reads bright (2.33)
                 Random mr0 = new Random(7);
                 for (int i = 0; i < 6; i++) {
                     float sx = mx + (mr0.nextFloat() - 0.5f) * mr * 1.1f, sy = my + (mr0.nextFloat() - 0.5f) * mr * 1.1f;
@@ -288,7 +291,8 @@ final class Sky {
         Canvas fc = new Canvas(L.front);
         if (L.fog || L.rain || L.snow) {
             int mist = Scene.mix(sky[2], L.snow ? 0xFFE8ECF4 : 0xFFB8C0D8, 0.4f);
-            p.setShader(new LinearGradient(0, h * 0.6f, 0, h, mist & 0x00FFFFFF, Scene.alpha(mist, L.fog ? 0.55f : L.snow ? 0.38f : 0.32f),
+            float mistA = L.fog ? 0.55f : L.snow ? 0.38f : 0.32f * (1f - 0.5f * night); // a rainy night keeps its contrast (2.33)
+            p.setShader(new LinearGradient(0, h * 0.6f, 0, h, mist & 0x00FFFFFF, Scene.alpha(mist, mistA),
                     Shader.TileMode.CLAMP));
             fc.drawRect(0, h * 0.6f, w, h, p);
             p.setShader(null);
@@ -296,6 +300,14 @@ final class Sky {
         p.setShader(new RadialGradient(w * 0.5f, h * 0.5f, Math.max(w, h) * 0.62f, 0x44000000, 0x00000000, Shader.TileMode.CLAMP));
         fc.drawRect(0, 0, w, h, p);
         p.setShader(null);
+        if (moonR > 0) { // never over the moon, so it shows as bright as it is (2.33)
+            Paint cut = new Paint(Paint.ANTI_ALIAS_FLAG);
+            cut.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
+            cut.setShader(new RadialGradient(moonX, moonY, moonR * 1.7f, new int[]{0xFF000000, 0xFF000000, 0x00000000},
+                    new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
+            fc.drawCircle(moonX, moonY, moonR * 1.7f, cut);
+        }
+        WorldScene.punch(L.back, 0f, 0.25f); // the sky a little more vivid, as the graded reference's (2.33)
         L.flare = flare(L, w, h);
         return L;
     }
@@ -330,7 +342,7 @@ final class Sky {
     /** The stars at {@code t} seconds, each twinkling at its own pace. */
     static void stars(Canvas c, Layers L, float t, Paint p) {
         for (int i = 0; i < L.sx.length; i++) {
-            float tw = 0.62f + 0.38f * (float) Math.sin(t * 6.2832f * L.sf[i] + L.sp[i]);
+            float tw = 0.74f + 0.26f * (float) Math.sin(t * 6.2832f * L.sf[i] + L.sp[i]); // a gentler twinkle (2.33)
             float a = L.sa[i] * tw, size = L.ss[i];
             if (L.sb[i]) {
                 p.setShader(new RadialGradient(L.sx[i], L.sy[i], size * 3.5f, Scene.alpha(0xFFDCE6FF, 0.35f * a),

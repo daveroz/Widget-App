@@ -89,6 +89,7 @@ final class CurrencyView {
         Bitmap marketLbl = marketLabel(reg, Theme.MUTED); // labels in the app's neutral grey (2.23)
         Bitmap toFlag = flagOrLabel(ctx, Util.countryOfCurrency(to), to);
         Bitmap arrow = arrow(scene);
+        JSONObject hist = Store.hist(ctx, to); // each day's market rates, for each row's mood (2.33)
         // their one card (its 4 dp paddings, the rows and the lines between them), with its edge
         rv.setImageViewBitmap(R.id.rates_bg, Stage.panel(scene, rowW, 8 + ROW_DP * k + (k - 1), 1.5f, Stage.round(28), null, true));
         for (int i = 0; i < k; i++) {
@@ -102,6 +103,8 @@ final class CurrencyView {
             rv.setImageViewBitmap(id(ctx, "arrow_" + i), arrow);
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), marketLbl);
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), tight(reg, HEADER_SP, Util.fmt0(market), white));
+            int mv = id(ctx, "mood_" + i);
+            if (mv != 0) rv.setImageViewBitmap(mv, mood(ctx, mood(hist, from, market) >= 0));
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
             double visa = Util.alignToMarket(Store.visa(ctx, from, to), market);
             int vv = id(ctx, "visa_val_" + i);
@@ -115,6 +118,48 @@ final class CurrencyView {
             }
         }
         return rv;
+    }
+
+    // ------------------------------------------------------------------ the market's mood (2.33)
+
+    /**
+     * How the market rate now compares with the last day before today in the history: 1 up, -1 down, 0 the same (as
+     * shown, to the whole unit, or within a hundred-thousandth) or unknown (no rate, or no earlier day kept yet).
+     */
+    static int mood(JSONObject hist, String from, double live) {
+        if (!(live > 0) || hist == null) return 0;
+        String f = from.trim().toLowerCase(Locale.ROOT), today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
+        String best = null;
+        double prev = 0;
+        for (java.util.Iterator<String> it = hist.keys(); it.hasNext(); ) {
+            String day = it.next();
+            if (day.compareTo(today) >= 0 || (best != null && day.compareTo(best) <= 0)) continue;
+            JSONObject o = hist.optJSONObject(day);
+            double v = o == null ? 0 : o.optDouble(f, 0);
+            if (v > 0) { best = day; prev = v; }
+        }
+        if (best == null) return 0;
+        if ((live >= 100 && Math.round(live) == Math.round(prev)) || Math.abs(live - prev) <= prev * 1e-5) return 0;
+        return live > prev ? 1 : -1;
+    }
+
+    /**
+     * The mood as a picture: laughing and crowned with two sparkles (up, or the same), or sad in a chipped ring (down),
+     * the supplied drawing (res/drawable/mood_up and mood_down, art/mood) as it is, with no glow.
+     */
+    static Bitmap mood(Context ctx, boolean up) {
+        String key = "mood|" + up;
+        Bitmap hit = PICS.get(key);
+        if (hit != null) return hit;
+        int s = 120;
+        Bitmap out = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
+        android.graphics.drawable.Drawable d = ctx.getDrawable(up ? R.drawable.mood_up : R.drawable.mood_down);
+        if (d != null) {
+            d.setBounds(0, 0, s, s);
+            d.draw(new Canvas(out));
+        }
+        PICS.put(key, out);
+        return out;
     }
 
     // ------------------------------------------------------------------ bitmaps
