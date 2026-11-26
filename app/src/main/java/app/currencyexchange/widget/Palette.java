@@ -148,7 +148,7 @@ final class Palette {
                 // 2.37: by full day the city as daylight shows it, not the illustration's blue: faces in the sun a soft
                 // warm stone, faces in shade a cool blue-grey (the sky lights them), the body and edges a warm grey,
                 // the streets asphalt; blended in OKLab (no green on the way), each building's own material on top
-                float tc = i == LIT ? 0.02f : i == SHADE ? 0.04f : i == STREET ? 0.01f : i == EDGE ? 0.016f : 0.013f;
+                float tc = i == LIT ? 0.01f : i == SHADE ? 0.04f : i == STREET ? 0.008f : i == EDGE ? 0.007f : 0.006f; // 2.39: less warm
                 float th = i == LIT ? 72f : i == SHADE ? 256f : i == STREET ? 250f : 80f;
                 double r1 = Math.toRadians(h), r2 = Math.toRadians(th);
                 float a1 = (float) (C * Math.cos(r1)), b1 = (float) (C * Math.sin(r1));

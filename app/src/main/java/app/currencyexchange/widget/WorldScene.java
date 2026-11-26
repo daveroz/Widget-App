@@ -270,7 +270,7 @@ final class WorldScene {
         b.still = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
         draw(new Canvas(b.still), d, w, h, l, seed, b, cc != null && LEFT_HAND.contains(cc.toUpperCase(Locale.ROOT)),
                 "Paris".equalsIgnoreCase(city) && (cc == null || "FR".equalsIgnoreCase(cc)));
-        punch(b.still, PUNCH_CLARITY, PUNCH_VIBRANCE);
+        punch(b.still, PUNCH_CLARITY, PUNCH_VIBRANCE * (1f - 0.7f * smoothF(6f, 16f, l.e))); // by day less (2.39: it warmed the greys to tan)
         return b;
     }
 
@@ -390,7 +390,10 @@ final class WorldScene {
                 double lit = Math.cos(Math.toRadians(d.facing[i] - sun));
                 base = lit > 0.1 ? litC : lit < -0.1 ? shadeC : l.near;
             }
-            if (kind == LM || kind == LM_ROOF || kind == LM_LATTICE || kind == LM_GIRDER) base = tint(base, d.hue[i], d.chroma[i]);
+            if (kind == LM || kind == LM_ROOF || kind == LM_LATTICE || kind == LM_GIRDER) {
+                int t = tint(base, d.hue[i], d.chroma[i]);
+                base = Scene.mix(t, base, 0.5f * smoothF(6f, 16f, l.e)); // by day half its own colour (2.39: less orange)
+            }
             if (kind == LM_GLASS) base = Scene.mix(base, shadeC, 0.4f);
             int col = Scene.mix(base, farHaze, fog);
             poly(path, s, x0, k);
@@ -483,8 +486,8 @@ final class WorldScene {
     }
 
     /** The buildings' materials by day (2.37): their colour, its lightness ignored (each wall keeps its own). */
-    private static final int MAT_CONCRETE = 0xFFC6C9CE, MAT_STONE = 0xFFE2DED4, MAT_SAND = 0xFFD8C4A2,
-            MAT_GLASS = 0xFF8EA8C8, MAT_BRICK = 0xFFB88A74, MAT_DARK_GLASS = 0xFF6F86A6;
+    private static final int MAT_CONCRETE = 0xFFC6C9CE, MAT_STONE = 0xFFDEDCD7, MAT_SAND = 0xFFD2CABA,
+            MAT_GLASS = 0xFF8EA8C8, MAT_BRICK = 0xFFAE958A, MAT_DARK_GLASS = 0xFF6F86A6; // 2.39: the warm ones muted
 
     /**
      * {@code col} taking the hue and colour of the material {@code mat} at its own lightness, {@code k} of the way,
@@ -619,14 +622,14 @@ final class WorldScene {
         if (dayF > 0.01f) {
             int hsh = (int) (s[0] * 73856093) ^ (int) (s[1] * 19349663) ^ n * 83492791;
             int pick = Math.floorMod(hsh, 100);
-            mat = pick < 30 ? MAT_CONCRETE : pick < 50 ? MAT_STONE : pick < 65 ? MAT_SAND : pick < 85 ? MAT_GLASS : pick < 95 ? MAT_BRICK : MAT_DARK_GLASS;
+            mat = pick < 34 ? MAT_CONCRETE : pick < 54 ? MAT_STONE : pick < 64 ? MAT_SAND : pick < 87 ? MAT_GLASS : pick < 94 ? MAT_BRICK : MAT_DARK_GLASS;
             jit = (Math.floorMod(hsh >> 8, 1000) / 1000f * 2f - 1f) * 0.07f * dayF;
         }
         for (int a = 0; a < cnt; a++) {
             int i = wi[a], j = (i + 1) % n;
             double lit = Math.cos(Math.toRadians(wf[a] - sun));
             int base = lit > 0.1 ? litC : lit < -0.1 ? shadeC : l.near;
-            if (dayF > 0.01f) base = material(base, mat, 0.38f * dayF, jit);
+            if (dayF > 0.01f) base = material(base, mat, 0.32f * dayF, jit);
             int col = Scene.mix(base, farHaze, fog);
             float ax = (s[2 * i] - x0) * k, ay = s[2 * i + 1] * k, bx = (s[2 * j] - x0) * k, by = s[2 * j + 1] * k;
             float atx = ax, aty = top[i] * k, btx = bx, bty = top[j] * k;
