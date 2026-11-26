@@ -204,7 +204,7 @@ final class Sky {
                     p.setShader(null);
                 }
                 c.saveLayer(mx - mr * 1.5f, my - mr * 1.5f, mx + mr * 1.5f, my + mr * 1.5f, null);
-                p.setColor(Scene.alpha(pale, 0.16f * vis * dark));
+                p.setColor(Scene.alpha(pale, 0.06f * vis * dark)); // its unlit part only a hint (2.33: more read as a ghost disc)
                 c.drawCircle(mx, my, mr, p);
                 double zen = moon[3];
                 c.save();
@@ -300,13 +300,6 @@ final class Sky {
         p.setShader(new RadialGradient(w * 0.5f, h * 0.5f, Math.max(w, h) * 0.62f, 0x44000000, 0x00000000, Shader.TileMode.CLAMP));
         fc.drawRect(0, 0, w, h, p);
         p.setShader(null);
-        if (moonR > 0) { // never over the moon, so it shows as bright as it is (2.33)
-            Paint cut = new Paint(Paint.ANTI_ALIAS_FLAG);
-            cut.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
-            cut.setShader(new RadialGradient(moonX, moonY, moonR * 1.7f, new int[]{0xFF000000, 0xFF000000, 0x00000000},
-                    new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
-            fc.drawCircle(moonX, moonY, moonR * 1.7f, cut);
-        }
         WorldScene.punch(L.back, 0f, 0.25f); // the sky a little more vivid, as the graded reference's (2.33)
         L.flare = flare(L, w, h);
         return L;
