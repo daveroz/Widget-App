@@ -150,12 +150,12 @@ final class CurrencyView {
     }
 
     /**
-     * The arrow between a row's two currencies (2.21): solid in the light, with the same very faint haze round it as the
-     * music player's progress line has (its bloom, in the light's deep shade), on a picture 4 dp bigger all round than
-     * the 8 x 11 dp arrow so the haze has room.
+     * The arrow between a row's two currencies: since 2.27 in the text's own white, as the codes beside it, whatever is
+     * playing, with no haze (2.21 had it in the light with a faint haze); on a picture 4 dp bigger all round than the
+     * 8 x 11 dp arrow, as the layout expects.
      */
     static Bitmap arrow(Scene scene) {
-        String key = "a|" + scene.tag();
+        String key = "a|white";
         Bitmap hit = PICS.get(key);
         if (hit != null) return hit;
         float px = 3f, u = 0.4f * px; // the old 20 x 26 unit arrow at 0.4 dp a unit
@@ -168,18 +168,9 @@ final class CurrencyView {
         tri.lineTo(x0 + u, y0 + 26 * u);
         tri.lineTo(x0 + 19 * u, y0 + 13 * u);
         tri.close();
-        Look look = Look.get();
-        float mist = Math.min(1.25f, (float) Math.sqrt(look.haze));
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setStyle(Paint.Style.FILL_AND_STROKE);
-        p.setStrokeJoin(Paint.Join.ROUND);
-        p.setStrokeWidth(1.2f * px * mist);
-        p.setColor(Scene.alpha(scene.deep, 0.5f * look.bloom));
-        p.setMaskFilter(new android.graphics.BlurMaskFilter(1.75f * px * mist, android.graphics.BlurMaskFilter.Blur.NORMAL));
-        c.drawPath(tri, p); // its haze, as the progress line's bloom
-        p.setMaskFilter(null);
         p.setStyle(Paint.Style.FILL);
-        p.setColor(scene.key);
+        p.setColor(Theme.TEXT);
         c.drawPath(tri, p);
         PICS.put(key, b);
         return b;

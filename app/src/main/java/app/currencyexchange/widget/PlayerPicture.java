@@ -48,7 +48,7 @@ final class PlayerPicture {
             float tx = x + 2 * r + 14 * dp, room = w - tx - 18 * dp;
             TextPaint text = Words.paint();
             text.setTypeface(Theme.uiBold(ctx));
-            text.setTextSize(Theme.FONT_SCALE * Words.LABEL_DP * dp); // as the Sound widget's label (2.26)
+            text.setTextSize(Theme.FONT_SCALE * Words.LABEL_DP * dp); // the family's label size (2.26)
             text.setLetterSpacing(0.16f);
             String head = TextUtils.ellipsize(title, text, room, TextUtils.TruncateAt.END).toString();
             Lens.text(c, text, head, tx, cy - 4 * dp, dp); // the fringe all text has, no glow

@@ -81,6 +81,8 @@ final class ClockView {
     /** What a world clock needs to draw: its city, where it is, the sun's height there, its weather. */
     static final class Clock {
         String city;
+        /** Its country (ISO code; null if unknown), for its fireworks days (2.27). */
+        String cc;
         ZoneId zone = ZoneId.systemDefault();
         double lat = Double.NaN, lon = Double.NaN, elevation;
         boolean morning;
@@ -98,6 +100,7 @@ final class ClockView {
                 try { k.zone = ZoneId.of(g.optString("tz", k.zone.getId())); } catch (Exception ignored) { }
                 k.lat = g.optDouble("lat", Double.NaN);
                 k.lon = g.optDouble("lon", Double.NaN);
+                k.cc = g.optString("cc", null);
             }
             ZonedDateTime now = java.time.Instant.ofEpochMilli(ms).atZone(k.zone);
             double hr = now.getHour() + now.getMinute() / 60.0;
@@ -128,8 +131,8 @@ final class ClockView {
     /** Clock {@code i}'s picture-maker, of {@code n}, in a widget {@code widthDp} by {@code heightDp}. */
     static SkyCell cell(Clock k, int i, int n, int widthDp, int heightDp) {
         int w = Math.max(8, Math.round(cellW(n, widthDp) * PXDP)), h = Math.round(cellH(n, widthDp, heightDp) * PXDP);
-        return SkyCell.get(k.city, k.lat, k.lon, k.zone, k.elevation, k.morning, k.cloud, k.code, k.wind, w, h, PXDP,
-                corners(i, n), OUTER_R);
+        return SkyCell.get(k.city, k.cc, k.lat, k.lon, k.zone, k.elevation, k.morning, k.cloud, k.code, k.wind, w, h,
+                PXDP, corners(i, n), OUTER_R);
     }
 
     /** The widget with {@code n} clocks, {@code widthDp} by {@code heightDp} (0 when unknown). */

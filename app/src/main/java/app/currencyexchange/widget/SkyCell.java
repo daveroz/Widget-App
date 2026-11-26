@@ -30,6 +30,9 @@ final class SkyCell {
     private final ZoneId zone;
     private final long seed;
     private final float px, wind, drift;
+    /** The city's country (ISO code, null if unknown) and WMO weather code: for fireworks and lightning (2.27). */
+    private String cc;
+    private final int code;
     private final Bitmap out;
     private final Canvas canvas;
     private final Path outside;
@@ -53,6 +56,13 @@ final class SkyCell {
      */
     static synchronized SkyCell get(String city, double lat, double lon, ZoneId zone, double elevation, boolean sunLeft,
                                     int cloud, int code, int wind, int w, int h, float px, int corners, float r) {
+        return get(city, null, lat, lon, zone, elevation, sunLeft, cloud, code, wind, w, h, px, corners, r);
+    }
+
+    /** As above, for a city in country {@code cc} (its fireworks days, 2.27). */
+    static synchronized SkyCell get(String city, String cc, double lat, double lon, ZoneId zone, double elevation,
+                                    boolean sunLeft, int cloud, int code, int wind, int w, int h, float px, int corners,
+                                    float r) {
         float el = Math.round(elevation * 2) / 2f;
         // the moon where it really is, built again each time it has moved a degree or so (2.08)
         double[] moon = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.moon(lat, lon, now());
@@ -61,8 +71,12 @@ final class SkyCell {
         String spec = city + "|" + el + "|" + sunLeft + "|" + (cloud < 0 ? -1 : cloud / 5) + "|" + code + "|"
                 + (wind < 0 ? -1 : wind / 5) + "|" + w + "x" + h + "|" + px + "|" + corners + "|" + moonKey;
         SkyCell hit = CELLS.get(spec);
-        if (hit != null) return hit;
+        if (hit != null) {
+            hit.cc = cc;
+            return hit;
+        }
         SkyCell made = new SkyCell(spec, city, lat, lon, zone, el, sunLeft, cloud, code, wind, w, h, px, corners, r, moon);
+        made.cc = cc;
         CELLS.put(spec, made);
         return made;
     }
@@ -74,10 +88,11 @@ final class SkyCell {
         this.seed = city == null ? 0 : city.hashCode();
         this.px = px;
         this.wind = wind;
+        this.code = code;
         double[] sun = Double.isNaN(lat) || Double.isNaN(lon) ? null : SunCalc.sun(lat, lon, now());
         sky = Sky.layers(w, h, px, el, cloud, code, seed, sunLeft, moon, sun);
         light = CityScene.light(sky, sunLeft);
-        built = CityScene.build(city, lat, w, h, px, light, seed);
+        built = CityScene.build(city, lat, zone, w, h, px, light, seed); // its streets as its continent's (2.27)
         // the clouds cross their strip (twice the cell) in about eight minutes in a breeze, faster in a wind
         drift = 2f * w / 480f * (0.6f + Math.min(40, wind < 0 ? 8 : wind) / 25f);
         out = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
@@ -105,14 +120,33 @@ final class SkyCell {
         Sky.stars(c, sky, t, dot);
         CityScene.plane(c, sky, light, t, seed, px);
         Sky.clouds(c, sky, t, drift, paint);
+        CityScene.birds(c, sky, light, t, seed, px); // a flock now and then, a helicopter more rarely (2.27)
+        CityScene.helicopter(c, sky, light, t, seed, px);
+        // behind the city (2.27): fireworks after dark on its days, lightning in a thunderstorm
+        java.time.LocalDate day = Instant.ofEpochMilli(ms).atZone(zone).toLocalDate();
+        float dark = Math.max(0f, Math.min(1f, (-2f - sky.e) / 6f));
+        if (dark > 0f && Festive.fireworks(day, cc)) Festive.fireworks(c, out.getWidth(), out.getHeight(), px, t, seed, dark, dot);
+        boolean storm = Festive.storm(code);
+        if (storm) Festive.lightning(c, out.getWidth(), out.getHeight(), px, t, seed, dot);
         c.drawBitmap(built.still, 0, 0, paint);
         int minute = (int) Math.floorMod(Math.floorDiv(ms / 1000L + zone.getRules().getOffset(Instant.ofEpochMilli(ms))
                 .getTotalSeconds(), 60L), 60L);
         CityScene.sparkle(c, built, light, t, minute, px);
         CityScene.beacons(c, built, light, t, px);
         CityScene.trees(c, built, light, t, wind, px);
+        if (day.getMonthValue() == 12) { // Christmas lights across the street all December (2.27)
+            float night = Math.max(0f, Math.min(1f, (2f - sky.e) / 8f));
+            Festive.christmas(c, out.getWidth(), out.getHeight(), px, t, seed, night, dot);
+        }
         Sky.weather(c, sky, t, dot);
         c.drawBitmap(sky.front, 0, 0, paint);
+        if (storm) { // the flash lights the city too
+            float f = Festive.flash(t, seed);
+            if (f > 0f) {
+                dot.setColor(Scene.alpha(0xFFDCE6FF, 0.12f * f));
+                c.drawRect(0, 0, out.getWidth(), out.getHeight(), dot);
+            }
+        }
         if (outside != null) c.drawPath(outside, clear);
         return out;
     }

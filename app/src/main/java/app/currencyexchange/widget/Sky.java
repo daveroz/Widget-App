@@ -31,46 +31,11 @@ final class Sky {
     static final float ZOOM = 1.2f;
 
     /**
-     * The sun's heights (degrees) at which the sky's colours below are set; in between, they blend. Since 2.16 the blue
-     * hour has a step of its own and another between it and the night, so the evening glides from dusk to night.
+     * The sun's heights (degrees) at which the colours are set ({@link Palette}, since 2.29 after the reference video's
+     * colour logic; before, the sky had tables of its own here); in between, they blend.
      */
-    private static final float[] AT = {-18f, -12f, -8f, -5f, -2f, 1f, 5f, 12f, 25f};
-    /** The morning's skies at each height: top, middle, horizon (after the references' dawn and sunrise). */
-    private static final int[][] MORNING = {
-            {0xFF0A1B45, 0xFF12306E, 0xFF1E4A92},   // night
-            {0xFF112664, 0xFF1A3A86, 0xFF2A52A2},   // the night lifting
-            {0xFF1F3C8C, 0xFF2A4EA6, 0xFF4A66B8},   // the blue hour: an even, rich blue
-            {0xFF2E4C9E, 0xFF5868BA, 0xFF9A86C4},   // first light
-            {0xFF4F6FCC, 0xFF9A86C6, 0xFFF0A0A8},   // dawn: blue, lavender, a pink horizon
-            {0xFF7A78C0, 0xFFF29C86, 0xFFFFC68A},   // sunrise: lilac, salmon, peach-gold
-            {0xFF8F8CC6, 0xFFF6B07E, 0xFFFFD88E},   // the golden morning
-            {0xFF4C8ADB, 0xFF7DB2EC, 0xFFD2E6F4},   // morning
-            {0xFF2E7BE0, 0xFF5CA2F0, 0xFFAED6F8},   // midday
-    };
-    /** The evening's skies at each height (after the references' sunset, dusk, blue hour and night). */
-    private static final int[][] EVENING = {
-            {0xFF0A1B45, 0xFF12306E, 0xFF1E4A92},   // night
-            {0xFF112664, 0xFF1A3A86, 0xFF2A52A2},   // the night coming on
-            {0xFF203C8E, 0xFF2C4CA6, 0xFF465EB2},   // the blue hour: an even, rich blue
-            {0xFF2C3B92, 0xFF5A46A6, 0xFFA65CA8},   // late dusk: indigo, purple, magenta
-            {0xFF3C3E9C, 0xFF9150A6, 0xFFF27A90},   // dusk: indigo, purple, pink
-            {0xFF7A4A9A, 0xFFE66E74, 0xFFFF9A50},   // sunset: purple, red-pink, orange
-            {0xFFD26458, 0xFFF0904A, 0xFFFFB54E},   // the golden evening: orange-red, orange, amber
-            {0xFF4A86D6, 0xFF7FAEE6, 0xFFE2E2E8},   // afternoon
-            {0xFF2E7BE0, 0xFF5CA2F0, 0xFFAED6F8},   // midday
-    };
-    /** The clouds' lit edges at each height (warm undersides when the sun is low, white at midday). */
-    private static final int[] LIT_MORNING = {0xFF2A4278, 0xFF2E4A88, 0xFF4A62A8, 0xFF8A86C2, 0xFFFFB4B0, 0xFFFFC890,
-            0xFFFFE2A8, 0xFFFFFFFF, 0xFFFFFFFF};
-    private static final int[] LIT_EVENING = {0xFF2A4278, 0xFF2E4A88, 0xFF4A5CA8, 0xFFC27AB8, 0xFFFF9AA8, 0xFFFFA866,
-            0xFFFFC266, 0xFFFFF6EC, 0xFFFFFFFF};
-    /** The clouds' bodies in shade at each height. */
-    private static final int[] SHADE_MORNING = {0xFF0E2152, 0xFF152A66, 0xFF1E387E, 0xFF3E4C98, 0xFF7468AE, 0xFF9C80B4,
-            0xFFB898B6, 0xFFC2D2EC, 0xFFC8D6EC};
-    private static final int[] SHADE_EVENING = {0xFF0E2152, 0xFF152A66, 0xFF1C347C, 0xFF3A3A8E, 0xFF6A4A9E, 0xFFA65A86,
-            0xFFD27458, 0xFFCCD2E2, 0xFFC8D6EC};
+    private static final float[] AT = Palette.AT;
 
-    /** A sky's layers and what's needed to make its frames: drawn once per light and weather. */
     static final class Layers {
         int w, h;
         float px, e, cover, glow;
@@ -86,6 +51,8 @@ final class Sky {
         int[] sky, cloud;
         boolean rain, snow, fog;
         long seed;
+        /** How much of the morning's colours there are (0: the evening's, 1: the morning's), for the city's (2.29). */
+        float morning;
         /** The stars (when the night is clear enough): where, how big, how bright, how fast each twinkles. */
         float[] sx, sy, ss, sa, sf, sp;
         boolean[] sb;
@@ -118,9 +85,11 @@ final class Sky {
         // the morning's colours handing over to the evening's as the sun crosses the south (2.17: by its real direction,
         // half and half at noon, so there's no step even on a short winter day whose sun stays low)
         float morning = sun != null ? clamp(0.5f - (float) (sun[1] / (Math.PI / 3))) : (sunLeft ? 1f : 0f);
-        int[] sky = mixAll(blend(EVENING, e), blend(MORNING, e), morning);
-        int lit = Scene.mix(blend1(LIT_EVENING, e), blend1(LIT_MORNING, e), morning);
-        int shade = Scene.mix(blend1(SHADE_EVENING, e), blend1(SHADE_MORNING, e), morning);
+        L.morning = morning;
+        // the hour's colours, after the video's colour logic (2.29, Palette)
+        int[] sky = Palette.sky(e, morning);
+        int[] clouds = Palette.cloud(e, morning);
+        int lit = clouds[0], shade = clouds[1];
         float cover = cloud < 0 ? 0.25f : Math.max(0f, Math.min(1f, cloud / 100f));
         L.rain = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
         L.snow = (code >= 71 && code <= 77) || code == 85 || code == 86;
@@ -153,8 +122,11 @@ final class Sky {
         L.back = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(L.back);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-        p.setShader(new LinearGradient(0, 0, 0, h, new int[]{sky[0], sky[1], sky[2], sky[2]}, new float[]{0f, 0.48f, 0.8f, 1f},
-                Shader.TileMode.CLAMP));
+        // its warm band rises behind the city, as the video's pink does (2.29); since 2.30 the horizon is the video's,
+        // at 64% of the way down, the middle a little over halfway to it
+        float hz = CityScene.HORIZON;
+        p.setShader(new LinearGradient(0, 0, 0, h, new int[]{sky[0], sky[1], sky[2], sky[2]},
+                new float[]{0f, hz * 0.56f, hz - 0.03f, 1f}, Shader.TileMode.CLAMP));
         c.drawRect(0, 0, w, h, p);
         p.setShader(null);
         float glow = (float) Math.exp(-Math.pow((e - 0.5f) / 6f, 2));
@@ -171,7 +143,7 @@ final class Sky {
             sAz = (float) (sunLeft ? -Math.PI / 3 : Math.PI / 3);
         }
         if (sAlt > -4f) {
-            float sx = w * (0.5f + 0.42f * (float) Math.sin(sAz)), sy = h * (0.8f - 0.72f * clamp(sAlt / 60f));
+            float sx = w * (0.5f + 0.42f * (float) Math.sin(sAz)), sy = h * (hz - (hz - 0.08f) * clamp(sAlt / 60f));
             float vis = (1f - 0.75f * cover) * clamp((sAlt + 4f) / 3f);
             int edge = sAlt < 0 ? 0xFFFFB896 : sAlt < 4 ? (sunLeft ? 0xFFFFE08A : 0xFFFFD27A) : sAlt < 15 ? 0xFFFFEFB8 : 0xFFFFF8E8;
             int core = Scene.mix(edge, 0xFFFFFFFF, 0.35f);
@@ -189,13 +161,17 @@ final class Sky {
 
         // the moon, as big as the sun, where it really is: lit as much as it is, its bright side towards the sun, the
         // dark part faintly there, a few darker seas on it; pale by day, bright at night, dimmed by clouds
+        float moonX = 0, moonY = 0, moonR = 0; // where it is, for the stars to keep behind it (2.27)
         if (moon != null && cover < 0.9f) {
             float altD = (float) Math.toDegrees(moon[0]), litF = (float) moon[2];
             float dark = clamp((1f - e) / 7f);
             float vis = clamp((altD + 0.5f) / 1.5f) * (1f - 0.8f * cover) * (0.35f + 0.62f * dark);
             if (litF > 0.03f && vis > 0.02f) {
-                float mx = w * (0.5f + 0.42f * (float) Math.sin(moon[1])), my = h * (0.8f - 0.72f * clamp(altD / 60f));
+                float mx = w * (0.5f + 0.42f * (float) Math.sin(moon[1])), my = h * (hz - (hz - 0.08f) * clamp(altD / 60f));
                 float mr = 0.11f * w;
+                moonX = mx;
+                moonY = my;
+                moonR = mr;
                 int pale = 0xFFF1EEE2;
                 if (dark > 0.3f) {
                     p.setShader(new RadialGradient(mx, my, mr * 3.2f, Scene.alpha(0xFFDCE6FF, 0.22f * vis * litF), 0x00DCE6FF,
@@ -247,9 +223,16 @@ final class Sky {
         Random sr = new Random(seed ^ 0x5EEDL);
         for (int i = 0; i < n; i++) {
             L.sx[i] = sr.nextFloat() * w;
-            L.sy[i] = sr.nextFloat() * h * 0.7f;
+            L.sy[i] = sr.nextFloat() * h * (hz - 0.06f);
+            // stars are behind the moon (2.27): none on its disc or just round it, where its light hides them
+            for (int tries = 0; moonR > 0 && tries < 8
+                    && Math.hypot(L.sx[i] - moonX, L.sy[i] - moonY) < moonR * 1.35f; tries++) {
+                L.sx[i] = sr.nextFloat() * w;
+                L.sy[i] = sr.nextFloat() * h * (hz - 0.06f);
+            }
             L.ss[i] = (0.35f + sr.nextFloat() * 0.6f) * px * 1.15f;
             L.sa[i] = (0.3f + sr.nextFloat() * 0.7f) * stars;
+            if (moonR > 0 && Math.hypot(L.sx[i] - moonX, L.sy[i] - moonY) < moonR * 1.35f) L.sa[i] = 0; // never over it
             L.sb[i] = sr.nextFloat() < 0.08f;
             L.sf[i] = 0.25f + sr.nextFloat() * 0.9f;
             L.sp[i] = sr.nextFloat() * 6.2832f;
@@ -389,12 +372,6 @@ final class Sky {
         }
     }
 
-    private static int[] mixAll(int[] a, int[] b, float t) {
-        int[] out = new int[a.length];
-        for (int i = 0; i < a.length; i++) out[i] = Scene.mix(a[i], b[i], t);
-        return out;
-    }
-
     /** The cloud lumps, each clipped to its heap's flat base when it has one, shifted {@code dy} down. */
     private static void drawOvals(Canvas c, java.util.List<float[]> ovals, java.util.List<float[]> clips, Paint p, int sw, float dy) {
         for (int i = 0; i < ovals.size(); i++) {
@@ -482,22 +459,6 @@ final class Sky {
         weather(c, L, 0f, p);
         c.drawBitmap(L.front, 0, 0, p);
         return b;
-    }
-
-    /** The colours set at each height, blended for the sun at {@code e} degrees. */
-    private static int[] blend(int[][] set, float e) {
-        int i = 0;
-        while (i < AT.length - 2 && e > AT[i + 1]) i++;
-        float t = clamp((e - AT[i]) / (AT[i + 1] - AT[i]));
-        int[] out = new int[set[i].length];
-        for (int k = 0; k < out.length; k++) out[k] = Scene.mix(set[i][k], set[i + 1][k], t);
-        return out;
-    }
-
-    private static int blend1(int[] set, float e) {
-        int i = 0;
-        while (i < AT.length - 2 && e > AT[i + 1]) i++;
-        return Scene.mix(set[i], set[i + 1], clamp((e - AT[i]) / (AT[i + 1] - AT[i])));
     }
 
     static float clamp(float v) {
