@@ -55,7 +55,8 @@ FN_WIDE = 0.5 / math.tan(math.radians(30))
 OCC_MIN_PX = 2
 
 KINDS = {'wall': 0, 'roof': 1, 'water': 2, 'park': 3, 'road': 4, 'lm': 5, 'lm_glass': 6, 'lm_light': 7, 'land': 8, 'lm_roof': 9,
-         'lm_lattice': 10}  # lattice (2.32): see-through ironwork, drawn as girders by the app (the Eiffel Tower's)
+         'lm_lattice': 10,  # lattice (2.32): see-through ironwork, drawn as girders by the app
+         'lm_girder': 11}  # girders (2.32): single bars of a structure (the Eiffel Tower's, after Eiffel's own plates)
 
 CAT = {}
 for f in glob.glob(REPO + '/catalog/landmarks/*.json'):
@@ -115,18 +116,85 @@ def height_of(row):
             'warehouse': 9, 'school': 10, 'hospital': 18, 'hotel': 24}.get(c, 11)
 
 
+EIFFEL_DRAWING = os.path.join(HERE, 'eiffel_cassayre.json')
+
+
+def eiffel_parts():
+    """The Eiffel Tower (2.32) from Florian Cassayre's drawing of one face (MIT; after Eiffel's own plates, 1900): its
+    girders mirrored across the face and wrapped round the tower's four faces at their real taper, each a flat bar
+    (uprights 2.8 m, the arches 1.8 m, ties 1.2 m, braces 1 m); its platforms at 57.6 (with its 5 m frieze), 115.7 and
+    276.1 m, the four masonry piers and
+    today's antennas to 330 m. In the model's frame (Y up, -Z north, +X east, metres). Returns (verts, faces, name,
+    colour) parts like a loaded model's, or None without the drawing."""
+    if not os.path.exists(EIFFEL_DRAWING): return None
+    half = json.load(open(EIFFEL_DRAWING))['lines']
+    LIFT = 2.5  # the drawing starts at the top of the piers
+    lines = []
+    for x0, y0, x1, y1 in half:
+        lines.append((x0, y0 + LIFT, x1, y1 + LIFT))
+        if max(abs(x0), abs(x1)) > 0.05: lines.append((-x0, y0 + LIFT, -x1, y1 + LIFT))
+    # the outer profile (half the width at each height): the outermost point of the drawing there
+    prof = []
+    for y in np.arange(0, 313, 1.0):
+        xs = [abs(x0 + (x1 - x0) * (y - y0) / (y1 - y0)) for x0, y0, x1, y1 in lines if min(y0, y1) <= y <= max(y0, y1) and abs(y1 - y0) > 1e-6]
+        prof.append(max(xs) if xs else 0.0)
+    prof = np.maximum.accumulate(np.array(prof)[::-1])[::-1]  # never wider higher up
+    D = lambda y: float(np.interp(y, np.arange(0, 313, 1.0), prof))
+    verts, quads = [], []
+    for nx, nz in ((0, 1), (1, 0), (0, -1), (-1, 0)):  # the four faces: their outward normals
+        tx, tz = -nz, nx
+        for x0, y0, x1, y1 in lines:
+            L_ = math.hypot(x1 - x0, y1 - y0)
+            if L_ < 0.3: continue
+            up = abs(y1 - y0) > 4 * abs(x1 - x0) and L_ > 4
+            arch = max(y0, y1) < 47 and max(abs(x0), abs(x1)) < D(min(y0, y1)) - 14  # the arches between the legs
+            w = 2.8 if up else 1.8 if arch else 1.2 if abs(y1 - y0) < 0.05 else 1.0
+            p0 = np.array([nx * D(y0) + tx * x0, y0, nz * D(y0) + tz * x0])
+            p1 = np.array([nx * D(y1) + tx * x1, y1, nz * D(y1) + tz * x1])
+            dv = (p1 - p0) / L_
+            side = np.cross(dv, np.array([nx, 0.0, nz]))
+            side = side / (np.linalg.norm(side) or 1) * w / 2
+            k = len(verts)
+            verts += [p0 - side, p1 - side, p1 + side, p0 + side]
+            quads.append([k, k + 1, k + 2, k + 3])
+    parts = [(np.array(verts), np.array(quads), 'girders', (138, 106, 80))]
+    # the solid parts: platforms, piers, the antennas
+    boxes = [(52.6, 57.6, D(57.6) + 1.5), (112.7, 115.7, D(115.7) + 1.2), (274.1, 276.1, D(276.1) + 0.8),
+             (300.0, 330.0, 0.8)]
+    bv, bf = [], []
+    def box(y0, y1, x0, x1, z0, z1):
+        k = len(bv)
+        for y in (y0, y1):
+            bv.extend([[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1]])
+        for a, b_, c, d_ in ((0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)):
+            bf.extend([[k + a, k + b_, k + c], [k + a, k + c, k + d_]])
+    for y0, y1, r in boxes: box(y0, y1, -r, r, -r, r)
+    leg_in = max(0.0, D(0.0) - 15.5)
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            xa, xb = sorted((sx * leg_in, sx * (D(0.0) + 0.5)))
+            za, zb = sorted((sz * leg_in, sz * (D(0.0) + 0.5)))
+            box(0.0, LIFT, xa, xb, za, zb)
+    parts.append((np.array(bv, float), np.array(bf), 'decks', (156, 123, 94)))
+    return parts
+
+
 def landmark_mesh(pid, f):
     """A catalog landmark as triangles in local metres, with their material names and colours."""
     pl = CAT[pid]
     md = MODEL_FILE.get(pl['model'])
     if not md: return None
-    path = os.path.join(REPO, md['file'])
-    if not os.path.exists(path): return None
-    sc = trimesh.load(path)
     x0, z0 = f(pl['lng'], pl['lat'])
     b = math.radians(-pl.get('bearing', 0.0))
     s = pl.get('scale', 1.0)
     rot = np.array([[math.cos(b), 0, math.sin(b)], [0, 1, 0], [-math.sin(b), 0, math.cos(b)]])
+    if pl['model'] == 'eiffel-tower':  # the tower from Eiffel's own plates (2.32), the replicas too
+        parts = eiffel_parts()
+        if parts:
+            return [(v * s @ rot.T + np.array([x0, pl.get('elevation', 0.0), z0]), fs, name, col) for v, fs, name, col in parts]
+    path = os.path.join(REPO, md['file'])
+    if not os.path.exists(path): return None
+    sc = trimesh.load(path)
     out = []
     for node in sc.graph.nodes_geometry:
         T, gname = sc.graph[node]
@@ -515,8 +583,8 @@ def bake(key, cfg):
             vis = ((cam.c - ctr) * nrm).sum(1) > 0
             kind = KINDS['lm_glass'] if ('glass' in name or 'window' in name) else KINDS['lm_light'] if any(
                 k in name for k in ('neon', 'lamp', 'light')) else KINDS['lm']
-            if name == 'ironwork':  # see-through: both sides kept (the far legs show through the near), facing us
-                kind = KINDS['lm_lattice']
+            if name in ('ironwork', 'girders'):  # see-through: both sides kept (the far legs show through the near), facing us
+                kind = KINDS['lm_lattice'] if name == 'ironwork' else KINDS['lm_girder']
                 nrm[~vis] *= -1
                 vis = vis | True
             for j in np.nonzero(vis & ok)[0]:
@@ -618,7 +686,7 @@ def bake(key, cfg):
     for i, (dist, kind, s, faz, col) in enumerate(proj):
         if kind == -1:
             for _, p, _, _ in col: dr.polygon([tuple(v) for v in (p * S)], fill=i + 1)
-        elif kind != KINDS['lm_lattice']:  # a lattice hides nothing (and is always kept)
+        elif kind not in (KINDS['lm_lattice'], KINDS['lm_girder']):  # a lattice hides nothing (and is always kept)
             dr.polygon([tuple(v) for v in (s * S)], fill=i + 1)
     idarr = np.asarray(ids)
     vis, counts = np.unique(idarr, return_counts=True)
@@ -636,7 +704,7 @@ def bake(key, cfg):
     stats['lamps_hidden'] = len(lamps) - len(lp)
     shown = set(int(v) - 1 for v, c in zip(vis, counts) if v > 0 and c >= T['occ'])
     before = len(proj)
-    proj = [p for i, p in enumerate(proj) if i in shown or p[1] == KINDS['lm_lattice']]
+    proj = [p for i, p in enumerate(proj) if i in shown or p[1] in (KINDS['lm_lattice'], KINDS['lm_girder'])]
     stats['faces_before_occlusion'] = before
     stats['faces'] = len(proj)
     # rule 16, at screen size: the ground simplified to 0.6 px and its specks dropped; footprints simplified to half a

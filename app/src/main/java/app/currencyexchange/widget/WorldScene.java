@@ -52,7 +52,7 @@ final class WorldScene {
 
     private static final float HZ = 0.64f, FN = (float) (0.5 / Math.tan(Math.toRadians(20)));
     private static final int WALL = 0, ROOF = 1, WATER = 2, PARK = 3, ROAD = 4, LM = 5, LM_GLASS = 6, LM_LIGHT = 7,
-            LM_ROOF = 9, LM_LATTICE = 10;
+            LM_ROOF = 9, LM_LATTICE = 10, LM_GIRDER = 11;
 
     /** A scene as read: the reference frame (3:1, 280 tall), the camera, the hills, the ground and the items. */
     static final class Data {
@@ -385,7 +385,7 @@ final class WorldScene {
                 double lit = Math.cos(Math.toRadians(d.facing[i] - sun));
                 base = lit > 0.1 ? litC : lit < -0.1 ? shadeC : l.near;
             }
-            if (kind == LM || kind == LM_ROOF || kind == LM_LATTICE) base = tint(base, d.hue[i], d.chroma[i]);
+            if (kind == LM || kind == LM_ROOF || kind == LM_LATTICE || kind == LM_GIRDER) base = tint(base, d.hue[i], d.chroma[i]);
             if (kind == LM_GLASS) base = Scene.mix(base, shadeC, 0.4f);
             int col = Scene.mix(base, farHaze, fog);
             poly(path, s, x0, k);
@@ -406,6 +406,12 @@ final class WorldScene {
             }
             if (kind == LM_LATTICE) { // ironwork: girders, with the sky and the city showing through
                 lattice(c, p, path, s, x0, k, f, d.dist[i]);
+                p.setShader(null);
+            } else if (kind == LM_GIRDER) { // a single bar of a structure: solid, never thinner than a fine line
+                p.setStrokeWidth(0.45f);
+                p.setStyle(Paint.Style.FILL_AND_STROKE);
+                c.drawPath(path, p);
+                p.setStyle(Paint.Style.FILL);
                 p.setShader(null);
             } else {
                 // a landmark's faces drawn a hair larger, so the seams between its triangles don't show

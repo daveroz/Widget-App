@@ -11,6 +11,7 @@ hidden ones removed); the app only has to colour and fill polygons, by its palet
 |---|---|---|---|
 | Buildings (footprints, heights, floors), water incl. the ocean, land use (parks), roads | [Overture Maps](https://overturemaps.org) release 2026-11-18, read straight from its public S3 bucket | ODbL 1.0 (OpenStreetMap-derived) and CDLA-Permissive (some building sources) | every city's own streets |
 | Landmarks (2,313 low-poly models, 114 places) | [alexwohlbruck/landmarks](https://github.com/alexwohlbruck/landmarks) | CC0 (models); placements ODbL (from OSM) | every landmark in view, at its anchor and bearing, replacing the plain buildings it stands for |
+| The Eiffel Tower's girders (2.32) | [FlorianCassayre/eiffel-tower](https://github.com/FlorianCassayre/eiffel-tower): a SolveSpace drawing of one face, after Eiffel's own plates (*La tour de trois cents mètres*, 1900, pl. I and VII), kept as `eiffel_cassayre.json` | MIT (`LICENSE-eiffel-cassayre.txt`) | the tower built from it (`eiffel_parts`): its girders mirrored across the face and wrapped round its four faces at their real taper, as flat bars (kind 11, drawn solid, see-through between them), with its platforms, piers and antennas; the replicas too |
 | Elevation | [Terrarium tiles](https://registry.opendata.aws/terrain-tiles/) (AWS open data, Mapzen/Tilezen) | open, attribution | the hills and mountains on the horizon |
 
 Looked at and not used (yet): OSM2World (MIT, Java; converts raw OSM to detailed 3D, needs OSM extracts, which this
