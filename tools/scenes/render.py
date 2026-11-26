@@ -39,11 +39,13 @@ def render(scene, e, morning=0.0, sun_left=True, aspect=1.0, height=280, ss=2):
     img = Image.new('RGB', (w, h))
     d = ImageDraw.Draw(img)
     hz = 0.64 * h
-    for y in range(h):  # the sky (Sky.java's stops), the ground below
-        t = y / h
-        if t < 0.64 * 0.56: col = P.mix(sky[0], sky[1], t / (0.64 * 0.56))
-        elif t < 0.61: col = P.mix(sky[1], sky[2], (t - 0.64 * 0.56) / (0.61 - 0.64 * 0.56))
-        else: col = sky[2]
+    band = L['band']
+    for y in range(h):  # the sky (Sky.java's six stops to the horizon), the ground below
+        t = min(1.0, y / hz)
+        for i in range(len(P.BAND) - 1):
+            if t <= P.BAND[i + 1]:
+                col = P.mix(band[i], band[i + 1], (t - P.BAND[i]) / (P.BAND[i + 1] - P.BAND[i]))
+                break
         d.line([(0, y), (w, y)], fill=col)
     far_haze = P.mix(c[P.FAR], sky[2], 0.45)
     # the hills, far layer then near
@@ -89,7 +91,11 @@ def render(scene, e, morning=0.0, sun_left=True, aspect=1.0, height=280, ss=2):
             items.append((z, 'tree', (x, y, max(0.5, 9.0 / z * f))))
     sun = scene['cam']['look'] + (-115 if sun_left else 115)  # from the left (or right), a little towards the camera
     for dist, kind, s, faz, col in scene['faces']:
-        items.append((dist, 'face', (kind, s, faz, col)))
+        if kind == -1:  # a block: its faces (walls far to near, then the roof) in its place
+            for j, (k2, pts2, faz2, dims) in enumerate(col):
+                items.append((dist - j * 1e-3, 'face', (k2, pts2, faz2, dims)))
+        else:
+            items.append((dist, 'face', (kind, s, faz, col)))
     if lights > 0.05:
         # the street lamps go in depth order with the buildings, so a nearer building hides them (their distance from
         # the camera, worked out from where they are on screen and how deep they are)

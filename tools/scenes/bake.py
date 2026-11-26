@@ -179,8 +179,102 @@ def terrain_silhouette(lon, lat, cam, inv, look):
     return out, base
 
 
+TIERS = {
+    # tier 1, a major city: the full map. Tier 2, any other place: its terrain, water and a low-poly version of its
+    # streets (bigger merges, coarser shapes, fewer faces, main roads only)
+    1: {'far': FAR, 'cell': 160, 'hb0': 3, 'hbk': 0.006, 'tol': 0.9, 'fmin': 1.0, 'occ': 2, 'gtol': 2.5, 'lamp': 34,
+        'roads': ('motorway', 'trunk', 'primary', 'secondary', 'tertiary')},
+    2: {'far': 2600.0, 'cell': 280, 'hb0': 6, 'hbk': 0.012, 'tol': 2.2, 'fmin': 2.0, 'occ': 5, 'gtol': 5.0, 'lamp': 70,
+        'roads': ('motorway', 'trunk', 'primary')},
+}
+LM_INDEX = json.load(open(os.path.join(HERE, 'lm_index.json'))) if os.path.exists(os.path.join(HERE, 'lm_index.json')) else {}
+
+
+# landmarks on a hilltop (the scene's ground is flat, so they'd stand at street level): never a city's hero
+HILLTOP = {'rio-christ-the-redeemer', 'seoul-n-seoul-tower', 'tbilisi-tv-tower', 'barcelona-tibidabo-sagrat-cor',
+           'barcelona-torre-collserola', 'quito-virgen-del-panecillo', 'tbilisi-kartlis-deda', 'tbilisi-narikala',
+           'yerevan-mother-armenia', 'barcelona-montjuic-castle', 'prague-petrin-tower', 'la-hollywood-sign',
+           'la-griffith-observatory'}
+
+
+def hero_near(lat, lon, radius=6000.0):
+    """The tallest catalog landmark within `radius` metres of a place (the city's hero), or None."""
+    best, bh = None, 0.0
+    kx = math.cos(math.radians(lat)) * 111320.0
+    for pid, m in LM_INDEX.items():
+        if pid in HILLTOP: continue
+        dx, dz = (m['lng'] - lon) * kx, (m['lat'] - lat) * 110540.0
+        dd = math.hypot(dx, dz)
+        if dd > radius: continue
+        score = m['h'] * (1.0 - 0.5 * dd / radius)  # tall, and not far from the middle
+        if score > bh: best, bh = pid, score
+    return best
+
+
+def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None):
+    """Rule 14, the automatic camera: of eight sides, the one with the richest view: a deep skyline round and behind
+    the focus, water in view, and nothing tall right in front of the camera."""
+    R = d + T['far'] * 0.6
+    lo0, la1 = inv(-R, -R)
+    lo1, la0 = inv(R, R)
+    tab, _ = overture.read('buildings/building', (lo0, la0, lo1, la1), ['height', 'num_floors', 'class', 'bbox'])
+    pts = []
+    if tab is not None:
+        bb = tab.column('bbox').combine_chunks()
+        xs_ = (bb.field('xmin').to_numpy(zero_copy_only=False) + bb.field('xmax').to_numpy(zero_copy_only=False)) / 2
+        ys_ = (bb.field('ymin').to_numpy(zero_copy_only=False) + bb.field('ymax').to_numpy(zero_copy_only=False)) / 2
+        hs = [height_of(r) for r in tab.select(['height', 'num_floors', 'class']).to_pylist()]
+        for lo, la, h in zip(xs_, ys_, hs):
+            x, z = f(lo, la)
+            pts.append((x, z, h))
+    water = []
+    wt, _ = overture.read('base/water', (lo0, la0, lo1, la1), ['subtype', 'class', 'geometry'])
+    if wt is not None:
+        for r in wt.to_pylist():
+            if r['subtype'] in ('ocean', 'water', 'lake', 'river', 'canal', 'reservoir', 'lagoon') or r['class'] in ('bay', 'river', 'harbour', 'lake', 'riverbank'):
+                g = geom_local(W.loads(r['geometry']), f)
+                if g.geom_type in ('Polygon', 'MultiPolygon'): water.append(g)
+    wu = unary_union(water).buffer(0) if water else None
+    P = np.array(pts) if pts else np.zeros((0, 3))
+    fpx = FN * REF_H
+    best, bs = 200, -1e18
+    for az in range(0, 360, 45):
+        a = math.radians(az)
+        cx, cz = math.sin(a) * d, -math.cos(a) * d
+        lk = math.radians((az + 180) % 360)
+        fx, fz = math.sin(lk), -math.cos(lk)
+        rx, rz = math.cos(lk), math.sin(lk)
+        score = 0.0
+        if len(P):
+            dx, dz = P[:, 0] - cx, P[:, 1] - cz
+            along = dx * fx + dz * fz
+            across = dx * rx + dz * rz
+            ok = (along > 30) & (np.abs(across) < along * 0.55) & (along < T['far'])
+            px = P[:, 2] / np.maximum(along, 1) * fpx
+            near = ok & (np.hypot(dx, dz) < max(140, 0.2 * d) * 1.6) & (px > 0.3 * REF_H)
+            front = ok & (along < d * 0.85) & (px > 0.45 * REF_H)
+            sky = ok & (along > d * 0.6)
+            score += np.minimum(px[sky], 0.35 * REF_H).sum() - 900 * near.sum() - 300 * front.sum()
+        if lon0 is not None:  # mountains in view: the real hills' line, how high it stands over the horizon
+            try:
+                sil, _ = terrain_silhouette(lon0, lat0, Cam(cx, cz, hc, (az + 180) % 360), inv, (az + 180) % 360)
+                above = [max(0.0, HZ * REF_H - y) for line in sil for x, y in line]
+                score += 3500 * (sum(above) / max(1, len(above)))  # mountains are part of a city: weigh them well
+            except Exception:
+                pass
+        if wu is not None and not wu.is_empty:
+            wedge = Polygon([(cx, cz), (cx + (fx * 3000 - rx * 1600), cz + (fz * 3000 - rz * 1600)),
+                             (cx + (fx * 3000 + rx * 1600), cz + (fz * 3000 + rz * 1600))])
+            score += 9000 * wu.intersection(wedge).area / wedge.area
+        if score > bs: best, bs = az, score
+    return best
+
+
 def bake(key, cfg):
+    T = TIERS[cfg.get('tier', 1)]
     main = cfg.get('main')
+    if not main and cfg.get('tier', 1) == 1 and 'lat' in cfg:
+        main = hero_near(cfg['lat'], cfg['lon'])
     if main:
         pl = CAT[main]
         lon0, lat0 = pl['lng'], pl['lat']
@@ -203,6 +297,8 @@ def bake(key, cfg):
         tf = (max(0.86, cfg.get('foot', FOOT)) - HZ) / FN
         hc = cfg.get('hmin', HMIN)
         d = max(d, hc / tf)
+    if 'az' not in cfg:
+        cfg = dict(cfg, az=choose_az(f, inv, d, hc, T, hF, lon0, lat0))
     az = math.radians(cfg['az'])
     cam = Cam(math.sin(az) * d, -math.cos(az) * d, hc, (cfg['az'] + 180) % 360)
     look = (cfg['az'] + 180) % 360
@@ -211,13 +307,13 @@ def bake(key, cfg):
     pts = [(cam.c[0], cam.c[2])]
     for k in range(9):
         a = math.radians(look) - half + 2 * half * k / 8
-        pts.append((cam.c[0] + math.sin(a) * FAR, cam.c[2] - math.cos(a) * FAR))
+        pts.append((cam.c[0] + math.sin(a) * T['far'], cam.c[2] - math.cos(a) * T['far']))
     xs, zs = zip(*pts)
     lo0, la1 = inv(min(xs), min(zs))
     lo1, la0 = inv(max(xs), max(zs))
     box = (lo0, la0, lo1, la1)
     wedge = Polygon(pts)
-    stats = {'city': key}
+    stats = {'city': key, 'tier': cfg.get('tier', 1), 'main': main, 'az': cfg['az']}
 
     air = max(140.0, 0.2 * d)  # rule 10: nothing stands in the air round the camera
     cam_pt = shapely.Point(cam.c[0], cam.c[2])
@@ -237,7 +333,7 @@ def bake(key, cfg):
     for pid, p in CAT.items():
         x, z = f(p['lng'], p['lat'])
         ok, along = in_view(x, z)
-        if ok and along < FAR and (pid == main or math.hypot(x - cam.c[0], z - cam.c[2]) > air):
+        if ok and along < T['far'] and (pid == main or math.hypot(x - cam.c[0], z - cam.c[2]) > air):
             lms.append(pid)
             for r in p.get('replaces', []):
                 replaced.add(r.replace('way/', 'w').replace('relation/', 'r').replace('node/', 'n'))
@@ -271,25 +367,28 @@ def bake(key, cfg):
         for poly in polys(g):
             c = poly.centroid
             ok, along = in_view(c.x, c.y)
-            if not ok or along > FAR: continue
+            if not ok or along > T['far']: continue
             if poly.distance(cam_pt) < air: continue  # rule 10
             h = height_of(r)
             px_h = h / along * cam.f
             px_w = math.sqrt(max(poly.area, 1)) / along * cam.f
             if px_h < 0.7 and px_w < 1.5: continue  # rule 2
-            tol = max(0.8, along / cam.f * 0.9)  # rule 3: about a pixel
+            tol = max(0.8, along / cam.f * T['tol'])  # rule 3: about a pixel (two in tier 2)
             p2 = Polygon(poly.exterior).simplify(tol, preserve_topology=True)
             if p2.is_empty or p2.area < 1: continue
             if len(p2.exterior.coords) > 9 and px_w < 6: p2 = p2.minimum_rotated_rectangle
             blds.append((p2, h, along))
     stats['buildings_kept'] = len(blds)
+    if cfg.get('tier', 1) == 2:
+        merged = lowpoly(blds)  # rule 15: a low-poly town of coarse blocks
+        blds = []
     # rule 4: merge touching buildings of about the same height, cell by cell
     cells = {}
     for p, h, along in blds:
-        hb = 3 + along * 0.006
-        k = (int(p.centroid.x // 160), int(p.centroid.y // 160), int(h // hb))
+        hb = T['hb0'] + along * T['hbk']
+        k = (int(p.centroid.x // T['cell']), int(p.centroid.y // T['cell']), int(h // hb))
         cells.setdefault(k, []).append((p, h))
-    merged = []
+    merged = merged if cfg.get('tier', 1) == 2 else []
     for k, items in cells.items():
         if len(items) == 1:
             merged.append(items[0]); continue
@@ -300,7 +399,7 @@ def bake(key, cfg):
             if q.area < 2: continue
             c = q.centroid
             ok, along = in_view(c.x, c.y)
-            q = q.simplify(max(0.8, along / cam.f * 0.9), preserve_topology=True)
+            q = q.simplify(max(0.8, along / cam.f * T['tol']), preserve_topology=True)
             hh = max([h for p, h in items if p.intersects(q)] or [float(np.median(hs))]) if len(items) < 40 else float(np.median(hs))
             merged.append((q, hh))
     # rule 12: the view to the main landmark (or the city's focus) is kept clear: a plain building between the camera and
@@ -322,21 +421,12 @@ def bake(key, cfg):
     merged = kept
     stats['cleared_for_view'] = cleared
     stats['blocks'] = len(merged)
+    blocks = []  # each block once: its footprint on the ground and its height; the app rebuilds its walls and roof
     for q, h in merged:
         ring = np.array(q.exterior.coords)[:-1]
+        if len(ring) < 3: continue
         if Polygon(ring).exterior.is_ccw: ring = ring[::-1]
-        n = len(ring)
-        for i in range(n):
-            a, b = ring[i], ring[(i + 1) % n]
-            ex, ez = b[0] - a[0], b[1] - a[1]
-            nx, nz = -ez, ex  # the outward normal of a clockwise ring in (x, z)
-            mx, mz = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
-            if nx * (cam.c[0] - mx) + nz * (cam.c[2] - mz) <= 0: continue  # rule 5
-            p3 = np.array([[a[0], 0, a[1]], [b[0], 0, b[1]], [b[0], h, b[1]], [a[0], h, a[1]]])
-            faz = math.degrees(math.atan2(nx, -nz)) % 360
-            faces.append((KINDS['wall'], p3, faz, (math.hypot(ex, ez), h)))  # its size in metres: its windows' grid
-        if h < cam.c[1] - 1:
-            faces.append((KINDS['roof'], np.array([[x, h, z] for x, z in ring]), -1, None))
+        blocks.append((ring, float(h)))
 
     # --- landmark faces
     for pid in lms:
@@ -373,7 +463,7 @@ def bake(key, cfg):
             if g.geom_type not in ('Polygon', 'MultiPolygon'): continue
             acc.append(g.intersection(view))
         if not acc: continue
-        u = unary_union(acc).simplify(2.5)
+        u = unary_union(acc).simplify(T['gtol'])
         for p in polys(u):
             if p.area < 30: continue
             ground.append((KINDS[kind], p))
@@ -383,10 +473,10 @@ def bake(key, cfg):
         widths = {'motorway': 22, 'trunk': 18, 'primary': 14, 'secondary': 11, 'tertiary': 9}
         lines = []
         for r in t.to_pylist():
-            if r['subtype'] != 'road' or r['class'] not in widths: continue
+            if r['subtype'] != 'road' or r['class'] not in T['roads']: continue
             g = geom_local(W.loads(r['geometry']), f)
             lines.append(g.buffer(widths[r['class']] / 2, cap_style=2).intersection(view))
-            for t_ in np.arange(0, g.length, 34):
+            for t_ in np.arange(0, g.length, T['lamp']):
                 p = g.interpolate(t_)
                 ok, along = in_view(p.x, p.y)
                 if ok and along < 3000: lamps.append((p.x, 0.0, p.y))
@@ -404,7 +494,7 @@ def bake(key, cfg):
         if (z < 2).any(): continue
         s = s + np.array([W2 / 2, 0])
         area = 0.5 * abs(np.dot(s[:, 0], np.roll(s[:, 1], 1)) - np.dot(s[:, 1], np.roll(s[:, 0], 1)))
-        if area < FACE_MIN_PX2: continue  # rule 6
+        if area < T['fmin']: continue  # rule 6
         if s[:, 0].max() < 0 or s[:, 0].min() > W2 or s[:, 1].max() < 0 or s[:, 1].min() > REF_H: continue
         dist = float(np.linalg.norm(p3.mean(0) - cam.c))
         proj.append((dist, kind, s, faz, col))
@@ -426,13 +516,31 @@ def bake(key, cfg):
                 gproj.append((kind, s + np.array([W2 / 2, 0])))
             continue
         gproj.append((kind, s + np.array([W2 / 2, 0])))
+    for ring, h in blocks:
+        p3 = np.c_[ring[:, 0], np.zeros(len(ring)), ring[:, 1]]
+        s, z = cam.project(p3)
+        if (z < 2).any(): continue
+        s = s + np.array([W2 / 2, 0])
+        if Polygon(s).area < 0.05 and h / max(1.0, float(np.mean(z))) * cam.f < 1: continue
+        fl = block_faces(s, h, cam.c[1], cam.f, look)
+        if not fl: continue
+        vis_area = sum(0.5 * abs(np.dot(p[:, 0], np.roll(p[:, 1], 1)) - np.dot(p[:, 1], np.roll(p[:, 0], 1))) for _, p, _, _ in fl)
+        if vis_area < T['fmin'] * 2: continue
+        xs_ = np.concatenate([p[:, 0] for _, p, _, _ in fl]); ys_ = np.concatenate([p[:, 1] for _, p, _, _ in fl])
+        if xs_.max() < 0 or xs_.min() > W2 or ys_.max() < 0 or ys_.min() > REF_H: continue
+        cen = np.r_[ring.mean(0)[0], h / 2, ring.mean(0)[1]]
+        dist = float(np.linalg.norm(np.array([cen[0], cen[1], cen[2]]) - cam.c))
+        proj.append((dist, -1, s, h, fl))  # a block: kind -1, its footprint on screen, its height, its faces
     proj.sort(key=lambda t: -t[0])
     # rule 7: occlusion at twice the size
     S = 2
     ids = Image.new('I', (int(W2 * S), REF_H * S), 0)
     dr = ImageDraw.Draw(ids)
     for i, (dist, kind, s, faz, col) in enumerate(proj):
-        dr.polygon([tuple(v) for v in (s * S)], fill=i + 1)
+        if kind == -1:
+            for _, p, _, _ in col: dr.polygon([tuple(v) for v in (p * S)], fill=i + 1)
+        else:
+            dr.polygon([tuple(v) for v in (s * S)], fill=i + 1)
     idarr = np.asarray(ids)
     vis, counts = np.unique(idarr, return_counts=True)
     # street lamps: their distance from the camera, and only those not hidden behind a nearer face
@@ -447,18 +555,38 @@ def bake(key, cfg):
             if under > 0 and proj[under - 1][0] < dist * 0.98: continue
             lp.append((x, y, dist))
     stats['lamps_hidden'] = len(lamps) - len(lp)
-    shown = set(int(v) - 1 for v, c in zip(vis, counts) if v > 0 and c >= OCC_MIN_PX)
+    shown = set(int(v) - 1 for v, c in zip(vis, counts) if v > 0 and c >= T['occ'])
     before = len(proj)
     proj = [p for i, p in enumerate(proj) if i in shown]
     stats['faces_before_occlusion'] = before
     stats['faces'] = len(proj)
+    # rule 16, at screen size: the ground simplified to 0.6 px and its specks dropped; footprints simplified to half a
+    # pixel; a block showing less than 6 px dropped
+    g2 = []
+    for kind, s in gproj:
+        p = Polygon(s).buffer(0).simplify(0.6)
+        for q in polys(p):
+            if q.area >= 3.0: g2.append((kind, np.array(q.exterior.coords)))
+    gproj = g2
+    p2 = []
+    for dist, kind, s, faz, col in proj:
+        if kind == -1:
+            vis_a = sum(0.5 * abs(np.dot(q[:, 0], np.roll(q[:, 1], 1)) - np.dot(q[:, 1], np.roll(q[:, 0], 1))) for _, q, _, _ in col)
+            if vis_a < 6.0: continue
+            p = Polygon(s).simplify(0.5)
+            if p.is_empty or len(p.exterior.coords) < 4: continue
+            s = np.array(p.exterior.coords)[:-1]
+        p2.append((dist, kind, s, faz, col))
+    proj = p2
+    stats['faces'] = len(proj)
+    stats['blocks_kept'] = sum(1 for p in proj if p[1] == -1)
     stats['ground_polys'] = len(gproj)
 
     sil, base = terrain_silhouette(lon0, lat0, cam, inv, look)
     scene = {'city': key, 'w': W2, 'h': REF_H, 'faces': proj, 'ground': gproj, 'hills': sil, 'lamps': lp, 'lamp_dist': 'euclid',
              'cam': {'hc': cam.c[1], 'dist': d, 'look': look}}
     stats['lamps'] = len(lp)
-    stats['bytes'] = len(pack(scene))
+    stats['bytes'] = len(pack3(scene))
     stats['cam'] = {'height_m': round(cam.c[1]), 'distance_m': round(d), 'look': look}
     return scene, stats
 
@@ -505,3 +633,170 @@ if __name__ == '__main__':
         open(os.path.join(OUT, key + '.bin'), 'wb').write(pack(scene))
         json.dump(stats, open(os.path.join(OUT, key + '.json'), 'w'), indent=1)
         print(json.dumps({k: v for k, v in stats.items() if k != 'landmarks'}), len(stats['landmarks']), 'landmarks', flush=True)
+
+
+def _varint(b, v):
+    v = (v << 1) ^ (v >> 63)  # zigzag
+    while True:
+        x = v & 0x7F
+        v >>= 7
+        if v:
+            b.write(bytes([x | 0x80]))
+        else:
+            b.write(bytes([x]))
+            return
+
+
+def _uvar(b, v): _varint(b, int(v))
+
+
+def pack2(scene):
+    """The scene file the app ships (format 2): half-pixel points, zigzag variable-length deltas, deflated. See README."""
+    import palette as PAL
+    b = io.BytesIO()
+    b.write(b'WSC2')
+    b.write(bytes([2, int(scene.get('tier', 1))]))
+    b.write(struct.pack('<HHHH', int(round(scene['w'])), int(scene['h']), int(scene['cam']['look']) % 360,
+                        int(min(65535, scene['cam']['hc']))))
+    q = 2.0
+    last = [0, 0]
+
+    def pts(s):
+        qq = np.round(np.asarray(s, float) * q).astype(np.int64)
+        _uvar(b, len(qq))
+        _varint(b, int(qq[0][0] - last[0])); _varint(b, int(qq[0][1] - last[1]))
+        last[0], last[1] = int(qq[0][0]), int(qq[0][1])
+        prev = qq[0]
+        for v in qq[1:]:
+            _varint(b, int(v[0] - prev[0])); _varint(b, int(v[1] - prev[1]))
+            prev = v
+    _uvar(b, len(scene['hills']))
+    for line in scene['hills']:
+        pts(np.clip(np.asarray(line, float), -8000, 8000))
+    _uvar(b, len(scene['ground']))
+    for kind, s in scene['ground']:
+        b.write(bytes([kind]))
+        pts(s)
+    _uvar(b, len(scene['faces']))
+    for dist, kind, s, faz, col in scene['faces']:
+        b.write(bytes([kind, 255 if faz < 0 else int(faz / 360 * 254) % 255, min(255, int(math.log1p(dist) * 28))]))
+        if kind == KINDS['wall']:
+            w_, h_ = col if isinstance(col, tuple) else (0, 0)
+            b.write(bytes([min(255, round(w_ / 2)), min(255, round(h_ / 2))]))
+        elif kind in (KINDS['lm'], KINDS['lm_glass'], KINDS['lm_light'], KINDS['lm_roof']):
+            L, C, h = PAL.lch(col[:3]) if col is not None else (0, 0, 0)
+            b.write(bytes([int(h / 360 * 255) % 256, min(255, int(C * 800)), 1 if (col is not None and len(col) == 4) else 0]))
+        pts(s)
+    _uvar(b, len(scene['lamps']))
+    px, py = 0, 0
+    for x, y, dist in scene['lamps']:
+        xi, yi = int(round(x * q)), int(round(y * q))
+        _varint(b, xi - px); _varint(b, yi - py)
+        px, py = xi, yi
+        b.write(bytes([min(255, int(math.log1p(dist) * 28))]))
+    return zlib.compress(b.getvalue(), 9)
+
+
+def lowpoly(blds, G=45.0):
+    """Rule 15, tier 2: the town as coarse blocks: a 45 m grid, each cell with enough building in it a block as tall as
+    its buildings on average (to 4 m), runs of equal cells along a row joined into one."""
+    cells = {}
+    for p, h, along in blds:
+        c = p.centroid
+        k = (int(math.floor(c.x / G)), int(math.floor(c.y / G)))
+        a = p.area
+        e = cells.setdefault(k, [0.0, 0.0])
+        e[0] += a
+        e[1] += h * a
+    rows = {}
+    for (i, j), (a, ha) in cells.items():
+        cov = a / (G * G)
+        if cov < 0.15: continue
+        h = max(4.0, round(ha / a / 4.0) * 4.0)
+        rows.setdefault(j, []).append((i, h, min(0.92, math.sqrt(cov * 1.3))))
+    out = []
+    for j, cs in rows.items():
+        cs.sort()
+        run = None
+        for i, h, side in cs + [(None, None, None)]:
+            if run and i is not None and i == run[1] + 1 and h == run[2]:
+                run[1] = i; run[3] = max(run[3], side)
+                continue
+            if run:
+                i0, i1, hh, sd = run
+                inset = G * (1 - sd) / 2
+                out.append((sbox(i0 * G + inset, j * G + inset, (i1 + 1) * G - inset, (j + 1) * G - inset), hh))
+            run = [i, i, h, side] if i is not None else None
+    return out
+
+
+def block_faces(s, h, hc, f, look):
+    """A block's visible faces from its footprint on screen (s, n x 2, x from the left of the 3:1 frame) and its height:
+    what the app does too. The camera is level, so every vertical edge stays vertical: a corner's top is straight above
+    its foot, as far above the horizon as the block's height over the camera's, scaled by how far below it the foot is.
+    Returns [(kind, points, facing azimuth, (width, height) in metres)], walls far to near, then the roof."""
+    W2 = ASPECT * REF_H
+    hz = HZ * REF_H
+    dy = np.maximum(s[:, 1] - hz, 0.25)
+    Z = hc * f / dy
+    X = (s[:, 0] - W2 / 2) * Z / f
+    top = hz - (h - hc) * dy / hc
+    area = 0.5 * np.sum(X * np.roll(Z, -1) - np.roll(X, -1) * Z)
+    out = []
+    n = len(s)
+    for i in range(n):
+        k = (i + 1) % n
+        ex, ez = X[k] - X[i], Z[k] - Z[i]
+        nx, nz = (ez, -ex) if area > 0 else (-ez, ex)
+        mx, mz = (X[i] + X[k]) / 2, (Z[i] + Z[k]) / 2
+        if nx * (-mx) + nz * (-mz) <= 0: continue
+        faz = (look + math.degrees(math.atan2(nx, nz))) % 360
+        pts = np.array([[s[i][0], s[i][1]], [s[k][0], s[k][1]], [s[k][0], top[k]], [s[i][0], top[i]]])
+        out.append((math.hypot(mx, mz), 0, pts, faz, (math.hypot(ex, ez), h)))
+    out.sort(key=lambda t: -t[0])
+    faces = [(kind, pts, faz, dims) for _, kind, pts, faz, dims in out]
+    if h < hc - 1:
+        faces.append((1, np.c_[s[:, 0], top], -1, None))
+    return faces
+
+
+def pack3(scene):
+    """The scene file the app ships (format 3): blocks once (footprint and height), landmark faces, the ground, the
+    hills; zigzag variable-length deltas, deflated. See README."""
+    import palette as PAL
+    b = io.BytesIO()
+    b.write(b'WSC3')
+    b.write(bytes([3, int(scene.get('tier', 1))]))
+    b.write(struct.pack('<HHHH', int(round(scene['w'])), int(scene['h']), int(scene['cam']['look']) % 360,
+                        int(min(65535, round(scene['cam']['hc'] * 4)))))
+    last = [0, 0]
+
+    def pts(s, q):
+        qq = np.round(np.asarray(s, float) * q).astype(np.int64)
+        _uvar(b, len(qq))
+        _varint(b, int(qq[0][0] - last[0])); _varint(b, int(qq[0][1] - last[1]))
+        last[0], last[1] = int(qq[0][0]), int(qq[0][1])
+        prev = qq[0]
+        for v in qq[1:]:
+            _varint(b, int(v[0] - prev[0])); _varint(b, int(v[1] - prev[1]))
+            prev = v
+    _uvar(b, len(scene['hills']))
+    for line in scene['hills']:
+        pts(np.clip(np.asarray(line, float), -8000, 8000), 2)
+    _uvar(b, len(scene['ground']))
+    for kind, s in scene['ground']:
+        b.write(bytes([kind]))
+        pts(s, 2)
+    _uvar(b, len(scene['faces']))
+    for dist, kind, s, faz, col in scene['faces']:
+        db = min(255, int(math.log1p(dist) * 28))
+        if kind == -1:  # a block: its footprint in quarter pixels, its height in half metres
+            b.write(bytes([0, db]))
+            _uvar(b, int(round(faz * 2)))
+            pts(s, 2)
+            continue
+        b.write(bytes([1 + kind, 255 if faz < 0 else int(faz / 360 * 254) % 255, db]))
+        L, C, h = PAL.lch(col[:3]) if col is not None else (0, 0, 0)
+        b.write(bytes([int(h / 360 * 255) % 256, min(255, int(C * 800)), 1 if (col is not None and len(col) == 4) else 0]))
+        pts(s, 2)
+    return zlib.compress(b.getvalue(), 9)

@@ -88,6 +88,7 @@ final class Sky {
         L.morning = morning;
         // the hour's colours, after the video's colour logic (2.29, Palette)
         int[] sky = Palette.sky(e, morning);
+        int[] band = Palette.band(e, morning); // the whole sky, top to horizon (2.31)
         int[] clouds = Palette.cloud(e, morning);
         int lit = clouds[0], shade = clouds[1];
         float cover = cloud < 0 ? 0.25f : Math.max(0f, Math.min(1f, cloud / 100f));
@@ -103,6 +104,7 @@ final class Sky {
             int grey = Scene.mix(Scene.mix(0xFF4A4C68, 0xFF6E7488, day), 0xFF141C36, night);
             sky = new int[]{Scene.mix(sky[0], grey, 0.35f + 0.3f * day), Scene.mix(sky[1], grey, 0.3f + 0.35f * day),
                     Scene.mix(sky[2], grey, 0.15f + 0.45f * day)};
+            veil(band, grey, 0.35f + 0.3f * day, 0.15f + 0.45f * day);
             shade = Scene.mix(shade, Scene.mix(Scene.mix(0xFF3A3A58, 0xFF5A6074, day), 0xFF161E38, night), 0.75f);
             lit = Scene.mix(lit, Scene.mix(lit, 0xFFB4B8C6, day), 0.6f);
         } else if (L.snow) {
@@ -111,6 +113,7 @@ final class Sky {
             int snowy = Scene.mix(Scene.mix(0xFFB8A8C8, 0xFFC8CED8, day), 0xFF223060, night);
             sky = new int[]{Scene.mix(sky[0], snowy, 0.35f + 0.3f * day), Scene.mix(sky[1], snowy, 0.4f + 0.3f * day),
                     Scene.mix(sky[2], snowy, 0.3f + 0.3f * day)};
+            veil(band, snowy, 0.35f + 0.3f * day, 0.3f + 0.3f * day);
             shade = Scene.mix(Scene.mix(sky[1], snowy, 0.5f), 0xFF000000, 0.08f);
             lit = Scene.mix(lit, 0xFFFFFFFF, 0.3f);
         }
@@ -122,11 +125,18 @@ final class Sky {
         L.back = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(L.back);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-        // its warm band rises behind the city, as the video's pink does (2.29); since 2.30 the horizon is the video's,
-        // at 64% of the way down, the middle a little over halfway to it
+        // since 2.31 the sky's six colours, top to the horizon (64% of the way down since 2.30): at sunset the reference
+        // photo's indigo, lavender, mauve, salmon and peach, its coral-red band and the crimson line on the horizon
         float hz = CityScene.HORIZON;
-        p.setShader(new LinearGradient(0, 0, 0, h, new int[]{sky[0], sky[1], sky[2], sky[2]},
-                new float[]{0f, hz * 0.56f, hz - 0.03f, 1f}, Shader.TileMode.CLAMP));
+        int[] cols = new int[band.length + 1];
+        float[] at = new float[band.length + 1];
+        for (int i = 0; i < band.length; i++) {
+            cols[i] = band[i];
+            at[i] = Palette.BAND[i] * hz;
+        }
+        cols[band.length] = band[band.length - 1];
+        at[band.length] = 1f;
+        p.setShader(new LinearGradient(0, 0, 0, h, cols, at, Shader.TileMode.CLAMP));
         c.drawRect(0, 0, w, h, p);
         p.setShader(null);
         float glow = (float) Math.exp(-Math.pow((e - 0.5f) / 6f, 2));
@@ -283,6 +293,11 @@ final class Sky {
         fc.drawRect(0, 0, w, h, p);
         p.setShader(null);
         return L;
+    }
+
+    /** Weather over the whole sky: each of its colours veiled towards {@code to}, from {@code top} at the top to {@code low}. */
+    private static void veil(int[] band, int to, float top, float low) {
+        for (int i = 0; i < band.length; i++) band[i] = Scene.mix(band[i], to, top + (low - top) * Palette.BAND[i]);
     }
 
     /** Midday's cumulus heaps (lumps with flat bases) and a few thin streaks high up; a null starts each cloud. */

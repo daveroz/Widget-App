@@ -1,0 +1,160 @@
+# Tier 1: the full city (real buildings, landmarks, water, parks, roads) and its own camera. Every other place in the
+# app's list is tier 2 (its terrain, water and a low-poly version of its streets). name|country, as in cities.txt.
+Abu Dhabi|AE
+Accra|GH
+Addis Ababa|ET
+Algiers|DZ
+Almaty|KZ
+Amman|JO
+Amsterdam|NL
+Antwerp|BE
+Athens|GR
+Atlanta|US
+Auckland|NZ
+Austin|US
+Baghdad|IQ
+Bahrain|BH
+Baku|AZ
+Bangalore|IN
+Bangkok|TH
+Barcelona|ES
+Beijing|CN
+Beirut|LB
+Belgrade|RS
+Berlin|DE
+Birmingham|GB
+Bogota|CO
+Boston|US
+Brisbane|AU
+Brussels|BE
+Bucharest|RO
+Budapest|HU
+Buenos Aires|AR
+Busan|KR
+Cairo|EG
+Calgary|CA
+Cali|CO
+Cape Town|ZA
+Caracas|VE
+Cartagena|CO
+Casablanca|MA
+Charlotte|US
+Chennai|IN
+Chicago|US
+Colombo|LK
+Copenhagen|DK
+Dallas|US
+Delhi|IN
+Denver|US
+Detroit|US
+Dhaka|BD
+Doha|QA
+Dubai|AE
+Dublin|IE
+Edinburgh|GB
+Edmonton|CA
+Florence|IT
+Frankfurt|DE
+Geneva|CH
+Glasgow|GB
+Guadalajara|MX
+Guangzhou|CN
+Hamburg|DE
+Havana|CU
+Helsinki|FI
+Ho Chi Minh City|VN
+Hong Kong|HK
+Honolulu|US
+Houston|US
+Hyderabad|IN
+Indianapolis|US
+Istanbul|TR
+Jakarta|ID
+Jerusalem|IL
+Johannesburg|ZA
+Karachi|PK
+Kolkata|IN
+Krakow|PL
+Kuala Lumpur|MY
+Kuwait|KW
+Kyiv|UA
+Kyoto|JP
+Lagos|NG
+Las Vegas|US
+Lima|PE
+Lisbon|PT
+London|GB
+Los Angeles|US
+Lyon|FR
+Macau|MO
+Madrid|ES
+Manchester|GB
+Manila|PH
+Marseille|FR
+Medellin|CO
+Melbourne|AU
+Mexico City|MX
+Miami|US
+Milan|IT
+Minsk|BY
+Monaco|MC
+Monterrey|MX
+Montevideo|UY
+Montreal|CA
+Moscow|RU
+Mumbai|IN
+Munich|DE
+Muscat|OM
+Nairobi|KE
+Naples|IT
+New York|US
+Nice|FR
+Orlando|US
+Osaka|JP
+Oslo|NO
+Ottawa|CA
+Panama City|PA
+Paris|FR
+Perth|AU
+Philadelphia|US
+Phoenix|US
+Portland|US
+Prague|CZ
+Riga|LV
+Rio de Janeiro|BR
+Riyadh|SA
+Rome|IT
+Rotterdam|NL
+San Diego|US
+San Francisco|US
+San Juan|PR
+Santiago|CL
+Santo Domingo|DO
+Sao Paulo|BR
+Seattle|US
+Seoul|KR
+Seville|ES
+Shanghai|CN
+Shenzhen|CN
+Singapore|SG
+Sofia|BG
+Stockholm|SE
+Sydney|AU
+Taipei|TW
+Tallinn|EE
+Tashkent|UZ
+Tbilisi|GE
+Tehran|IR
+Tokyo|JP
+Toronto|CA
+Valencia|ES
+Vancouver|CA
+Venice|IT
+Vienna|AT
+Vilnius|LT
+Warsaw|PL
+Washington|US
+Wellington|NZ
+Yerevan|AM
+Zagreb|HR
+Zurich|CH

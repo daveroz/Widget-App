@@ -91,6 +91,7 @@ final class ClockView {
 
     /** The first {@code n} world clocks at {@code ms}. */
     static Clock[] clocks(Context ctx, long ms, int n) {
+        WorldScene.init(ctx); // the real cities' scenes are read from the app's assets (2.31)
         Clock[] out = new Clock[n];
         for (int i = 0; i < n; i++) {
             Clock k = new Clock();

@@ -70,19 +70,46 @@ stolslilabs/paved#513 (windows as emissive faces given a halo by bloom, warm poo
 - the night city itself is lifted to a moonlit blue (the palette rule's night lightness up a little), so the windows read
   against it, as the poster's.
 
-## Scene file
+## Two tiers
 
-Deflated; little-endian. Header (width, height, face count, ground count), then each face: kind (wall, roof, landmark,
-landmark glass, landmark light, landmark roof), facing (0–254 of a turn, 255 for none), distance (log), a tint hue, for a
-wall its width and height (2 m steps), and its points delta-coded in quarter pixels; then the ground polygons (water, parks, roads), the two hill lines, and the
-street lamps (points with distance). The app colours each face for the light: lit or in shade by its facing against the
-sun's side, roofs lighter, hazed by distance, windows and lamps lit at night.
+- **Tier 1** (`majors.txt`, 158 major cities): the full map as above, with a hero landmark (the hand-set one in
+  `cities.json` or `bake_all.py`'s `HERO`, else the tallest catalog landmark within 6 km, never one on a hilltop) and its
+  camera (hand-set, else rule 14).
+- **Tier 2** (every other place in the app's list, 321): a low-poly version of itself (rule 15): a 45 m grid, each cell
+  with enough building in it a block as tall as its buildings on average (to 4 m), runs of equal cells joined; its real
+  water, parks, main roads and hills; the camera chosen the same way.
+- Places with almost nothing to show (fewer than 30 shapes, e.g. a point at sea) get no scene and keep the drawn one.
+
+More rules: **14, the automatic camera**: of eight sides, the one with the richest view: a deep skyline round and behind
+the focus, water in view, mountains on the horizon (weighed well), nothing tall right in front of the camera; **15**: tier
+2's low-poly blocks; **16, at screen size**: the ground simplified to 0.6 px and its specks dropped, footprints to half a
+pixel, a block showing less than 6 px dropped.
+
+## Scene file (format 3, `assets/scenes/<name>-<cc>.bin`)
+
+Deflated; little-endian; numbers after the header are zigzag variable-length, points delta-coded in half pixels of the
+reference frame (840 x 280: three times as wide as tall, the widest cell), each list's first point from the previous
+list's first.
+
+- header: `WSC3`, version 3, tier, width, height, the camera's look azimuth (degrees), its height (quarter metres);
+- hills: count, then each line's points (the far line first);
+- ground: count, then each shape's kind (2 water, 3 park, 4 road) and points;
+- items, far to near: count, then each: a **block** (`0`, distance byte, height in half metres, its footprint's points on
+  the ground) or a **landmark face** (`1 + kind`: 5 body, 6 glass, 7 light, 9 roof; facing 0-254 of a turn or 255;
+  distance byte; the material's hue and chroma; flags, 1 = the hero; its points).
+
+Distance bytes are `log1p(metres) * 28`. A block's walls are rebuilt by the app: the camera is level, so every vertical
+edge stays vertical and a corner's top is straight above its foot, as far above the horizon as the block's height over
+the camera's, scaled by how far below the horizon the foot is; the ground points give each wall's real width and facing
+(for its windows and its light). Street lamps and park trees are placed by the app (along the roads, in the parks).
 
 ## Run
 
 ```sh
 pip install pyarrow shapely trimesh numpy pillow matplotlib
 git clone --depth 1 https://github.com/alexwohlbruck/landmarks /home/user/alexwohlbruck/landmarks
-python3 bake.py            # every city in cities.json (or name some)
-python3 render.py paris    # dusk (3:1 and square), golden hour, day, night
+python3 lm_index.py        # every landmark's height, once
+python3 bake_all.py        # every place in the app's list (resumable; or name some)
+python3 finalize.py        # into app/src/main/assets/scenes
+python3 bake.py paris && python3 render.py paris   # the 12 test cities' previews
 ```
