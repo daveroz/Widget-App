@@ -197,6 +197,7 @@ final class Sky {
                 int pale = 0xFFF1EEE2;
                 if (dark > 0.3f) { // its glow on the night: wide and faint, brighter close round it
                     float hl = (0.4f + 0.6f * litF) * vis * dark;
+                    p.setAlpha(255);
                     p.setShader(new RadialGradient(mx, my, mr * 3.6f, new int[]{Scene.alpha(0xFFEEF2FF, 0.5f * hl),
                             Scene.alpha(0xFFDCE4FF, 0.14f * hl), 0x00DCE6FF}, new float[]{0.25f, 0.45f, 1f}, Shader.TileMode.CLAMP)); // brighter, tighter (2.33)
                     c.drawCircle(mx, my, mr * 3.6f, p);
@@ -221,7 +222,9 @@ final class Sky {
                     litPart.lineTo(k * (float) Math.cos(t), mr * (float) Math.sin(t));
                 }
                 litPart.close();
-                float ma = Math.min(1f, 1.2f * vis); // its lit part as good as solid: the brightest thing in the night
+                float ma = Math.min(1f, 1.2f * vis) * (0.35f + 0.65f * dark); // solid at night, the brightest thing in it; faint by day
+                ma *= dark + (1f - dark) * clamp(altD / 10f); // and by day gone near the horizon, never a second sun
+                p.setAlpha(255); // (2.33: the dark side's faint alpha used to carry over and dim the lit part to a grey)
                 p.setShader(new RadialGradient(-mr * 0.25f, -mr * 0.25f, mr * 1.3f, Scene.alpha(0xFFFFFFFC, ma),
                         Scene.alpha(0xFFFBF8EE, ma), Shader.TileMode.CLAMP));
                 c.drawPath(litPart, p);
@@ -288,7 +291,8 @@ final class Sky {
         Canvas fc = new Canvas(L.front);
         if (L.fog || L.rain || L.snow) {
             int mist = Scene.mix(sky[2], L.snow ? 0xFFE8ECF4 : 0xFFB8C0D8, 0.4f);
-            p.setShader(new LinearGradient(0, h * 0.6f, 0, h, mist & 0x00FFFFFF, Scene.alpha(mist, L.fog ? 0.55f : L.snow ? 0.38f : 0.32f),
+            float mistA = L.fog ? 0.55f : L.snow ? 0.38f : 0.32f * (1f - 0.5f * night); // a rainy night keeps its contrast (2.33)
+            p.setShader(new LinearGradient(0, h * 0.6f, 0, h, mist & 0x00FFFFFF, Scene.alpha(mist, mistA),
                     Shader.TileMode.CLAMP));
             fc.drawRect(0, h * 0.6f, w, h, p);
             p.setShader(null);
@@ -303,6 +307,7 @@ final class Sky {
                     new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
             fc.drawCircle(moonX, moonY, moonR * 1.7f, cut);
         }
+        WorldScene.punch(L.back, 0f, 0.25f); // the sky a little more vivid, as the graded reference's (2.33)
         L.flare = flare(L, w, h);
         return L;
     }
