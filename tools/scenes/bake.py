@@ -54,7 +54,8 @@ FOOT_LOW = 0.88
 FN_WIDE = 0.5 / math.tan(math.radians(30))
 OCC_MIN_PX = 2
 
-KINDS = {'wall': 0, 'roof': 1, 'water': 2, 'park': 3, 'road': 4, 'lm': 5, 'lm_glass': 6, 'lm_light': 7, 'land': 8, 'lm_roof': 9}
+KINDS = {'wall': 0, 'roof': 1, 'water': 2, 'park': 3, 'road': 4, 'lm': 5, 'lm_glass': 6, 'lm_light': 7, 'land': 8, 'lm_roof': 9,
+         'lm_lattice': 10}  # lattice (2.32): see-through ironwork, drawn as girders by the app (the Eiffel Tower's)
 
 CAT = {}
 for f in glob.glob(REPO + '/catalog/landmarks/*.json'):
@@ -514,6 +515,10 @@ def bake(key, cfg):
             vis = ((cam.c - ctr) * nrm).sum(1) > 0
             kind = KINDS['lm_glass'] if ('glass' in name or 'window' in name) else KINDS['lm_light'] if any(
                 k in name for k in ('neon', 'lamp', 'light')) else KINDS['lm']
+            if name == 'ironwork':  # see-through: both sides kept (the far legs show through the near), facing us
+                kind = KINDS['lm_lattice']
+                nrm[~vis] *= -1
+                vis = vis | True
             for j in np.nonzero(vis & ok)[0]:
                 k2 = KINDS['lm_roof'] if nrm[j][1] > 0.6 and kind == KINDS['lm'] else kind
                 faz = math.degrees(math.atan2(nrm[j][0], -nrm[j][2])) % 360 if abs(nrm[j][1]) < 0.9 else -1
@@ -613,7 +618,7 @@ def bake(key, cfg):
     for i, (dist, kind, s, faz, col) in enumerate(proj):
         if kind == -1:
             for _, p, _, _ in col: dr.polygon([tuple(v) for v in (p * S)], fill=i + 1)
-        else:
+        elif kind != KINDS['lm_lattice']:  # a lattice hides nothing (and is always kept)
             dr.polygon([tuple(v) for v in (s * S)], fill=i + 1)
     idarr = np.asarray(ids)
     vis, counts = np.unique(idarr, return_counts=True)
@@ -631,7 +636,7 @@ def bake(key, cfg):
     stats['lamps_hidden'] = len(lamps) - len(lp)
     shown = set(int(v) - 1 for v, c in zip(vis, counts) if v > 0 and c >= T['occ'])
     before = len(proj)
-    proj = [p for i, p in enumerate(proj) if i in shown]
+    proj = [p for i, p in enumerate(proj) if i in shown or p[1] == KINDS['lm_lattice']]
     stats['faces_before_occlusion'] = before
     stats['faces'] = len(proj)
     # rule 16, at screen size: the ground simplified to 0.6 px and its specks dropped; footprints simplified to half a

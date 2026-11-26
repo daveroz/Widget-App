@@ -52,7 +52,7 @@ final class WorldScene {
 
     private static final float HZ = 0.64f, FN = (float) (0.5 / Math.tan(Math.toRadians(20)));
     private static final int WALL = 0, ROOF = 1, WATER = 2, PARK = 3, ROAD = 4, LM = 5, LM_GLASS = 6, LM_LIGHT = 7,
-            LM_ROOF = 9;
+            LM_ROOF = 9, LM_LATTICE = 10;
 
     /** A scene as read: the reference frame (3:1, 280 tall), the camera, the hills, the ground and the items. */
     static final class Data {
@@ -265,11 +265,13 @@ final class WorldScene {
         if (d == null) return null;
         CityScene.Built b = new CityScene.Built();
         b.still = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
-        draw(new Canvas(b.still), d, w, h, l, seed, b, cc != null && LEFT_HAND.contains(cc.toUpperCase(Locale.ROOT)));
+        draw(new Canvas(b.still), d, w, h, l, seed, b, cc != null && LEFT_HAND.contains(cc.toUpperCase(Locale.ROOT)),
+                "Paris".equalsIgnoreCase(city) && (cc == null || "FR".equalsIgnoreCase(cc)));
         return b;
     }
 
-    private static void draw(Canvas c, Data d, int w, int h, CityScene.Light l, long seed, CityScene.Built built, boolean left) {
+    private static void draw(Canvas c, Data d, int w, int h, CityScene.Light l, long seed, CityScene.Built built, boolean left,
+                             boolean sparkles) {
         float k = h / (float) d.h, x0 = (d.w - w / k) / 2f, hz = HZ * h;
         float f = d.fn * d.h; // the focal length in reference pixels (the scene's own lens)
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -333,7 +335,7 @@ final class WorldScene {
         float share = (night > 0.5f ? 0.42f : 0.3f) * lights;
         float bestTop = Float.MAX_VALUE, bestX = 0;
         // the hero's top and foot on screen (for its light at night)
-        float heroTop = Float.MAX_VALUE, heroFoot = -Float.MAX_VALUE;
+        float heroTop = Float.MAX_VALUE, heroFoot = -Float.MAX_VALUE, heroL = Float.MAX_VALUE, heroR = -Float.MAX_VALUE;
         for (int i = 0; i < d.kind.length; i++) {
             if (d.kind[i] == -1 || !d.main[i]) continue;
             for (int j = 1; j < d.pts[i].length; j += 2) {
@@ -383,7 +385,7 @@ final class WorldScene {
                 double lit = Math.cos(Math.toRadians(d.facing[i] - sun));
                 base = lit > 0.1 ? litC : lit < -0.1 ? shadeC : l.near;
             }
-            if (kind == LM || kind == LM_ROOF) base = tint(base, d.hue[i], d.chroma[i]);
+            if (kind == LM || kind == LM_ROOF || kind == LM_LATTICE) base = tint(base, d.hue[i], d.chroma[i]);
             if (kind == LM_GLASS) base = Scene.mix(base, shadeC, 0.4f);
             int col = Scene.mix(base, farHaze, fog);
             poly(path, s, x0, k);
@@ -402,14 +404,25 @@ final class WorldScene {
                 if (up > 0.01f && footY - fadeY > 1f)
                     p.setShader(new LinearGradient(0, footY, 0, fadeY, screen(col, FLOOD, up), col, Shader.TileMode.CLAMP));
             }
-            // a landmark's faces drawn a hair larger, so the seams between its triangles don't show
-            p.setStrokeWidth(0.75f);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawPath(path, p);
-            p.setStyle(Paint.Style.FILL);
-            p.setShader(null);
-            if (glow != null) glow.drawPath(path, clear);
-            if (mask != null) mask.drawPath(path, clear);
+            if (kind == LM_LATTICE) { // ironwork: girders, with the sky and the city showing through
+                lattice(c, p, path, s, x0, k, f, d.dist[i]);
+                p.setShader(null);
+            } else {
+                // a landmark's faces drawn a hair larger, so the seams between its triangles don't show
+                p.setStrokeWidth(0.75f);
+                p.setStyle(Paint.Style.FILL_AND_STROKE);
+                c.drawPath(path, p);
+                p.setStyle(Paint.Style.FILL);
+                p.setShader(null);
+                if (glow != null) glow.drawPath(path, clear);
+                if (mask != null) mask.drawPath(path, clear);
+            }
+            if (d.main[i]) { // the hero's extent across (for the Eiffel Tower's sparkle)
+                for (int j = 0; j < s.length; j += 2) {
+                    heroL = Math.min(heroL, (s[j] - x0) * k);
+                    heroR = Math.max(heroR, (s[j] - x0) * k);
+                }
+            }
             if (d.main[i]) { // the hero's top: its beacon
                 for (int j = 1; j < s.length; j += 2) {
                     if (s[j] < bestTop) { bestTop = s[j]; bestX = s[j - 1]; }
@@ -427,11 +440,47 @@ final class WorldScene {
             c.drawBitmap(small, new Rect(0, 0, small.getWidth(), small.getHeight()), new Rect(0, 0, w, h), sp);
         }
         if (bestTop < HZ * d.h && night > 0.3f) built.beacons = new float[]{(bestX - x0) * k, bestTop * k + 1.5f * k};
+        if (sparkles && heroR > heroL && heroFoot > heroTop) // the Eiffel Tower sparkles five minutes every hour after dark
+            built.sparkle = new android.graphics.RectF(heroL, heroTop, heroR, heroFoot);
         if (maskBmp != null && d.roads != null) built.traffic = Traffic.make(d, maskBmp, x0, k, f, lights, seed, left);
         else if (maskBmp != null) maskBmp.recycle();
     }
 
     private static float clamp(float v) { return Math.max(0f, Math.min(1f, v)); }
+
+    /**
+     * A face of ironwork (2.32; the Eiffel Tower's lattice, which its model gives as a see-through texture): a faint fill
+     * for its mass, a cross-hatch of bars about every 8 m (one screen grid, so neighbouring faces line up) and rails
+     * along its edges, sized by its distance; what's behind shows through.
+     */
+    private static void lattice(Canvas c, Paint p, Path path, float[] s, float x0, float k, float f, float dist) {
+        float minx = Float.MAX_VALUE, maxx = -Float.MAX_VALUE, miny = Float.MAX_VALUE, maxy = -Float.MAX_VALUE;
+        for (int j = 0; j < s.length; j += 2) {
+            float x = (s[j] - x0) * k, y = s[j + 1] * k;
+            minx = Math.min(minx, x); maxx = Math.max(maxx, x);
+            miny = Math.min(miny, y); maxy = Math.max(maxy, y);
+        }
+        float mpx = f * k / Math.max(dist, 30f); // pixels a metre, there
+        float cell = Math.max(3f, 8f * mpx), bar = Math.max(0.55f, 0.8f * mpx);
+        int a0 = p.getAlpha();
+        p.setStyle(Paint.Style.FILL);
+        p.setAlpha(Math.round(a0 * 0.3f));
+        c.drawPath(path, p);
+        p.setAlpha(a0);
+        c.save();
+        c.clipPath(path);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(bar);
+        float hgt = maxy - miny;
+        for (float o = (float) Math.floor((minx - hgt) / cell) * cell; o <= maxx; o += cell) {
+            c.drawLine(o, maxy, o + hgt, miny, p);
+            c.drawLine(o + hgt, maxy, o, miny, p);
+        }
+        c.restore();
+        p.setStrokeWidth(Math.max(0.7f, 1.2f * mpx));
+        c.drawPath(path, p);
+        p.setStyle(Paint.Style.FILL);
+    }
 
     /** {@code light} laid over {@code col} by screen at {@code a}, as light falls on a thing (it never muddies it). */
     private static int screen(int col, int light, float a) {

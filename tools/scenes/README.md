@@ -122,7 +122,9 @@ list's first.
 - ground: count, then each shape's kind (2 water, 3 park, 4 road) and points;
 - items, far to near: count, then each: a **block** (`0`, distance byte, height in half metres, its footprint's points on
   the ground) or a **landmark face** (`1 + kind`: 5 body, 6 glass, 7 light, 9 roof; facing 0-254 of a turn or 255;
-  distance byte; the material's hue and chroma; flags, 1 = the hero; its points);
+  distance byte; the material's hue and chroma; flags, 1 = the hero; its points). Kind 10 (2.32) is see-through
+  ironwork (a model's `ironwork` material, the Eiffel Tower's lattice): both its sides are kept, it hides nothing behind
+  it, and the app draws it as girders (a faint fill, a cross-hatch of bars about every 8 m, rails along its edges);
 - (version 4) the cars' roads: count, then each main road's width in metres and its centre line's points.
 
 Distance bytes are `log1p(metres) * 28`. A block's walls are rebuilt by the app: the camera is level, so every vertical
