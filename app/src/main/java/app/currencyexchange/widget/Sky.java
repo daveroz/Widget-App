@@ -136,59 +136,49 @@ final class Sky {
         float glow = (float) Math.exp(-Math.pow((e - 0.5f) / 6f, 2));
         L.glow = glow;
 
-        // the sun (2.31, after the references): a small bright disc in a wide soft glare, with faint rays by day; low
-        // down it grows a little and warms, and a long glow lies along the horizon
+        // the sun (2.31, after the references): a soft-edged disc, white-gold and small high up, growing and turning a
+        // pale yellow as it sets, in a warm glow that reddens round it low down, with a long glow along the horizon; no
+        // rays. Sized by the cell's shorter side (so a wide clock's sun isn't huge)
+        float S = Math.min(w, h * 1.4f);
         // its height is always the light's (so the sky and the sun never disagree); where it stands across, the real one's
         float sAlt = e, sAz = sun != null ? (float) sun[1] : (float) (sunLeft ? -Math.PI / 3 : Math.PI / 3);
         if (sAlt > -4f) {
-            float low = 1f - clamp((sAlt - 1f) / 9f); // 1 at the horizon, 0 from 10 degrees up
-            float sunR = w * (0.045f + 0.02f * low);
+            float low = 1f - clamp((sAlt - 1f) / 11f); // 1 at the horizon, 0 from 12 degrees up
+            float sunR = S * (0.042f + 0.05f * low);
             float sx = w * (0.5f + 0.42f * (float) Math.sin(sAz)), sy = h * (hz - (hz - 0.08f) * clamp(sAlt / 60f));
             float vis = (1f - 0.75f * cover) * clamp((sAlt + 4f) / 3f);
-            int edge = sAlt < 0 ? 0xFFFF8A5C : sAlt < 4 ? (sunLeft ? 0xFFFFC870 : 0xFFFFA860) : sAlt < 15 ? 0xFFFFE6A8 : 0xFFFFF6E0;
-            int core = Scene.mix(edge, 0xFFFFFFFF, 0.55f - 0.25f * low);
-            // the glare: wide and pale by day, warm low down
-            float g = w * (0.62f - 0.12f * low);
-            p.setShader(new RadialGradient(sx, sy, g, new int[]{Scene.alpha(Scene.mix(edge, 0xFFFFFFFF, 0.4f), 0.42f * vis),
-                    Scene.alpha(edge, 0.14f * vis), edge & 0x00FFFFFF}, new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
+            float under = clamp(-sAlt / 4f); // just below the horizon: deeper
+            int core = Scene.mix(Scene.mix(0xFFFFFFF6, 0xFFFFF6B4, low), 0xFFFFE6A0, under);
+            int edge = Scene.mix(Scene.mix(0xFFFFF2D2, 0xFFFFDA74, low), 0xFFFFB066, under);
+            int warm = Scene.mix(Scene.mix(edge, 0xFFFFFFFF, 0.3f), 0xFFFF6A46, low); // the glow: pale by day, red low down
+            // the wide glow
+            float g = S * (0.55f + 0.3f * low);
+            p.setShader(new RadialGradient(sx, sy, g, new int[]{Scene.alpha(Scene.mix(edge, 0xFFFFFFFF, 0.25f), (0.34f + 0.12f * low) * vis),
+                    Scene.alpha(warm, (0.13f + 0.08f * low) * vis), warm & 0x00FFFFFF}, new float[]{0f, 0.32f, 1f},
+                    Shader.TileMode.CLAMP));
             c.drawCircle(sx, sy, g, p);
             if (low > 0.05f) { // the glow along the horizon as it sets
                 c.save();
                 c.scale(3.2f, 1f, sx, h * hz);
-                p.setShader(new RadialGradient(sx, h * hz, h * 0.22f, Scene.alpha(edge, 0.5f * vis * low), edge & 0x00FFFFFF,
-                        Shader.TileMode.CLAMP));
+                p.setShader(new RadialGradient(sx, h * hz, h * 0.22f, Scene.alpha(Scene.mix(edge, warm, 0.5f), 0.5f * vis * low),
+                        edge & 0x00FFFFFF, Shader.TileMode.CLAMP));
                 c.drawCircle(sx, h * hz, h * 0.22f, p);
                 c.restore();
             }
-            if (low < 0.95f && vis > 0.05f) { // faint rays, as a camera sees a bright sun
-                Random rr = new Random(seed ^ 0x5A75L);
-                float spin = rr.nextFloat() * 60f;
-                for (int i = 0; i < 12; i++) {
-                    double a = Math.toRadians(spin + i * 30 + (rr.nextFloat() - 0.5f) * 8);
-                    float len = sunR * (i % 2 == 0 ? 7.5f + rr.nextFloat() * 3f : 3.5f + rr.nextFloat() * 2f), wid = sunR * 0.22f;
-                    float ex = sx + (float) Math.cos(a) * len, ey = sy + (float) Math.sin(a) * len;
-                    float nx = -(float) Math.sin(a) * wid, ny = (float) Math.cos(a) * wid;
-                    Path ray = new Path();
-                    ray.moveTo(sx + nx, sy + ny);
-                    ray.lineTo(ex, ey);
-                    ray.lineTo(sx - nx, sy - ny);
-                    ray.close();
-                    p.setShader(new RadialGradient(sx, sy, len, Scene.alpha(0xFFFFFFFF, 0.22f * vis * (1 - low)), 0x00FFFFFF,
-                            Shader.TileMode.CLAMP));
-                    c.drawPath(ray, p);
-                }
-            }
-            p.setShader(new RadialGradient(sx, sy, sunR * 1.6f, new int[]{Scene.alpha(edge, 0.55f * vis), edge & 0x00FFFFFF},
-                    new float[]{0.6f, 1f}, Shader.TileMode.CLAMP));
-            c.drawCircle(sx, sy, sunR * 1.6f, p);
-            p.setShader(new RadialGradient(sx, sy, sunR, new int[]{Scene.alpha(core, vis), Scene.alpha(core, vis),
-                    Scene.alpha(edge, 0.95f * vis)}, new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
-            c.drawCircle(sx, sy, sunR, p);
+            // the corona close round it
+            p.setShader(new RadialGradient(sx, sy, sunR * 2.4f, new int[]{Scene.alpha(edge, 0.55f * vis), Scene.alpha(edge, 0.55f * vis),
+                    Scene.alpha(Scene.mix(edge, warm, 0.5f), 0.16f * vis), edge & 0x00FFFFFF}, new float[]{0f, 0.38f, 0.62f, 1f},
+                    Shader.TileMode.CLAMP));
+            c.drawCircle(sx, sy, sunR * 2.4f, p);
+            // the disc: even in the middle, its edge soft
+            p.setShader(new RadialGradient(sx, sy, sunR * 1.06f, new int[]{Scene.alpha(core, vis), Scene.alpha(core, vis),
+                    Scene.alpha(edge, vis), edge & 0x00FFFFFF}, new float[]{0f, 0.55f, 0.92f, 1f}, Shader.TileMode.CLAMP));
+            c.drawCircle(sx, sy, sunR * 1.06f, p);
             p.setShader(null);
             L.sunX = sx;
             L.sunY = sy;
             L.sunR = sunR;
-            L.sunVis = vis * clamp((sAlt + 2f) / 3f);
+            L.sunVis = vis * clamp((sAlt + 2f) / 3f) * (1f - 0.75f * low); // the flare: faint, and gone as it sets
         }
 
         // the moon, as big as the sun (smaller since 2.31), where it really is: lit as much as it is, its bright side towards the sun, the
@@ -197,22 +187,23 @@ final class Sky {
         if (moon != null && cover < 0.9f) {
             float altD = (float) Math.toDegrees(moon[0]), litF = (float) moon[2];
             float dark = clamp((1f - e) / 7f);
-            float vis = clamp((altD + 0.5f) / 1.5f) * (1f - 0.8f * cover) * (0.35f + 0.62f * dark);
+            float vis = clamp((altD + 0.5f) / 1.5f) * (1f - 0.55f * cover) * (0.42f + 0.58f * dark);
             if (litF > 0.03f && vis > 0.02f) {
                 float mx = w * (0.5f + 0.42f * (float) Math.sin(moon[1])), my = h * (hz - (hz - 0.08f) * clamp(altD / 60f));
-                float mr = 0.055f * w;
+                float mr = 0.058f * S;
                 moonX = mx;
                 moonY = my;
                 moonR = mr;
                 int pale = 0xFFF1EEE2;
-                if (dark > 0.3f) {
-                    p.setShader(new RadialGradient(mx, my, mr * 3.2f, Scene.alpha(0xFFDCE6FF, 0.22f * vis * litF), 0x00DCE6FF,
-                            Shader.TileMode.CLAMP));
-                    c.drawCircle(mx, my, mr * 3.2f, p);
+                if (dark > 0.3f) { // its glow on the night: wide and faint, brighter close round it
+                    float hl = (0.4f + 0.6f * litF) * vis * dark;
+                    p.setShader(new RadialGradient(mx, my, mr * 4.2f, new int[]{Scene.alpha(0xFFE4EAFF, 0.42f * hl),
+                            Scene.alpha(0xFFDCE4FF, 0.14f * hl), 0x00DCE6FF}, new float[]{0.2f, 0.45f, 1f}, Shader.TileMode.CLAMP));
+                    c.drawCircle(mx, my, mr * 4.2f, p);
                     p.setShader(null);
                 }
                 c.saveLayer(mx - mr * 1.5f, my - mr * 1.5f, mx + mr * 1.5f, my + mr * 1.5f, null);
-                p.setColor(Scene.alpha(pale, 0.12f * vis * dark));
+                p.setColor(Scene.alpha(pale, 0.16f * vis * dark));
                 c.drawCircle(mx, my, mr, p);
                 double zen = moon[3];
                 c.save();
@@ -230,14 +221,15 @@ final class Sky {
                     litPart.lineTo(k * (float) Math.cos(t), mr * (float) Math.sin(t));
                 }
                 litPart.close();
-                p.setShader(new RadialGradient(-mr * 0.25f, -mr * 0.25f, mr * 1.3f, Scene.alpha(0xFFFFFDF4, 0.97f * vis),
-                        Scene.alpha(pale, 0.92f * vis), Shader.TileMode.CLAMP));
+                float ma = Math.min(1f, 1.2f * vis); // its lit part as good as solid: the brightest thing in the night
+                p.setShader(new RadialGradient(-mr * 0.25f, -mr * 0.25f, mr * 1.3f, Scene.alpha(0xFFFFFEF6, ma),
+                        Scene.alpha(0xFFF6F2E2, ma), Shader.TileMode.CLAMP));
                 c.drawPath(litPart, p);
                 p.setShader(null);
                 c.restore();
                 Paint sea = new Paint(Paint.ANTI_ALIAS_FLAG);
                 sea.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP));
-                sea.setColor(Scene.alpha(0xFFB8B8C4, 0.45f));
+                sea.setColor(Scene.alpha(0xFFC4C2C8, 0.38f));
                 Random mr0 = new Random(7);
                 for (int i = 0; i < 6; i++) {
                     float sx = mx + (mr0.nextFloat() - 0.5f) * mr * 1.1f, sy = my + (mr0.nextFloat() - 0.5f) * mr * 1.1f;
@@ -332,9 +324,6 @@ final class Sky {
         p.setShader(new RadialGradient(hx, hy, hr * 1.08f, new int[]{0x00A8C8FF, 0x00A8C8FF, Scene.alpha(0xFFA8C8FF, 0.06f * k),
                 0x00A8C8FF}, new float[]{0f, 0.86f, 0.93f, 1f}, Shader.TileMode.CLAMP));
         c.drawCircle(hx, hy, hr * 1.08f, p);
-        p.setShader(new LinearGradient(0, 0, w, 0, new int[]{0x00B8D4FF, Scene.alpha(0xFFFFF0E0, 0.16f * k), 0x00B8D4FF},
-                new float[]{0f, clamp(L.sunX / w), 1f}, Shader.TileMode.CLAMP));
-        c.drawRect(0, L.sunY - 0.6f * L.px, w, L.sunY + 0.6f * L.px, p); // the streak
         return b;
     }
 

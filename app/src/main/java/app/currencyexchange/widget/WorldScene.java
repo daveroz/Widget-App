@@ -226,7 +226,7 @@ final class WorldScene {
 
     private static final int[] WARM = {0xFFFFDC8C, 0xFFFFC46E, 0xFFFFB27A, 0xFFFFE8B0, 0xFFFFCD96};
     private static final int LAMP = 0xFFFFD6EC, POOL = 0xFFFFC496, GLOW_WINDOW = 0xFFFF7668, GLOW_LAMP = 0xFFFF5CAA,
-            FLOOD = 0xFFFFC46B;
+            FLOOD = 0xFFFFA27E;
 
     /**
      * The still picture of {@code city}'s scene ({@code w} x {@code h} pixels) for the light {@code l}, or null when the
@@ -297,6 +297,16 @@ final class WorldScene {
         int treeC = Scene.mix(l.front, l.near, 0.2f), treeLit = Scene.mix(l.front, l.lit, 0.35f * (1 - 0.6f * night));
         float share = (night > 0.5f ? 0.42f : 0.3f) * lights;
         float bestTop = Float.MAX_VALUE, bestX = 0;
+        // the hero's top and foot on screen (for its light at night)
+        float heroTop = Float.MAX_VALUE, heroFoot = -Float.MAX_VALUE;
+        for (int i = 0; i < d.kind.length; i++) {
+            if (d.kind[i] == -1 || !d.main[i]) continue;
+            for (int j = 1; j < d.pts[i].length; j += 2) {
+                heroTop = Math.min(heroTop, d.pts[i][j] * k);
+                heroFoot = Math.max(heroFoot, d.pts[i][j] * k);
+            }
+        }
+        p.setStrokeJoin(Paint.Join.ROUND);
         int e = 0;
         Random rnd = new Random(seed ^ 0x3D5EL);
         for (int i = 0; i <= d.kind.length; i++) {
@@ -340,14 +350,23 @@ final class WorldScene {
             }
             if (kind == LM || kind == LM_ROOF) base = tint(base, d.hue[i], d.chroma[i]);
             if (kind == LM_GLASS) base = Scene.mix(base, shadeC, 0.4f);
-            if (d.main[i] && kind != LM_GLASS && lights > 0.25f) { // the hero floodlit at night, warm (as most are)
-                double lit = d.facing[i] < 0 ? 0.5 : Math.cos(Math.toRadians(d.facing[i] - d.look - 180));
-                base = Scene.mix(base, FLOOD, (0.35f + 0.25f * (float) Math.max(0, lit)) * lights);
-            }
             int col = Scene.mix(base, farHaze, fog);
             poly(path, s, x0, k);
             p.setColor(col);
+            if (d.main[i] && kind != LM_GLASS && lights > 0.05f && heroFoot > heroTop) {
+                // the hero at night: lit softly from below, warm at its foot and fading out a little over halfway up,
+                // its faces towards us a little more (the rest of it in the night's colours)
+                double lit = d.facing[i] < 0 ? 0.5 : Math.cos(Math.toRadians(d.facing[i] - d.look - 180));
+                float up = (0.26f + 0.16f * (float) Math.max(0, lit)) * lights;
+                p.setShader(new LinearGradient(0, heroFoot, 0, heroFoot - 0.6f * (heroFoot - heroTop),
+                        screen(col, FLOOD, up), col, Shader.TileMode.CLAMP));
+            }
+            // a landmark's faces drawn a hair larger, so the seams between its triangles don't show
+            p.setStrokeWidth(0.75f);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
             c.drawPath(path, p);
+            p.setStyle(Paint.Style.FILL);
+            p.setShader(null);
             if (glow != null) glow.drawPath(path, clear);
             if (d.main[i]) { // the hero's top: its beacon
                 for (int j = 1; j < s.length; j += 2) {
@@ -369,6 +388,14 @@ final class WorldScene {
     }
 
     private static float clamp(float v) { return Math.max(0f, Math.min(1f, v)); }
+
+    /** {@code light} laid over {@code col} by screen at {@code a}, as light falls on a thing (it never muddies it). */
+    private static int screen(int col, int light, float a) {
+        int r = 255 - (255 - ((col >> 16) & 255)) * (255 - Math.round(((light >> 16) & 255) * a)) / 255;
+        int g = 255 - (255 - ((col >> 8) & 255)) * (255 - Math.round(((light >> 8) & 255) * a)) / 255;
+        int b = 255 - (255 - (col & 255)) * (255 - Math.round((light & 255) * a)) / 255;
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
 
     /** How far the haze has taken a thing {@code dist} metres off (less at night). */
     private static float fog(float dist, float night) {
