@@ -797,7 +797,7 @@ final class WorldScene {
 
     /** A box blur, {@code passes} times, over a small picture (the glow, at a quarter of the cell's size). */
     /** The punch pass's strengths (2.33): local contrast (clarity) and vibrance, matched to the graded reference. */
-    static final float PUNCH_CLARITY = 0.6f, PUNCH_VIBRANCE = 0.3f;
+    static final float PUNCH_CLARITY = 0f, PUNCH_VIBRANCE = 0.3f; // no local contrast: at a widget's size it read as processed
 
     /**
      * The punch pass (2.33, after the graded reference): local contrast on the lightness only, each pixel pushed away

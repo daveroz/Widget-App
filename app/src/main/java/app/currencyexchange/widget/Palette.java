@@ -103,7 +103,7 @@ final class Palette {
         body[0] += 0.035f;
         body = lerp(body, lab(0xFFE2E9F4), 0.55f * day); // 2.33: a cool steel white by day, not paper white
         float[] lit = lerp(hor, lab(0xFFFFFFFF), 0.12f + 0.78f * day); // 2.33: less white at night
-        float night = 1f - smooth(-12f, -2f, e), deep = 1f + 0.6f * night; // and a deeper, more vivid navy body, as the reference's
+        float night = 1f - smooth(-12f, -2f, e), deep = 1f + 0.08f * night; // a calm navy at night (more turned their shade electric blue)
         body[1] *= deep;
         body[2] *= deep;
         return new int[]{rgb(lit[0], lit[1], lit[2]), rgb(body[0], body[1], body[2])};
