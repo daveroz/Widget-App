@@ -40,10 +40,23 @@ FOOT = 0.80  # where the main landmark's foot stands (a lower camera: more faces
 TOP = 0.30  # where a tall landmark's top reaches
 FAR = 4500.0  # metres: nothing further except the hills
 FACE_MIN_PX2 = 0.2
-HMIN = 75.0  # the camera is never lower than this (metres over the landmark's ground)
+HMIN = 50.0  # the camera is never lower than this (metres over the landmark's ground)
+CLOSER = 0.85  # every camera a little nearer its landmark than the composition rule puts it
+# rule 18 (2.32): one rule for every camera. Its distance from the landmark's height, D_BASE at 60 m and growing slowly
+# (340 m for 60 m, 570 m for 330 m, 750 m for 830 m), so the city round it is at much the same scale everywhere; the
+# landmark's top always at least TOP_MARGIN below the top edge; a tall one that doesn't fit first has its foot lower
+# (to FOOT_LOW), then a wider lens (to FN_WIDE, a 60 degree view up and down, as a photographer shoots a skyscraper),
+# and only then the camera steps back
+FN0 = FN
+D_BASE, D_EXP = 340.0, 0.3
+TOP_MARGIN = 0.10
+FOOT_LOW = 0.88
+FN_WIDE = 0.5 / math.tan(math.radians(30))
 OCC_MIN_PX = 2
 
-KINDS = {'wall': 0, 'roof': 1, 'water': 2, 'park': 3, 'road': 4, 'lm': 5, 'lm_glass': 6, 'lm_light': 7, 'land': 8, 'lm_roof': 9}
+KINDS = {'wall': 0, 'roof': 1, 'water': 2, 'park': 3, 'road': 4, 'lm': 5, 'lm_glass': 6, 'lm_light': 7, 'land': 8, 'lm_roof': 9,
+         'lm_lattice': 10,  # lattice (2.32): see-through ironwork, drawn as girders by the app
+         'lm_girder': 11}  # girders (2.32): single bars of a structure (the Eiffel Tower's, after Eiffel's own plates)
 
 CAT = {}
 for f in glob.glob(REPO + '/catalog/landmarks/*.json'):
@@ -103,18 +116,85 @@ def height_of(row):
             'warehouse': 9, 'school': 10, 'hospital': 18, 'hotel': 24}.get(c, 11)
 
 
+EIFFEL_DRAWING = os.path.join(HERE, 'eiffel_cassayre.json')
+
+
+def eiffel_parts():
+    """The Eiffel Tower (2.32) from Florian Cassayre's drawing of one face (MIT; after Eiffel's own plates, 1900): its
+    girders mirrored across the face and wrapped round the tower's four faces at their real taper, each a flat bar
+    (uprights 2.8 m, the arches 1.8 m, ties 1.2 m, braces 1 m); its platforms at 57.6 (with its 5 m frieze), 115.7 and
+    276.1 m, the four masonry piers and
+    today's antennas to 330 m. In the model's frame (Y up, -Z north, +X east, metres). Returns (verts, faces, name,
+    colour) parts like a loaded model's, or None without the drawing."""
+    if not os.path.exists(EIFFEL_DRAWING): return None
+    half = json.load(open(EIFFEL_DRAWING))['lines']
+    LIFT = 2.5  # the drawing starts at the top of the piers
+    lines = []
+    for x0, y0, x1, y1 in half:
+        lines.append((x0, y0 + LIFT, x1, y1 + LIFT))
+        if max(abs(x0), abs(x1)) > 0.05: lines.append((-x0, y0 + LIFT, -x1, y1 + LIFT))
+    # the outer profile (half the width at each height): the outermost point of the drawing there
+    prof = []
+    for y in np.arange(0, 313, 1.0):
+        xs = [abs(x0 + (x1 - x0) * (y - y0) / (y1 - y0)) for x0, y0, x1, y1 in lines if min(y0, y1) <= y <= max(y0, y1) and abs(y1 - y0) > 1e-6]
+        prof.append(max(xs) if xs else 0.0)
+    prof = np.maximum.accumulate(np.array(prof)[::-1])[::-1]  # never wider higher up
+    D = lambda y: float(np.interp(y, np.arange(0, 313, 1.0), prof))
+    verts, quads = [], []
+    for nx, nz in ((0, 1), (1, 0), (0, -1), (-1, 0)):  # the four faces: their outward normals
+        tx, tz = -nz, nx
+        for x0, y0, x1, y1 in lines:
+            L_ = math.hypot(x1 - x0, y1 - y0)
+            if L_ < 0.3: continue
+            up = abs(y1 - y0) > 4 * abs(x1 - x0) and L_ > 4
+            arch = max(y0, y1) < 47 and max(abs(x0), abs(x1)) < D(min(y0, y1)) - 14  # the arches between the legs
+            w = 2.8 if up else 1.8 if arch else 1.2 if abs(y1 - y0) < 0.05 else 1.0
+            p0 = np.array([nx * D(y0) + tx * x0, y0, nz * D(y0) + tz * x0])
+            p1 = np.array([nx * D(y1) + tx * x1, y1, nz * D(y1) + tz * x1])
+            dv = (p1 - p0) / L_
+            side = np.cross(dv, np.array([nx, 0.0, nz]))
+            side = side / (np.linalg.norm(side) or 1) * w / 2
+            k = len(verts)
+            verts += [p0 - side, p1 - side, p1 + side, p0 + side]
+            quads.append([k, k + 1, k + 2, k + 3])
+    parts = [(np.array(verts), np.array(quads), 'girders', (138, 106, 80))]
+    # the solid parts: platforms, piers, the antennas
+    boxes = [(52.6, 57.6, D(57.6) + 1.5), (112.7, 115.7, D(115.7) + 1.2), (274.1, 276.1, D(276.1) + 0.8),
+             (300.0, 330.0, 0.8)]
+    bv, bf = [], []
+    def box(y0, y1, x0, x1, z0, z1):
+        k = len(bv)
+        for y in (y0, y1):
+            bv.extend([[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1]])
+        for a, b_, c, d_ in ((0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)):
+            bf.extend([[k + a, k + b_, k + c], [k + a, k + c, k + d_]])
+    for y0, y1, r in boxes: box(y0, y1, -r, r, -r, r)
+    leg_in = max(0.0, D(0.0) - 15.5)
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            xa, xb = sorted((sx * leg_in, sx * (D(0.0) + 0.5)))
+            za, zb = sorted((sz * leg_in, sz * (D(0.0) + 0.5)))
+            box(0.0, LIFT, xa, xb, za, zb)
+    parts.append((np.array(bv, float), np.array(bf), 'decks', (156, 123, 94)))
+    return parts
+
+
 def landmark_mesh(pid, f):
     """A catalog landmark as triangles in local metres, with their material names and colours."""
     pl = CAT[pid]
     md = MODEL_FILE.get(pl['model'])
     if not md: return None
-    path = os.path.join(REPO, md['file'])
-    if not os.path.exists(path): return None
-    sc = trimesh.load(path)
     x0, z0 = f(pl['lng'], pl['lat'])
     b = math.radians(-pl.get('bearing', 0.0))
     s = pl.get('scale', 1.0)
     rot = np.array([[math.cos(b), 0, math.sin(b)], [0, 1, 0], [-math.sin(b), 0, math.cos(b)]])
+    if pl['model'] == 'eiffel-tower':  # the tower from Eiffel's own plates (2.32), the replicas too
+        parts = eiffel_parts()
+        if parts:
+            return [(v * s @ rot.T + np.array([x0, pl.get('elevation', 0.0), z0]), fs, name, col) for v, fs, name, col in parts]
+    path = os.path.join(REPO, md['file'])
+    if not os.path.exists(path): return None
+    sc = trimesh.load(path)
     out = []
     for node in sc.graph.nodes_geometry:
         T, gname = sc.graph[node]
@@ -211,7 +291,7 @@ def hero_near(lat, lon, radius=6000.0):
     return best
 
 
-def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None):
+def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None, cands=None):
     """Rule 14, the automatic camera: of eight sides, the one with the richest view: a deep skyline round and behind
     the focus, water in view, and nothing tall right in front of the camera."""
     R = d + T['far'] * 0.6
@@ -238,7 +318,7 @@ def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None):
     P = np.array(pts) if pts else np.zeros((0, 3))
     fpx = FN * REF_H
     best, bs = 200, -1e18
-    for az in range(0, 360, 45):
+    for az in (cands if cands is not None else range(0, 360, 45)):
         a = math.radians(az)
         cx, cz = math.sin(a) * d, -math.cos(a) * d
         lk = math.radians((az + 180) % 360)
@@ -271,6 +351,8 @@ def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None):
 
 
 def bake(key, cfg):
+    global FN
+    FN = FN0  # the standard lens until this city's is chosen
     T = TIERS[cfg.get('tier', 1)]
     main = cfg.get('main')
     if not main and cfg.get('tier', 1) == 1 and 'lat' in cfg:
@@ -288,16 +370,53 @@ def bake(key, cfg):
         allv = np.vstack([x[0] for x in m])
         hF = float(allv[:, 1].max())
         wF = float(max(np.ptp(allv[:, 0]), np.ptp(allv[:, 2])))
-    ta, tf = (HZ - TOP) / FN, (cfg.get('foot', FOOT) - HZ) / FN
-    d = hF / (ta + tf)
-    d = max(d, wF * FN / 0.55, cfg.get('min_dist', 260))
-    d *= cfg.get('zoom', 1.0)
-    hc = d * tf
-    if hc < cfg.get('hmin', HMIN):  # rule 9: never lower than HMIN (a short landmark: look down at it a little more, from higher up)
-        tf = (max(0.86, cfg.get('foot', FOOT)) - HZ) / FN
-        hc = cfg.get('hmin', HMIN)
-        d = max(d, hc / tf)
-    if 'az' not in cfg:
+    def compose(wv):  # rule 18 for a landmark wv metres wide as seen
+        d = D_BASE * (max(hF, 30.0) / 60.0) ** D_EXP  # rule 18
+        d = max(d, wv * FN0 / 0.62, cfg.get('min_dist', 0))  # a wide one fits across a square cell
+        d *= cfg.get('zoom', 1.0)
+        foot, fn = cfg.get('foot', FOOT), FN0
+        if foot - hF * fn / d < TOP_MARGIN:  # its top must keep clear of the top edge: first its foot lower,
+            foot = max(foot, min(FOOT_LOW, TOP_MARGIN + hF * fn / d))
+        if foot - hF * fn / d < TOP_MARGIN:  # then a wider lens,
+            fn = max(FN_WIDE, (foot - TOP_MARGIN) * d / hF)
+        if foot - hF * fn / d < TOP_MARGIN:  # and only then a step back
+            d = hF * fn / (foot - TOP_MARGIN)
+        hc = d * (foot - HZ) / fn
+        hmin = cfg.get('hmin', HMIN)
+        if hc < hmin:  # rule 9: never lower than HMIN: the foot a little lower, else a step back
+            foot = min(FOOT_LOW, HZ + hmin * fn / d)
+            d = max(d, hmin * fn / (foot - HZ))
+            hc = hmin
+        return d, hc, fn, foot
+    d, hc, fn, foot = compose(wF)
+    FN = fn  # this city's lens, for everything below (and the scene file)
+    # rule 19 (2.32): the landmark seen from a corner, as a photographer moves a couple of blocks from the front view:
+    # its faces' directions from its footprint (the smallest rectangle round it), the camera at one of the four
+    # diagonals between them; a hand-set side moves to the nearest corner (the better view of two equally near), an
+    # automatic camera takes the corner with the richest view
+    corners = None
+    if main and cfg.get('diagonal', True):
+        rect = shapely.MultiPoint(allv[:, [0, 2]]).convex_hull.minimum_rotated_rectangle
+        if rect.geom_type == 'Polygon':
+            rc = np.array(rect.exterior.coords)
+            ex, ez = rc[1] - rc[0]
+            edge = math.degrees(math.atan2(ex, -ez)) % 90  # x east, z south: compass bearing of one side
+            corners = [round((edge + 45 + 90 * i) % 360, 1) for i in range(4)]
+    if corners is not None:
+        if 'az' in cfg:
+            a0 = cfg['az']
+            off = lambda a: abs((a - a0 + 180) % 360 - 180)
+            near = sorted(corners, key=off)
+            az_new = near[0] if off(near[1]) - off(near[0]) > 10 else choose_az(f, inv, d, hc, T, hF, lon0, lat0, cands=near[:2])
+        else:
+            az_new = choose_az(f, inv, d, hc, T, hF, lon0, lat0, cands=corners)
+        cfg = dict(cfg, az=az_new)
+        # seen from a corner a wide landmark is narrower than from its side: the distance again, for its width as seen
+        a_ = math.radians(cfg['az'])
+        wv = float(np.ptp(allv[:, 0] * -math.cos(a_) + allv[:, 2] * -math.sin(a_)))
+        d, hc, fn, foot = compose(wv)
+        FN = fn
+    elif 'az' not in cfg:
         cfg = dict(cfg, az=choose_az(f, inv, d, hc, T, hF, lon0, lat0))
     az = math.radians(cfg['az'])
     cam = Cam(math.sin(az) * d, -math.cos(az) * d, hc, (cfg['az'] + 180) % 360)
@@ -313,7 +432,7 @@ def bake(key, cfg):
     lo1, la0 = inv(max(xs), max(zs))
     box = (lo0, la0, lo1, la1)
     wedge = Polygon(pts)
-    stats = {'city': key, 'tier': cfg.get('tier', 1), 'main': main, 'az': cfg['az']}
+    stats = {'city': key, 'tier': cfg.get('tier', 1), 'main': main, 'az': cfg['az'], 'corners': corners}
 
     air = max(140.0, 0.2 * d)  # rule 10: nothing stands in the air round the camera
     cam_pt = shapely.Point(cam.c[0], cam.c[2])
@@ -351,6 +470,16 @@ def bake(key, cfg):
         if not mm: continue
         top = float(max(v[:, 1].max() for v, _, _, _ in mm))
         if top / max(along, 1) * cam.f > max(1.15 * main_px, 0.62 * REF_H) and along < d: continue
+        # rule 12 for landmarks too (2.32): one between the camera and the hero, nearer than it, that would cover its
+        # foot goes, so the hero is seen whole
+        if main and along < d - (wF * 0.65 + 10) * 0.5:
+            across = (x - cam.c[0]) * cam.right[0] + (z - cam.c[2]) * cam.right[2]
+            allv2 = np.vstack([v for v, _, _, _ in mm])
+            half_lm = 0.5 * float(max(np.ptp(allv2[:, 0]), np.ptp(allv2[:, 2])))
+            lane = 12 + (wF * 0.65 + 10 - 12) * along / d
+            foot_y0 = HZ * REF_H + cam.c[1] / d * cam.f
+            if abs(across) < lane + half_lm and HZ * REF_H - (top - cam.c[1]) / max(along, 1) * cam.f < foot_y0 - 2:
+                continue
         keep.append(pid)
     lms = keep
     stats['landmarks'] = lms
@@ -454,6 +583,10 @@ def bake(key, cfg):
             vis = ((cam.c - ctr) * nrm).sum(1) > 0
             kind = KINDS['lm_glass'] if ('glass' in name or 'window' in name) else KINDS['lm_light'] if any(
                 k in name for k in ('neon', 'lamp', 'light')) else KINDS['lm']
+            if name in ('ironwork', 'girders'):  # see-through: both sides kept (the far legs show through the near), facing us
+                kind = KINDS['lm_lattice'] if name == 'ironwork' else KINDS['lm_girder']
+                nrm[~vis] *= -1
+                vis = vis | True
             for j in np.nonzero(vis & ok)[0]:
                 k2 = KINDS['lm_roof'] if nrm[j][1] > 0.6 and kind == KINDS['lm'] else kind
                 faz = math.degrees(math.atan2(nrm[j][0], -nrm[j][2])) % 360 if abs(nrm[j][1]) < 0.9 else -1
@@ -481,6 +614,7 @@ def bake(key, cfg):
             ground.append((KINDS[kind], p))
     t, _ = overture.read('transportation/segment', box, ['subtype', 'class', 'geometry'])
     lamps = []
+    centre = []  # the main roads' centre lines (their width), for the cars at night (2.32)
     if t is not None:
         widths = {'motorway': 22, 'trunk': 18, 'primary': 14, 'secondary': 11, 'tertiary': 9}
         lines = []
@@ -488,6 +622,7 @@ def bake(key, cfg):
             if r['subtype'] != 'road' or r['class'] not in T['roads']: continue
             g = geom_local(W.loads(r['geometry']), f)
             lines.append(g.buffer(widths[r['class']] / 2, cap_style=2).intersection(view))
+            centre.append((widths[r['class']], g))
             for t_ in np.arange(0, g.length, T['lamp']):
                 p = g.interpolate(t_)
                 ok, along = in_view(p.x, p.y)
@@ -551,7 +686,7 @@ def bake(key, cfg):
     for i, (dist, kind, s, faz, col) in enumerate(proj):
         if kind == -1:
             for _, p, _, _ in col: dr.polygon([tuple(v) for v in (p * S)], fill=i + 1)
-        else:
+        elif kind not in (KINDS['lm_lattice'], KINDS['lm_girder']):  # a lattice hides nothing (and is always kept)
             dr.polygon([tuple(v) for v in (s * S)], fill=i + 1)
     idarr = np.asarray(ids)
     vis, counts = np.unique(idarr, return_counts=True)
@@ -569,7 +704,7 @@ def bake(key, cfg):
     stats['lamps_hidden'] = len(lamps) - len(lp)
     shown = set(int(v) - 1 for v, c in zip(vis, counts) if v > 0 and c >= T['occ'])
     before = len(proj)
-    proj = [p for i, p in enumerate(proj) if i in shown]
+    proj = [p for i, p in enumerate(proj) if i in shown or p[1] in (KINDS['lm_lattice'], KINDS['lm_girder'])]
     stats['faces_before_occlusion'] = before
     stats['faces'] = len(proj)
     # rule 16, at screen size: the ground simplified to 0.6 px and its specks dropped; footprints simplified to half a
@@ -594,12 +729,35 @@ def bake(key, cfg):
     stats['blocks_kept'] = sum(1 for p in proj if p[1] == -1)
     stats['ground_polys'] = len(gproj)
 
+    # the cars' roads (2.32): each main road's centre line in view, 20 m to 2.5 km off, simplified to half a pixel
+    traffic = []
+    for wdt, g in centre:
+        for ln in (g.geoms if hasattr(g, 'geoms') else [g]):
+            if ln.geom_type != 'LineString' or ln.length < 5: continue
+            ln = shapely.segmentize(ln, 25.0)
+            c2 = np.array(ln.coords)
+            sp, zz = cam.project(np.c_[c2[:, 0], np.zeros(len(c2)), c2[:, 1]])
+            sp = sp + np.array([W2 / 2, 0])
+            ok = (zz > 20) & (zz < 2500) & (sp[:, 0] > -30) & (sp[:, 0] < W2 + 30)
+            run = []
+            for v, o in zip(sp, ok):
+                if o: run.append(v); continue
+                if len(run) >= 2: traffic.append((wdt, run))
+                run = []
+            if len(run) >= 2: traffic.append((wdt, run))
+    t2 = []
+    for wdt, run in traffic:
+        ls = shapely.LineString(run).simplify(0.5)
+        if ls.length >= 3: t2.append((wdt, np.array(ls.coords)))
+    traffic = t2
+    stats['traffic_lines'] = len(traffic)
     sil, base = terrain_silhouette(lon0, lat0, cam, inv, look)
     scene = {'city': key, 'w': W2, 'h': REF_H, 'faces': proj, 'ground': gproj, 'hills': sil, 'lamps': lp, 'lamp_dist': 'euclid',
-             'cam': {'hc': cam.c[1], 'dist': d, 'look': look}}
+             'cam': {'hc': cam.c[1], 'dist': d, 'look': look, 'fn': FN}, 'traffic': traffic}
     stats['lamps'] = len(lp)
     stats['bytes'] = len(pack3(scene))
-    stats['cam'] = {'height_m': round(cam.c[1]), 'distance_m': round(d), 'look': look}
+    stats['cam'] = {'height_m': round(cam.c[1]), 'distance_m': round(d), 'look': look,
+                    'view_deg': round(2 * math.degrees(math.atan(0.5 / FN)), 1)}
     return scene, stats
 
 
@@ -778,9 +936,9 @@ def pack3(scene):
     import palette as PAL
     b = io.BytesIO()
     b.write(b'WSC3')
-    b.write(bytes([3, int(scene.get('tier', 1))]))
-    b.write(struct.pack('<HHHH', int(round(scene['w'])), int(scene['h']), int(scene['cam']['look']) % 360,
-                        int(min(65535, round(scene['cam']['hc'] * 4)))))
+    b.write(bytes([4, int(scene.get('tier', 1))]))
+    b.write(struct.pack('<HHHHH', int(round(scene['w'])), int(scene['h']), int(scene['cam']['look']) % 360,
+                        int(min(65535, round(scene['cam']['hc'] * 4))), int(round(scene['cam'].get('fn', FN0) * 10000))))
     last = [0, 0]
 
     def pts(s, q):
@@ -810,5 +968,10 @@ def pack3(scene):
         b.write(bytes([1 + kind, 255 if faz < 0 else int(faz / 360 * 254) % 255, db]))
         L, C, h = PAL.lch(col[:3]) if col is not None else (0, 0, 0)
         b.write(bytes([int(h / 360 * 255) % 256, min(255, int(C * 800)), 1 if (col is not None and len(col) == 4) else 0]))
+        pts(s, 2)
+    # (format 4, 2.32) the cars' roads: count, then each: its width in metres and its centre line's points
+    _uvar(b, len(scene.get('traffic', [])))
+    for wdt, s in scene.get('traffic', []):
+        b.write(bytes([min(255, int(wdt))]))
         pts(s, 2)
     return zlib.compress(b.getvalue(), 9)
