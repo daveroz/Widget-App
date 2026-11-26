@@ -19,7 +19,8 @@
   "zoom": 0.72
  },
  "tokyo": {
-  "main": "tokyo-skytree"
+  "main": "tokyo-skytree",
+  "az": 90
  },
  "charlotte": {
   "main": "bank-of-america-corporate-center",

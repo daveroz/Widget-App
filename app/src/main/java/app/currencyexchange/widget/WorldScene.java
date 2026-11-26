@@ -68,6 +68,9 @@ final class WorldScene {
         float[] facing, dist, height, hue, chroma;
         boolean[] main;
         float[][] pts;
+        /** The main roads' centre lines (format 4, 2.32; null before): width (m) and points, for the cars at night. */
+        float[] roadW;
+        float[][] roads;
     }
 
     private static final Map<String, Data> CACHE = new LinkedHashMap<String, Data>(16, 0.75f, true) {
@@ -185,6 +188,15 @@ final class WorldScene {
             }
             d.pts[i] = r.pts();
         }
+        if (version >= 4 && r.p < b.length) { // the cars' roads (2.32)
+            int nt = (int) r.uvar();
+            d.roadW = new float[nt];
+            d.roads = new float[nt][];
+            for (int i = 0; i < nt; i++) {
+                d.roadW[i] = r.u8();
+                d.roads[i] = r.pts();
+            }
+        }
         return d;
     }
 
@@ -230,6 +242,17 @@ final class WorldScene {
     private static final int[] WARM = {0xFFFFDC8C, 0xFFFFC46E, 0xFFFFB27A, 0xFFFFE8B0, 0xFFFFCD96};
     private static final int LAMP = 0xFFFFD6EC, POOL = 0xFFFFC496, GLOW_WINDOW = 0xFFFF7668, GLOW_LAMP = 0xFFFF5CAA,
             FLOOD = 0xFFFFA27E;
+    /**
+     * At night every building is lit from the street (2.32), as the hero is: warm at its foot, fading out 60% of the way
+     * up (a landmark other than the hero by FADE_M, its height unknown here), CITY_UP strong near, less far off.
+     */
+    private static final float FADE_M = 45f, CITY_UP = 0.3f;
+    /** Cars' lights on the main roads at night (2.32): headlights coming, tail lights going. */
+    private static final int HEAD = 0xFFFFF1D2, TAIL = 0xFFFF3C3C;
+    /** Where they drive on the left (the cars' lanes, 2.32). */
+    private static final java.util.Set<String> LEFT_HAND = new java.util.HashSet<>(java.util.Arrays.asList(("AG AI AU BB BD BM BN BS BT "
+            + "BW CY DM FJ FK GB GD GG GY HK ID IE IM IN JE JM JP KE KI KN KY LC LK LS MO MS MT MU MV MW MY MZ NA NP NR NZ PG PK "
+            + "PN SB SC SG SH SR SZ TC TH TL TO TT TV TZ UG VC VG VI WS ZA ZM ZW").split(" ")));
 
     /**
      * The still picture of {@code city}'s scene ({@code w} x {@code h} pixels) for the light {@code l}, or null when the
@@ -240,11 +263,11 @@ final class WorldScene {
         if (d == null) return null;
         CityScene.Built b = new CityScene.Built();
         b.still = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
-        draw(new Canvas(b.still), d, w, h, l, seed, b);
+        draw(new Canvas(b.still), d, w, h, l, seed, b, cc != null && LEFT_HAND.contains(cc.toUpperCase(Locale.ROOT)));
         return b;
     }
 
-    private static void draw(Canvas c, Data d, int w, int h, CityScene.Light l, long seed, CityScene.Built built) {
+    private static void draw(Canvas c, Data d, int w, int h, CityScene.Light l, long seed, CityScene.Built built, boolean left) {
         float k = h / (float) d.h, x0 = (d.w - w / k) / 2f, hz = HZ * h;
         float f = d.fn * d.h; // the focal length in reference pixels (the scene's own lens)
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -271,6 +294,12 @@ final class WorldScene {
         int waterFar = Scene.mix(l.horizon, l.mid, 0.12f), waterNear = Scene.mix(Scene.mix(l.horizon, l.mid, 0.55f), l.near, 0.3f);
         int park = Scene.mix(l.front, l.street, 0.35f), road = Scene.mix(l.street, l.edge, 0.18f);
         int[] order = {PARK, WATER, ROAD};
+        // the roads' traffic at night (2.32): where a road shows (it, less everything later drawn over it), at half size
+        Bitmap maskBmp = lights > 0.05f ? Bitmap.createBitmap(Math.max(2, w / 2), Math.max(2, h / 2), Bitmap.Config.ARGB_8888) : null;
+        Canvas mask = maskBmp == null ? null : new Canvas(maskBmp);
+        if (mask != null) mask.scale(0.5f, 0.5f);
+        Paint mp = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mp.setColor(0xFFFFFFFF);
         for (int kind : order) {
             for (int i = 0; i < d.ground.length; i++) {
                 if (d.groundKind[i] != kind) continue;
@@ -284,6 +313,7 @@ final class WorldScene {
                         : Scene.mix(Scene.mix(road, farHaze, 0.6f), road, t);
                 p.setColor(col);
                 c.drawPath(poly(path, s, x0, k), p);
+                if (kind == ROAD && mask != null) mask.drawPath(path, mp);
             }
         }
         // what stands on it, far to near: the scene's items, with trees in the parks and lamps along the roads put in
@@ -338,7 +368,7 @@ final class WorldScene {
             if (i == d.kind.length) break;
             float fog = d.main[i] ? 0 : fog(d.dist[i], night);
             if (d.kind[i] == -1) {
-                block(c, glow, clear, gp, p, path, d, d.pts[i], d.height[i], f, x0, k, hz, sun, fog, l, litC, shadeC, roofC,
+                block(c, glow, mask, clear, gp, p, path, d, d.pts[i], d.height[i], f, x0, k, hz, sun, fog, l, litC, shadeC, roofC,
                         farHaze, share, lights);
                 continue;
             }
@@ -363,6 +393,11 @@ final class WorldScene {
                 float up = (0.26f + 0.16f * (float) Math.max(0, lit)) * lights;
                 p.setShader(new LinearGradient(0, heroFoot, 0, heroFoot - 0.6f * (heroFoot - heroTop),
                         screen(col, FLOOD, up), col, Shader.TileMode.CLAMP));
+            } else if (kind != LM_GLASS && lights > 0.05f) { // the others lit from the street, as every building is
+                float up = CITY_UP * lights * (1f - 0.7f * clamp(fog / 0.4f)), z = Math.max(d.dist[i], 20f);
+                float footY = (HZ * d.h + d.hc * f / z) * k, fadeY = (HZ * d.h - (FADE_M - d.hc) * f / z) * k;
+                if (up > 0.01f && footY - fadeY > 1f)
+                    p.setShader(new LinearGradient(0, footY, 0, fadeY, screen(col, FLOOD, up), col, Shader.TileMode.CLAMP));
             }
             // a landmark's faces drawn a hair larger, so the seams between its triangles don't show
             p.setStrokeWidth(0.75f);
@@ -371,6 +406,7 @@ final class WorldScene {
             p.setStyle(Paint.Style.FILL);
             p.setShader(null);
             if (glow != null) glow.drawPath(path, clear);
+            if (mask != null) mask.drawPath(path, clear);
             if (d.main[i]) { // the hero's top: its beacon
                 for (int j = 1; j < s.length; j += 2) {
                     if (s[j] < bestTop) { bestTop = s[j]; bestX = s[j - 1]; }
@@ -388,6 +424,8 @@ final class WorldScene {
             c.drawBitmap(small, new Rect(0, 0, small.getWidth(), small.getHeight()), new Rect(0, 0, w, h), sp);
         }
         if (bestTop < HZ * d.h && night > 0.3f) built.beacons = new float[]{(bestX - x0) * k, bestTop * k + 1.5f * k};
+        if (maskBmp != null && d.roads != null) built.traffic = Traffic.make(d, maskBmp, x0, k, f, lights, seed, left);
+        else if (maskBmp != null) maskBmp.recycle();
     }
 
     private static float clamp(float v) { return Math.max(0f, Math.min(1f, v)); }
@@ -427,7 +465,7 @@ final class WorldScene {
      * straight above its foot), the ones facing the camera drawn far to near, lit or in shade by which way they face,
      * a rim of light along a tall one's top, its windows at night; then its roof if it's lower than the camera.
      */
-    private static void block(Canvas c, Canvas glow, Paint clear, Paint gp, Paint p, Path path, Data d, float[] s, float hm,
+    private static void block(Canvas c, Canvas glow, Canvas mask, Paint clear, Paint gp, Paint p, Path path, Data d, float[] s, float hm,
                               float f, float x0, float k, float hzScreen, float sun, float fog, CityScene.Light l, int litC,
                               int shadeC, int roofC, int farHaze, float share, float lights) {
         int n = s.length / 2;
@@ -481,8 +519,16 @@ final class WorldScene {
             path.lineTo(atx, aty);
             path.close();
             p.setColor(col);
+            float up = CITY_UP * lights * (1f - 0.7f * clamp(fog / 0.4f));
+            if (up > 0.01f) { // lit from the street at night: warm at its foot, fading out 60% of the way up
+                float footY = (ay + by) / 2, dyA = Math.max(footY / k - hzr, 0.25f);
+                float fadeY = (hzr - (Math.max(10f, 0.6f * hm) - hc) * dyA / hc) * k;
+                if (footY - fadeY > 1f) p.setShader(new LinearGradient(0, footY, 0, fadeY, screen(col, FLOOD, up), col, Shader.TileMode.CLAMP));
+            }
             c.drawPath(path, p);
+            p.setShader(null);
             if (glow != null) glow.drawPath(path, clear);
+            if (mask != null) mask.drawPath(path, clear);
             if (Math.abs(bx - ax) > 1.5f && Math.abs(ay - aty) > 8f) { // the rim along a tall one's top
                 p.setColor(Scene.mix(col, l.rim, 0.55f * (1 - fog)));
                 p.setStrokeWidth(1f);
@@ -502,6 +548,7 @@ final class WorldScene {
             p.setColor(Scene.mix(roofC, farHaze, fog));
             c.drawPath(path, p);
             if (glow != null) glow.drawPath(path, clear);
+            if (mask != null) mask.drawPath(path, clear);
         }
     }
 
@@ -689,5 +736,150 @@ final class WorldScene {
             }
         }
         b.setPixels(px, 0, w, 0, 0, w, h);
+    }
+
+    /**
+     * The cars on the main roads at night (2.32): small lights moving along each road's edges at a city's pace, warm white
+     * headlights where they're coming towards us and red tail lights where they're going away, smaller and fainter
+     * further off; only where the road shows (a building in front hides them). Each car keeps its own place and speed,
+     * so the traffic flows the same way each frame.
+     */
+    static final class Traffic {
+        byte[] mask;
+        int mw, mh;
+        /** Each run along a road's edge: x, y (pixels), X, Z (metres on the ground), s (metres along), five per point. */
+        float[][] runs;
+        float[] len;
+        float[][] start, speed;
+        float lights, fk;
+
+        static Traffic make(Data d, Bitmap mb, float x0, float k, float f, float lights, long seed, boolean left) {
+            Traffic tr = new Traffic();
+            tr.mw = mb.getWidth();
+            tr.mh = mb.getHeight();
+            int[] px = new int[tr.mw * tr.mh];
+            mb.getPixels(px, 0, tr.mw, 0, 0, tr.mw, tr.mh);
+            mb.recycle();
+            tr.mask = new byte[px.length];
+            for (int i = 0; i < px.length; i++) tr.mask[i] = (byte) ((px[i] >>> 24) > 40 ? 1 : 0); // a far road is thin: any of it counts
+            tr.lights = lights;
+            tr.fk = f * k;
+            float hzr = HZ * d.h;
+            List<float[]> runs = new ArrayList<>();
+            float[] buf = new float[256];
+            int nr = d.roads == null ? 0 : d.roads.length;
+            for (int i = 0; i < nr; i++) {
+                float[] s = d.roads[i];
+                int n = s.length / 2;
+                if (n < 2) continue;
+                float[] gx = new float[n], gz = new float[n];
+                boolean[] ok = new boolean[n];
+                for (int j = 0; j < n; j++) {
+                    float y = s[2 * j + 1];
+                    ok[j] = y > hzr + 0.3f;
+                    gz[j] = ok[j] ? d.hc * f / (y - hzr) : 0f;
+                    gx[j] = (s[2 * j] - d.w / 2f) * gz[j] / f;
+                }
+                float lane = Math.max(1.6f, d.roadW[i] / 4f);
+                for (int dir = 0; dir < 2; dir++) { // each way in its own lane: on the right (or the left where they drive so)
+                    int cnt = 0;
+                    for (int e = 0; e < n; e++) {
+                        int j = dir == 0 ? e : n - 1 - e, jn = dir == 0 ? Math.min(n - 1, e + 1) : Math.max(0, n - 2 - e);
+                        int jp = dir == 0 ? Math.max(0, e - 1) : Math.min(n - 1, n - e);
+                        if (!ok[j]) { cnt = flush(runs, buf, cnt); continue; }
+                        int a0 = ok[jp] ? jp : j, a1 = ok[jn] ? jn : j;
+                        float tx = gx[a1] - gx[a0], tz = gz[a1] - gz[a0], tl = (float) Math.hypot(tx, tz);
+                        if (tl < 0.01f) continue;
+                        float sd = left ? -1f : 1f; // the right-hand side of the way it goes is (tz, -tx)
+                        float px0 = gx[j] + tz / tl * lane * sd, pz0 = Math.max(5f, gz[j] - tx / tl * lane * sd);
+                        if (5 * cnt + 5 > buf.length) buf = java.util.Arrays.copyOf(buf, buf.length * 2);
+                        buf[5 * cnt] = (d.w / 2f + px0 * f / pz0 - x0) * k;
+                        buf[5 * cnt + 1] = (hzr + d.hc * f / pz0) * k;
+                        buf[5 * cnt + 2] = px0;
+                        buf[5 * cnt + 3] = pz0;
+                        cnt++;
+                    }
+                    flush(runs, buf, cnt);
+                }
+            }
+            float total = 0;
+            for (float[] q : runs) total += q[q.length - 1];
+            float gap = Math.max(15f, total / 2000f); // a car every 15 m or so per lane (only those in sight are drawn), at most 2,000
+            Random r = new Random(seed ^ 0xCA75L);
+            tr.runs = runs.toArray(new float[0][]);
+            tr.len = new float[tr.runs.length];
+            tr.start = new float[tr.runs.length][];
+            tr.speed = new float[tr.runs.length][];
+            for (int i = 0; i < tr.runs.length; i++) {
+                float L = tr.runs[i][tr.runs[i].length - 1];
+                tr.len[i] = L;
+                float want = L / gap;
+                int c = (int) want + (r.nextFloat() < want - (int) want ? 1 : 0);
+                tr.start[i] = new float[c];
+                tr.speed[i] = new float[c];
+                for (int j = 0; j < c; j++) {
+                    tr.start[i][j] = r.nextFloat() * L;
+                    tr.speed[i][j] = 7f + r.nextFloat() * 6f; // 25 to 47 km/h
+                }
+            }
+            return tr;
+        }
+
+        /** Ends a run: its distances along added; kept if it's long enough. Returns 0 (the next run's count). */
+        private static int flush(List<float[]> runs, float[] buf, int cnt) {
+            if (cnt < 2) return 0;
+            float[] q = java.util.Arrays.copyOf(buf, 5 * cnt);
+            float acc = 0;
+            q[4] = 0;
+            for (int i = 1; i < cnt; i++) {
+                acc += (float) Math.hypot(q[5 * i + 2] - q[5 * i - 3], q[5 * i + 3] - q[5 * i - 2]);
+                q[5 * i + 4] = acc;
+            }
+            if (acc > 5f) runs.add(q);
+            return 0;
+        }
+    }
+
+    /** The cars at {@code t} seconds (the city's {@code traffic}, or nothing). */
+    static void traffic(Canvas c, Traffic tr, float t, Paint p, float px) {
+        if (tr == null || tr.lights < 0.05f) return;
+        p.setShader(null);
+        for (int r = 0; r < tr.runs.length; r++) {
+            float[] q = tr.runs[r];
+            float L = tr.len[r];
+            int np = q.length / 5;
+            for (int j = 0; j < tr.start[r].length; j++) {
+                float at = (tr.start[r][j] + t * tr.speed[r][j]) % L;
+                int lo = 0, hi = np - 1;
+                while (hi - lo > 1) {
+                    int mid = (lo + hi) >>> 1;
+                    if (q[5 * mid + 4] <= at) lo = mid; else hi = mid;
+                }
+                float s0 = q[5 * lo + 4], s1 = q[5 * hi + 4], u = s1 > s0 ? (at - s0) / (s1 - s0) : 0f;
+                float x = q[5 * lo] + (q[5 * hi] - q[5 * lo]) * u, y = q[5 * lo + 1] + (q[5 * hi + 1] - q[5 * lo + 1]) * u;
+                int mx = (int) (x * 0.5f), my = (int) (y * 0.5f);
+                if (mx < 0 || my < 0 || mx >= tr.mw || my >= tr.mh || tr.mask[my * tr.mw + mx] == 0) continue;
+                float z = q[5 * lo + 3] + (q[5 * hi + 3] - q[5 * lo + 3]) * u;
+                int col = q[5 * hi + 3] < q[5 * lo + 3] ? HEAD : TAIL; // coming nearer: its headlights
+                float rad = Math.max(0.55f, Math.min(1.2f * px, 0.75f * tr.fk / z));
+                float a = Math.min(1f, tr.lights * (0.65f + 0.45f * Math.min(1f, 500f / z)));
+                // a short streak of light along its way, as a car's lights read at night
+                float sx = q[5 * hi] - q[5 * lo], sy = q[5 * hi + 1] - q[5 * lo + 1], sl = (float) Math.hypot(sx, sy);
+                float trail = Math.max(rad, Math.min(5f * px, 7f * tr.fk / z)); // about 7 m
+                float ex = sl > 0.01f ? x - sx / sl * trail : x, ey = sl > 0.01f ? y - sy / sl * trail : y;
+                if (rad > 0.7f) {
+                    p.setColor(Scene.alpha(col, 0.2f * a));
+                    c.drawCircle(x, y, rad * 2.8f, p);
+                }
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeCap(Paint.Cap.ROUND);
+                p.setStrokeWidth(rad * 1.5f);
+                p.setColor(Scene.alpha(col, 0.55f * a));
+                c.drawLine(ex, ey, x, y, p);
+                p.setStyle(Paint.Style.FILL);
+                p.setColor(Scene.alpha(Scene.mix(col, 0xFFFFFFFF, 0.35f), a));
+                c.drawCircle(x, y, rad, p);
+            }
+        }
     }
 }

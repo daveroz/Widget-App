@@ -40,7 +40,18 @@ FOOT = 0.80  # where the main landmark's foot stands (a lower camera: more faces
 TOP = 0.30  # where a tall landmark's top reaches
 FAR = 4500.0  # metres: nothing further except the hills
 FACE_MIN_PX2 = 0.2
-HMIN = 75.0  # the camera is never lower than this (metres over the landmark's ground)
+HMIN = 50.0  # the camera is never lower than this (metres over the landmark's ground)
+CLOSER = 0.85  # every camera a little nearer its landmark than the composition rule puts it
+# rule 18 (2.32): one rule for every camera. Its distance from the landmark's height, D_BASE at 60 m and growing slowly
+# (340 m for 60 m, 570 m for 330 m, 750 m for 830 m), so the city round it is at much the same scale everywhere; the
+# landmark's top always at least TOP_MARGIN below the top edge; a tall one that doesn't fit first has its foot lower
+# (to FOOT_LOW), then a wider lens (to FN_WIDE, a 60 degree view up and down, as a photographer shoots a skyscraper),
+# and only then the camera steps back
+FN0 = FN
+D_BASE, D_EXP = 340.0, 0.3
+TOP_MARGIN = 0.10
+FOOT_LOW = 0.88
+FN_WIDE = 0.5 / math.tan(math.radians(30))
 OCC_MIN_PX = 2
 
 KINDS = {'wall': 0, 'roof': 1, 'water': 2, 'park': 3, 'road': 4, 'lm': 5, 'lm_glass': 6, 'lm_light': 7, 'land': 8, 'lm_roof': 9}
@@ -271,6 +282,8 @@ def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None):
 
 
 def bake(key, cfg):
+    global FN
+    FN = FN0  # the standard lens until this city's is chosen
     T = TIERS[cfg.get('tier', 1)]
     main = cfg.get('main')
     if not main and cfg.get('tier', 1) == 1 and 'lat' in cfg:
@@ -288,15 +301,23 @@ def bake(key, cfg):
         allv = np.vstack([x[0] for x in m])
         hF = float(allv[:, 1].max())
         wF = float(max(np.ptp(allv[:, 0]), np.ptp(allv[:, 2])))
-    ta, tf = (HZ - TOP) / FN, (cfg.get('foot', FOOT) - HZ) / FN
-    d = hF / (ta + tf)
-    d = max(d, wF * FN / 0.55, cfg.get('min_dist', 260))
+    d = D_BASE * (max(hF, 30.0) / 60.0) ** D_EXP  # rule 18
+    d = max(d, wF * FN0 / 0.62, cfg.get('min_dist', 0))  # a wide one fits across a square cell
     d *= cfg.get('zoom', 1.0)
-    hc = d * tf
-    if hc < cfg.get('hmin', HMIN):  # rule 9: never lower than HMIN (a short landmark: look down at it a little more, from higher up)
-        tf = (max(0.86, cfg.get('foot', FOOT)) - HZ) / FN
-        hc = cfg.get('hmin', HMIN)
-        d = max(d, hc / tf)
+    foot, fn = cfg.get('foot', FOOT), FN0
+    if foot - hF * fn / d < TOP_MARGIN:  # its top must keep clear of the top edge: first its foot lower,
+        foot = max(foot, min(FOOT_LOW, TOP_MARGIN + hF * fn / d))
+    if foot - hF * fn / d < TOP_MARGIN:  # then a wider lens,
+        fn = max(FN_WIDE, (foot - TOP_MARGIN) * d / hF)
+    if foot - hF * fn / d < TOP_MARGIN:  # and only then a step back
+        d = hF * fn / (foot - TOP_MARGIN)
+    hc = d * (foot - HZ) / fn
+    hmin = cfg.get('hmin', HMIN)
+    if hc < hmin:  # rule 9: never lower than HMIN: the foot a little lower, else a step back
+        foot = min(FOOT_LOW, HZ + hmin * fn / d)
+        d = max(d, hmin * fn / (foot - HZ))
+        hc = hmin
+    FN = fn  # this city's lens, for everything below (and the scene file)
     if 'az' not in cfg:
         cfg = dict(cfg, az=choose_az(f, inv, d, hc, T, hF, lon0, lat0))
     az = math.radians(cfg['az'])
@@ -351,6 +372,16 @@ def bake(key, cfg):
         if not mm: continue
         top = float(max(v[:, 1].max() for v, _, _, _ in mm))
         if top / max(along, 1) * cam.f > max(1.15 * main_px, 0.62 * REF_H) and along < d: continue
+        # rule 12 for landmarks too (2.32): one between the camera and the hero, nearer than it, that would cover its
+        # foot goes, so the hero is seen whole
+        if main and along < d - (wF * 0.65 + 10) * 0.5:
+            across = (x - cam.c[0]) * cam.right[0] + (z - cam.c[2]) * cam.right[2]
+            allv2 = np.vstack([v for v, _, _, _ in mm])
+            half_lm = 0.5 * float(max(np.ptp(allv2[:, 0]), np.ptp(allv2[:, 2])))
+            lane = 12 + (wF * 0.65 + 10 - 12) * along / d
+            foot_y0 = HZ * REF_H + cam.c[1] / d * cam.f
+            if abs(across) < lane + half_lm and HZ * REF_H - (top - cam.c[1]) / max(along, 1) * cam.f < foot_y0 - 2:
+                continue
         keep.append(pid)
     lms = keep
     stats['landmarks'] = lms
@@ -481,6 +512,7 @@ def bake(key, cfg):
             ground.append((KINDS[kind], p))
     t, _ = overture.read('transportation/segment', box, ['subtype', 'class', 'geometry'])
     lamps = []
+    centre = []  # the main roads' centre lines (their width), for the cars at night (2.32)
     if t is not None:
         widths = {'motorway': 22, 'trunk': 18, 'primary': 14, 'secondary': 11, 'tertiary': 9}
         lines = []
@@ -488,6 +520,7 @@ def bake(key, cfg):
             if r['subtype'] != 'road' or r['class'] not in T['roads']: continue
             g = geom_local(W.loads(r['geometry']), f)
             lines.append(g.buffer(widths[r['class']] / 2, cap_style=2).intersection(view))
+            centre.append((widths[r['class']], g))
             for t_ in np.arange(0, g.length, T['lamp']):
                 p = g.interpolate(t_)
                 ok, along = in_view(p.x, p.y)
@@ -594,12 +627,35 @@ def bake(key, cfg):
     stats['blocks_kept'] = sum(1 for p in proj if p[1] == -1)
     stats['ground_polys'] = len(gproj)
 
+    # the cars' roads (2.32): each main road's centre line in view, 20 m to 2.5 km off, simplified to half a pixel
+    traffic = []
+    for wdt, g in centre:
+        for ln in (g.geoms if hasattr(g, 'geoms') else [g]):
+            if ln.geom_type != 'LineString' or ln.length < 5: continue
+            ln = shapely.segmentize(ln, 25.0)
+            c2 = np.array(ln.coords)
+            sp, zz = cam.project(np.c_[c2[:, 0], np.zeros(len(c2)), c2[:, 1]])
+            sp = sp + np.array([W2 / 2, 0])
+            ok = (zz > 20) & (zz < 2500) & (sp[:, 0] > -30) & (sp[:, 0] < W2 + 30)
+            run = []
+            for v, o in zip(sp, ok):
+                if o: run.append(v); continue
+                if len(run) >= 2: traffic.append((wdt, run))
+                run = []
+            if len(run) >= 2: traffic.append((wdt, run))
+    t2 = []
+    for wdt, run in traffic:
+        ls = shapely.LineString(run).simplify(0.5)
+        if ls.length >= 3: t2.append((wdt, np.array(ls.coords)))
+    traffic = t2
+    stats['traffic_lines'] = len(traffic)
     sil, base = terrain_silhouette(lon0, lat0, cam, inv, look)
     scene = {'city': key, 'w': W2, 'h': REF_H, 'faces': proj, 'ground': gproj, 'hills': sil, 'lamps': lp, 'lamp_dist': 'euclid',
-             'cam': {'hc': cam.c[1], 'dist': d, 'look': look}}
+             'cam': {'hc': cam.c[1], 'dist': d, 'look': look, 'fn': FN}, 'traffic': traffic}
     stats['lamps'] = len(lp)
     stats['bytes'] = len(pack3(scene))
-    stats['cam'] = {'height_m': round(cam.c[1]), 'distance_m': round(d), 'look': look}
+    stats['cam'] = {'height_m': round(cam.c[1]), 'distance_m': round(d), 'look': look,
+                    'view_deg': round(2 * math.degrees(math.atan(0.5 / FN)), 1)}
     return scene, stats
 
 
@@ -778,9 +834,9 @@ def pack3(scene):
     import palette as PAL
     b = io.BytesIO()
     b.write(b'WSC3')
-    b.write(bytes([3, int(scene.get('tier', 1))]))
-    b.write(struct.pack('<HHHH', int(round(scene['w'])), int(scene['h']), int(scene['cam']['look']) % 360,
-                        int(min(65535, round(scene['cam']['hc'] * 4)))))
+    b.write(bytes([4, int(scene.get('tier', 1))]))
+    b.write(struct.pack('<HHHHH', int(round(scene['w'])), int(scene['h']), int(scene['cam']['look']) % 360,
+                        int(min(65535, round(scene['cam']['hc'] * 4))), int(round(scene['cam'].get('fn', FN0) * 10000))))
     last = [0, 0]
 
     def pts(s, q):
@@ -810,5 +866,10 @@ def pack3(scene):
         b.write(bytes([1 + kind, 255 if faz < 0 else int(faz / 360 * 254) % 255, db]))
         L, C, h = PAL.lch(col[:3]) if col is not None else (0, 0, 0)
         b.write(bytes([int(h / 360 * 255) % 256, min(255, int(C * 800)), 1 if (col is not None and len(col) == 4) else 0]))
+        pts(s, 2)
+    # (format 4, 2.32) the cars' roads: count, then each: its width in metres and its centre line's points
+    _uvar(b, len(scene.get('traffic', [])))
+    for wdt, s in scene.get('traffic', []):
+        b.write(bytes([min(255, int(wdt))]))
         pts(s, 2)
     return zlib.compress(b.getvalue(), 9)
