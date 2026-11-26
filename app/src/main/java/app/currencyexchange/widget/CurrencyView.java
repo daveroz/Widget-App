@@ -2,6 +2,7 @@ package app.currencyexchange.widget;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BlurMaskFilter;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
@@ -89,6 +90,7 @@ final class CurrencyView {
         Bitmap marketLbl = marketLabel(reg, Theme.MUTED); // labels in the app's neutral grey (2.23)
         Bitmap toFlag = flagOrLabel(ctx, Util.countryOfCurrency(to), to);
         Bitmap arrow = arrow(scene);
+        JSONObject hist = Store.hist(ctx, to); // each day's market rates, for each row's mood (2.33)
         // their one card (its 4 dp paddings, the rows and the lines between them), with its edge
         rv.setImageViewBitmap(R.id.rates_bg, Stage.panel(scene, rowW, 8 + ROW_DP * k + (k - 1), 1.5f, Stage.round(28), null, true));
         for (int i = 0; i < k; i++) {
@@ -102,6 +104,8 @@ final class CurrencyView {
             rv.setImageViewBitmap(id(ctx, "arrow_" + i), arrow);
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), marketLbl);
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), tight(reg, HEADER_SP, Util.fmt0(market), white));
+            int mv = id(ctx, "mood_" + i);
+            if (mv != 0) rv.setImageViewBitmap(mv, mood(ctx, mood(hist, from, market) >= 0));
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
             double visa = Util.alignToMarket(Store.visa(ctx, from, to), market);
             int vv = id(ctx, "visa_val_" + i);
@@ -115,6 +119,60 @@ final class CurrencyView {
             }
         }
         return rv;
+    }
+
+    // ------------------------------------------------------------------ the market's mood (2.33)
+
+    /**
+     * How the market rate now compares with the last day before today in the history: 1 up, -1 down, 0 the same (as
+     * shown, to the whole unit, or within a hundred-thousandth) or unknown (no rate, or no earlier day kept yet).
+     */
+    static int mood(JSONObject hist, String from, double live) {
+        if (!(live > 0) || hist == null) return 0;
+        String f = from.trim().toLowerCase(Locale.ROOT), today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
+        String best = null;
+        double prev = 0;
+        for (java.util.Iterator<String> it = hist.keys(); it.hasNext(); ) {
+            String day = it.next();
+            if (day.compareTo(today) >= 0 || (best != null && day.compareTo(best) <= 0)) continue;
+            JSONObject o = hist.optJSONObject(day);
+            double v = o == null ? 0 : o.optDouble(f, 0);
+            if (v > 0) { best = day; prev = v; }
+        }
+        if (best == null) return 0;
+        if ((live >= 100 && Math.round(live) == Math.round(prev)) || Math.abs(live - prev) <= prev * 1e-5) return 0;
+        return live > prev ? 1 : -1;
+    }
+
+    /**
+     * The mood as a picture: laughing and crowned with two sparkles (up, or the same), or sad in a cracked ring (down),
+     * in polished silver with a soft glow round it, as the drawings (res/drawable/mood_up and mood_down, art/mood).
+     */
+    static Bitmap mood(Context ctx, boolean up) {
+        String key = "mood|" + up;
+        Bitmap hit = PICS.get(key);
+        if (hit != null) return hit;
+        int s = 96, pad = 8; // the icon 80 px in a 96 px picture, room for its glow
+        Bitmap icon = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
+        android.graphics.drawable.Drawable d = ctx.getDrawable(up ? R.drawable.mood_up : R.drawable.mood_down);
+        if (d != null) {
+            d.setBounds(pad, pad, s - pad, s - pad);
+            d.draw(new Canvas(icon));
+        }
+        Bitmap out = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(out);
+        Paint blur = new Paint(Paint.ANTI_ALIAS_FLAG);
+        blur.setMaskFilter(new BlurMaskFilter(3.2f, BlurMaskFilter.Blur.NORMAL));
+        int[] off = new int[2];
+        Bitmap halo = icon.extractAlpha(blur, off);
+        Paint g = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        g.setColor(up ? 0x73FFFFFF : 0x61DCE6FF); // the glow: white, a little cooler and fainter when down
+        c.drawBitmap(halo, off[0], off[1], g);
+        c.drawBitmap(icon, 0, 0, null);
+        halo.recycle();
+        icon.recycle();
+        PICS.put(key, out);
+        return out;
     }
 
     // ------------------------------------------------------------------ bitmaps

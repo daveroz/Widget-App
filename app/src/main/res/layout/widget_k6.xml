@@ -102,15 +102,17 @@
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the short upright line between the rates and their labels -->
+                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
+                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
+                         sad in a cracked ring when it's down -->
                     <ImageView
-                        android:layout_width="1dp"
-                        android:layout_height="27dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="12dp"
+                        android:id="@+id/mood_0"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="1dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/cur_div" />
+                        android:scaleType="fitCenter" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -221,15 +223,17 @@
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the short upright line between the rates and their labels -->
+                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
+                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
+                         sad in a cracked ring when it's down -->
                     <ImageView
-                        android:layout_width="1dp"
-                        android:layout_height="27dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="12dp"
+                        android:id="@+id/mood_1"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="1dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/cur_div" />
+                        android:scaleType="fitCenter" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -340,15 +344,17 @@
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the short upright line between the rates and their labels -->
+                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
+                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
+                         sad in a cracked ring when it's down -->
                     <ImageView
-                        android:layout_width="1dp"
-                        android:layout_height="27dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="12dp"
+                        android:id="@+id/mood_2"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="1dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/cur_div" />
+                        android:scaleType="fitCenter" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -459,15 +465,17 @@
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the short upright line between the rates and their labels -->
+                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
+                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
+                         sad in a cracked ring when it's down -->
                     <ImageView
-                        android:layout_width="1dp"
-                        android:layout_height="27dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="12dp"
+                        android:id="@+id/mood_3"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="1dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/cur_div" />
+                        android:scaleType="fitCenter" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -578,15 +586,17 @@
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the short upright line between the rates and their labels -->
+                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
+                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
+                         sad in a cracked ring when it's down -->
                     <ImageView
-                        android:layout_width="1dp"
-                        android:layout_height="27dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="12dp"
+                        android:id="@+id/mood_4"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="1dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/cur_div" />
+                        android:scaleType="fitCenter" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -697,15 +707,17 @@
                             android:layout_marginBottom="0.2dp"
                             android:scaleType="fitEnd" />
                     </LinearLayout>
-                    <!-- the short upright line between the rates and their labels -->
+                    <!-- the market's mood (2.33), between the rates and their labels where the short upright line
+                         was (the same 29 dp): laughing and crowned when the rate is up on the day before or the same,
+                         sad in a cracked ring when it's down -->
                     <ImageView
-                        android:layout_width="1dp"
-                        android:layout_height="27dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="12dp"
+                        android:id="@+id/mood_5"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="1dp"
                         android:importantForAccessibility="no"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/cur_div" />
+                        android:scaleType="fitCenter" />
                     <!-- "Market" at the size of the widget's other labels (2.09), the Visa badge centred under it -->
                     <LinearLayout
                         android:layout_width="wrap_content"
