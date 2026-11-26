@@ -96,6 +96,12 @@ final class SkyCell {
         // scene (its streets as its continent's, 2.27)
         CityScene.Built real = WorldScene.build(city, cc, w, h, px, light, seed);
         built = real != null ? real : CityScene.build(city, lat, zone, w, h, px, light, seed);
+        // the final grade (2.34, after the user's Lightroom edit): richer colour everywhere, the day's shadows lifted
+        float lift = Grade.day(el);
+        sky.back = Grade.apply(sky.back, lift);
+        sky.clouds = Grade.apply(sky.clouds, lift);
+        sky.over = Grade.apply(sky.over, lift);
+        built.still = Grade.apply(built.still, lift);
         // the clouds cross their strip (twice the cell) in about eight minutes in a breeze, faster in a wind
         drift = 2f * w / 480f * (0.6f + Math.min(40, wind < 0 ? 8 : wind) / 25f);
         out = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
@@ -138,10 +144,6 @@ final class SkyCell {
         CityScene.sparkle(c, built, light, t, minute, px);
         CityScene.beacons(c, built, light, t, px);
         CityScene.trees(c, built, light, t, wind, px);
-        if (day.getMonthValue() == 12) { // Christmas lights across the street all December (2.27)
-            float night = Math.max(0f, Math.min(1f, (2f - sky.e) / 8f));
-            Festive.christmas(c, out.getWidth(), out.getHeight(), px, t, seed, night, dot);
-        }
         Sky.weather(c, sky, t, dot);
         if (sky.flare != null) c.drawBitmap(sky.flare, 0, 0, paint); // the lens's flare, faint (2.31)
         c.drawBitmap(sky.front, 0, 0, paint);
