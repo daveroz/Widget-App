@@ -144,7 +144,9 @@ public class ConverterActivity extends Activity {
         amountBox.addView(inCode);
         amount = new Theme.FringeEdit(this);
         amount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.")); // "," is the thousands' (2.26)
+        // "," must pass: the key listener also filters the text, and the thousands' commas are put in by the watcher
+        // below (2.26 left it out, so they were stripped and the cursor was set past the end: the converter closed)
+        amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
         amount.setImeOptions(EditorInfo.IME_ACTION_DONE);
         amount.setSingleLine(true);
         amount.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
@@ -160,12 +162,16 @@ public class ConverterActivity extends Activity {
         amount.addTextChangedListener(new TextWatcher() {
             /** Where a thousands' comma was just deleted (-1: none): the digit before it goes instead. */
             private int lostComma = -1;
+            /** Where a comma was just typed (-1: none): a keyboard's decimal comma, read as the point. */
+            private int typedComma = -1;
 
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                 lostComma = !formatting && count == 1 && after == 0 && s.charAt(start) == ',' ? start : -1;
             }
 
-            @Override public void onTextChanged(CharSequence s, int a, int c, int d) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                typedComma = !formatting && before == 0 && count == 1 && s.charAt(start) == ',' ? start : -1;
+            }
 
             @Override public void afterTextChanged(Editable s) {
                 if (formatting) return;
@@ -176,6 +182,13 @@ public class ConverterActivity extends Activity {
                     cursor = lostComma - 1;
                 }
                 lostComma = -1;
+                if (typedComma >= 0 && typedComma < raw.length() && raw.charAt(typedComma) == ',') {
+                    // a typed comma is the decimal point (as on many keyboards), unless there's one already
+                    boolean point = raw.indexOf('.') >= 0;
+                    raw = raw.substring(0, typedComma) + (point ? "" : ".") + raw.substring(typedComma + 1);
+                    if (point && cursor > typedComma) cursor--;
+                }
+                typedComma = -1;
                 int kept = 0; // the digits and point before the cursor, which stay before it
                 for (int i = 0; i < cursor; i++) if (raw.charAt(i) != ',') kept++;
                 String grouped = group(raw);
@@ -185,7 +198,7 @@ public class ConverterActivity extends Activity {
                     formatting = false;
                     int at = 0;
                     for (int seen = 0; at < grouped.length() && seen < kept; at++) if (grouped.charAt(at) != ',') seen++;
-                    amount.setSelection(at);
+                    amount.setSelection(Math.max(0, Math.min(at, s.length()))); // never past the end of what's there
                 }
                 refreshValues();
             }
