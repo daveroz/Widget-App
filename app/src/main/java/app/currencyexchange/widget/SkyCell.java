@@ -129,8 +129,6 @@ final class SkyCell {
         Sky.stars(c, sky, t, dot);
         CityScene.plane(c, sky, light, t, seed, px);
         Sky.clouds(c, sky, t, drift, paint);
-        CityScene.birds(c, sky, light, t, seed, px); // a flock now and then, a helicopter more rarely (2.27)
-        CityScene.helicopter(c, sky, light, t, seed, px);
         // behind the city (2.27): fireworks after dark on its days, lightning in a thunderstorm
         java.time.LocalDate day = Instant.ofEpochMilli(ms).atZone(zone).toLocalDate();
         float dark = Math.max(0f, Math.min(1f, (-2f - sky.e) / 6f));
@@ -144,6 +142,9 @@ final class SkyCell {
         CityScene.sparkle(c, built, light, t, minute, px);
         CityScene.beacons(c, built, light, t, px);
         CityScene.trees(c, built, light, t, wind, px);
+        // a flock now and then, a helicopter more rarely (2.27), since 2.36 in front of the city, flying over it
+        CityScene.birds(c, sky, light, t, seed, px);
+        CityScene.helicopter(c, sky, light, t, seed, px);
         Sky.weather(c, sky, t, dot);
         if (sky.flare != null) c.drawBitmap(sky.flare, 0, 0, paint); // the lens's flare, faint (2.31)
         c.drawBitmap(sky.front, 0, 0, paint);
