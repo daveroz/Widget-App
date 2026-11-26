@@ -189,6 +189,7 @@ final class Sky {
 
         // the moon, as big as the sun, where it really is: lit as much as it is, its bright side towards the sun, the
         // dark part faintly there, a few darker seas on it; pale by day, bright at night, dimmed by clouds
+        float moonX = 0, moonY = 0, moonR = 0; // where it is, for the stars to keep behind it (2.27)
         if (moon != null && cover < 0.9f) {
             float altD = (float) Math.toDegrees(moon[0]), litF = (float) moon[2];
             float dark = clamp((1f - e) / 7f);
@@ -196,6 +197,9 @@ final class Sky {
             if (litF > 0.03f && vis > 0.02f) {
                 float mx = w * (0.5f + 0.42f * (float) Math.sin(moon[1])), my = h * (0.8f - 0.72f * clamp(altD / 60f));
                 float mr = 0.11f * w;
+                moonX = mx;
+                moonY = my;
+                moonR = mr;
                 int pale = 0xFFF1EEE2;
                 if (dark > 0.3f) {
                     p.setShader(new RadialGradient(mx, my, mr * 3.2f, Scene.alpha(0xFFDCE6FF, 0.22f * vis * litF), 0x00DCE6FF,
@@ -248,8 +252,15 @@ final class Sky {
         for (int i = 0; i < n; i++) {
             L.sx[i] = sr.nextFloat() * w;
             L.sy[i] = sr.nextFloat() * h * 0.7f;
+            // stars are behind the moon (2.27): none on its disc or just round it, where its light hides them
+            for (int tries = 0; moonR > 0 && tries < 8
+                    && Math.hypot(L.sx[i] - moonX, L.sy[i] - moonY) < moonR * 1.35f; tries++) {
+                L.sx[i] = sr.nextFloat() * w;
+                L.sy[i] = sr.nextFloat() * h * 0.7f;
+            }
             L.ss[i] = (0.35f + sr.nextFloat() * 0.6f) * px * 1.15f;
             L.sa[i] = (0.3f + sr.nextFloat() * 0.7f) * stars;
+            if (moonR > 0 && Math.hypot(L.sx[i] - moonX, L.sy[i] - moonY) < moonR * 1.35f) L.sa[i] = 0; // never over it
             L.sb[i] = sr.nextFloat() < 0.08f;
             L.sf[i] = 0.25f + sr.nextFloat() * 0.9f;
             L.sp[i] = sr.nextFloat() * 6.2832f;

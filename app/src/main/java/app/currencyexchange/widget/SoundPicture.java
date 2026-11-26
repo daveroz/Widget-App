@@ -30,6 +30,13 @@ final class SoundPicture {
     /** What's playing, written with its glow, drawn once and reused every frame until it changes. */
     private Bitmap words;
     private String wordsKey = "";
+    /** A title too long for its room (2.27): the strip it scrolls along, and since when it shows. */
+    private Bitmap strip;
+    private String stripKey = "";
+    private final float[] stripAt = new float[3];
+    private long stripSince;
+    private float titleY;
+    private final android.graphics.Paint fade = new android.graphics.Paint();
 
     private NowPlaying.Track track;
     private Scene scene = Scene.idle();
@@ -129,6 +136,7 @@ final class SoundPicture {
 
         record.draw(c, sleeve, dp, scene);
         c.drawBitmap(words(ctx, w, h, pad, wall.top - pad, textRight - pad, dp), 0, 0, null);
+        if (strip != null) marquee(c, pad, textRight - pad, dp);
         c.restore();
         c.drawBitmap(Stage.edge(w, h, corners, dp), 0, 0, null); // its edge, drawn once per light and size
         return out;
@@ -144,7 +152,48 @@ final class SoundPicture {
             wordsKey = key;
             words = Bitmap.createBitmap(lw, lh, Bitmap.Config.ARGB_8888);
             Words.draw(ctx, new Canvas(words), text, say, scene, pad, pad, band, width, dp);
+            titleY = Words.titleBaseline(ctx, text, pad, dp);
+            // a title too long for its room scrolls across, as a media player's (2.27)
+            if (Words.titleWidth(ctx, text, say[2], dp) > width) {
+                String sk = say[2] + '|' + dp;
+                if (strip == null || !sk.equals(stripKey)) {
+                    strip = Words.strip(ctx, text, say[2], 40 * dp, dp, stripAt);
+                    stripKey = sk;
+                    stripSince = android.os.SystemClock.uptimeMillis();
+                }
+            } else {
+                strip = null;
+                stripKey = "";
+            }
         }
         return words;
+    }
+
+    /**
+     * The scrolling title (2.27): it waits a moment at the start, then slides left at an easy pace until its second copy
+     * is where the first began, and starts again; its right edge fades out (and its left while it moves) so the words
+     * come and go softly within their room, {@code width} pixels from {@code x}.
+     */
+    private void marquee(Canvas c, float x, float width, float dp) {
+        float hold = 2.2f, speed = 30 * dp, run = stripAt[2];
+        float cycle = hold + run / speed;
+        float t = ((android.os.SystemClock.uptimeMillis() - stripSince) / 1000f) % cycle;
+        float off = t < hold ? 0 : Math.min(run, (t - hold) * speed);
+        float top = titleY - stripAt[0], bottom = top + strip.getHeight();
+        int layer = c.saveLayer(x - 4 * dp, top, x + width, bottom, null);
+        c.clipRect(x - 4 * dp, top, x + width, bottom);
+        c.drawBitmap(strip, x - stripAt[1] - off, top, null);
+        float edge = 18 * dp;
+        fade.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT));
+        fade.setShader(new android.graphics.LinearGradient(x + width - edge, 0, x + width, 0, 0x00000000, 0xFF000000,
+                android.graphics.Shader.TileMode.CLAMP));
+        c.drawRect(x + width - edge, top, x + width, bottom, fade);
+        if (off > 0) {
+            fade.setShader(new android.graphics.LinearGradient(x - 4 * dp, 0, x + edge, 0, 0xFF000000, 0x00000000,
+                    android.graphics.Shader.TileMode.CLAMP));
+            c.drawRect(x - 4 * dp, top, x + edge, bottom, fade);
+        }
+        fade.setShader(null);
+        c.restoreToCount(layer);
     }
 }
