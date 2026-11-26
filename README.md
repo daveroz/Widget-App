@@ -53,7 +53,8 @@ Four tabs (five in 2.20; Home went in 2.22), after the segmented control, tab ba
   and city as written ("Wednesday", "Mexico City"), on the widget and on the clock tiles (2.24).
 - **The converter** (tap a currency row; since 2.23 in the app's design): the crystal globe and CONVERTER with the
   rate under it, the currencies as a segmented control with their flags, the amount in a well lit while typing (since
-  2.26 with a comma between each group of three digits as you type: "1,250,000"), the
+  2.26 with a comma between each group of three digits as you type: "1,250,000"; since 2.27 without closing the
+  converter as the first comma goes in, and a typed comma counts as the decimal point), the
   swap as a glass icon disc, and MARKET and Visa as lines of a list card, their figures in polished silver.
 - **Choices are segmented controls** (`Segmented`): a recessed track, the options side by side with their icons, the
   chosen one white on a raised pill that slides across to whatever you pick.
