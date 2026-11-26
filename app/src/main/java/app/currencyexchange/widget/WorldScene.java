@@ -477,6 +477,31 @@ final class WorldScene {
 
     private static float clamp(float v) { return Math.max(0f, Math.min(1f, v)); }
 
+    private static float smoothF(float a, float b, float x) {
+        float t = clamp((x - a) / (b - a));
+        return t * t * (3 - 2 * t);
+    }
+
+    /** The buildings' materials by day (2.37): their colour, its lightness ignored (each wall keeps its own). */
+    private static final int MAT_CONCRETE = 0xFFC6C9CE, MAT_STONE = 0xFFE2DED4, MAT_SAND = 0xFFD8C4A2,
+            MAT_GLASS = 0xFF8EA8C8, MAT_BRICK = 0xFFB88A74, MAT_DARK_GLASS = 0xFF6F86A6;
+
+    /**
+     * {@code col} taking the hue and colour of the material {@code mat} at its own lightness, {@code k} of the way,
+     * then {@code jit} lighter or darker (a share).
+     */
+    private static int material(int col, int mat, float k, float jit) {
+        float r = (col >> 16) & 255, g = (col >> 8) & 255, b = col & 255;
+        float y = 0.299f * r + 0.587f * g + 0.114f * b;
+        float mr = (mat >> 16) & 255, mg = (mat >> 8) & 255, mb = mat & 255;
+        float my = Math.max(1f, 0.299f * mr + 0.587f * mg + 0.114f * mb), sc = y / my;
+        r += (mr * sc - r) * k;
+        g += (mg * sc - g) * k;
+        b += (mb * sc - b) * k;
+        float f = 1f + jit;
+        return 0xFF000000 | (clamp255(r * f) << 16) | (clamp255(g * f) << 8) | clamp255(b * f);
+    }
+
     /**
      * A face of ironwork (2.32; the Eiffel Tower's lattice, which its model gives as a see-through texture): a faint fill
      * for its mass, a cross-hatch of bars about every 8 m (one screen grid, so neighbouring faces line up) and rails
@@ -586,10 +611,22 @@ final class WorldScene {
                 int ti = wi[b]; wi[b] = wi[b - 1]; wi[b - 1] = ti;
             }
         }
+        // by day each building its own material (2.37): concrete, pale stone, sandstone, glass, brick or dark glass, as
+        // its footprint picks it (the same every day), and a little lighter or darker, so the city isn't one grey
+        float dayF = smoothF(6f, 16f, l.e) * (l.snow ? 0.5f : 1f);
+        int mat = 0;
+        float jit = 0;
+        if (dayF > 0.01f) {
+            int hsh = (int) (s[0] * 73856093) ^ (int) (s[1] * 19349663) ^ n * 83492791;
+            int pick = Math.floorMod(hsh, 100);
+            mat = pick < 30 ? MAT_CONCRETE : pick < 50 ? MAT_STONE : pick < 65 ? MAT_SAND : pick < 85 ? MAT_GLASS : pick < 95 ? MAT_BRICK : MAT_DARK_GLASS;
+            jit = (Math.floorMod(hsh >> 8, 1000) / 1000f * 2f - 1f) * 0.07f * dayF;
+        }
         for (int a = 0; a < cnt; a++) {
             int i = wi[a], j = (i + 1) % n;
             double lit = Math.cos(Math.toRadians(wf[a] - sun));
             int base = lit > 0.1 ? litC : lit < -0.1 ? shadeC : l.near;
+            if (dayF > 0.01f) base = material(base, mat, 0.38f * dayF, jit);
             int col = Scene.mix(base, farHaze, fog);
             float ax = (s[2 * i] - x0) * k, ay = s[2 * i + 1] * k, bx = (s[2 * j] - x0) * k, by = s[2 * j + 1] * k;
             float atx = ax, aty = top[i] * k, btx = bx, bty = top[j] * k;
@@ -626,7 +663,7 @@ final class WorldScene {
             path.moveTo((s[0] - x0) * k, top[0] * k);
             for (int i = 1; i < n; i++) path.lineTo((s[2 * i] - x0) * k, top[i] * k);
             path.close();
-            p.setColor(Scene.mix(roofC, farHaze, fog));
+            p.setColor(Scene.mix(dayF > 0.01f ? material(roofC, mat, 0.3f * dayF, jit) : roofC, farHaze, fog));
             c.drawPath(path, p);
             if (glow != null) glow.drawPath(path, clear);
             if (mask != null) mask.drawPath(path, clear);
