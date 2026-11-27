@@ -1497,11 +1497,16 @@ final class WorldScene {
             b.speed = new float[b.runs.length][];
             b.model = new int[b.runs.length][];
             b.scale = new float[b.runs.length];
+            // (2.43: the river less crowded, after the user) a boat every 1.5 km a lane on a river, 700 m on a canal, and
+            // never more than MAX_BOATS in a scene
+            float total = 0;
+            for (int i = 0; i < b.runs.length; i++) total += runLength(b.runs[i]) / (d.boatKind[owner.get(i)] == 1 ? 700f : 1500f);
+            float thin = Math.min(1f, MAX_BOATS / Math.max(1e-3f, total));
             for (int i = 0; i < b.runs.length; i++) {
                 float L = runLength(b.runs[i]);
                 b.len[i] = L;
                 boolean canal = d.boatKind[owner.get(i)] == 1;
-                float want = L / (canal ? 220f : 420f); // a boat every 420 m a lane on a river, 220 m on a canal
+                float want = L / (canal ? 700f : 1500f) * thin;
                 int c = (int) want + (r.nextFloat() < want - (int) want ? 1 : 0);
                 b.start[i] = new float[c];
                 b.speed[i] = new float[c];
@@ -1579,6 +1584,9 @@ final class WorldScene {
         for (int i = 0; i < ms.length; i++) if ((ms[i].where & where) != 0 && pick-- == 0) return i;
         return -1;
     }
+
+    /** At most this many boats in a scene (2.43). */
+    private static final float MAX_BOATS = 6f;
 
     /** A boat on a canal is this much the size of one on a river (2.43: a 16 m push boat for a 25 m one). */
     private static final float CANAL_SCALE = 0.65f;

@@ -17,10 +17,10 @@ from PIL import Image, ImageDraw
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'app', 'src', 'main', 'assets', 'boats.bin')
 
 # name, kind, where (1 rivers, 2 canals, 3 both), length (m), at most this many faces. Since 2.43 only the two tow
-# boats, after the user: a river push boat's real size (25 m long; the app makes them 16 m on a canal), in the kit's own
+# boats, after the user (then only the first): a river push boat's real size (25 m long; the app makes them 16 m on a canal), in the kit's own
 # proportions (about 12 m across, its wheelhouse 13 m up)
 BOATS = [
-    ('boat-tow-a', 0, 3, 25, 180), ('boat-tow-b', 0, 3, 25, 180),
+    ('boat-tow-a', 0, 3, 25, 180),  # only the one with the pale wheelhouse roof over a dark hull (after the user)
 ]
 
 
