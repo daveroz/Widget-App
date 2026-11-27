@@ -965,6 +965,7 @@ final class WorldScene {
                 for (int t = 0; t < count; t++) {
                     float x = minx + r.nextFloat() * (maxx - minx), y = miny + r.nextFloat() * (maxy - miny);
                     if (y <= hzr + 1 || !inside(s, x, y)) continue;
+                    if (inWater(d, x, y)) continue; // a park running into a river: none in the water (2.43)
                     float z = d.hc * f / (y - hzr);
                     out.add(new float[]{z, 0, x, y, Math.max(0.5f, 9f / z * f)});
                 }
@@ -1030,8 +1031,13 @@ final class WorldScene {
         }
     }
 
+    /** Whether (x, y) is in the water or within a pixel of it (2.43: so no tree stands in a river, nor on its very edge). */
     private static boolean inWater(Data d, float x, float y) {
-        for (int i = 0; i < d.ground.length; i++) if (d.groundKind[i] == WATER && inside(d.ground[i], x, y)) return true;
+        for (int i = 0; i < d.ground.length; i++) {
+            if (d.groundKind[i] != WATER) continue;
+            float[] s = d.ground[i];
+            if (inside(s, x, y) || inside(s, x - 1f, y) || inside(s, x + 1f, y) || inside(s, x, y + 1f) || inside(s, x, y - 1f)) return true;
+        }
         return false;
     }
 
