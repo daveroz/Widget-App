@@ -593,7 +593,7 @@ final class WorldScene {
             maskBmp.getPixels(mpx, 0, mw, 0, 0, mw, mh);
             maskBmp.recycle();
             if (d.roads != null) built.traffic = Traffic.make(d, channel(mpx, 16), mw, mh, x0, k, f, lights, seed, left);
-            if (d.boats != null) built.boats = Boats.make(d, channel(mpx, 8), mw, mh, x0, k, f, lights, seed, left);
+            if (d.boats != null) built.boats = Boats.make(d, channel(mpx, 8), mw, mh, x0, k, f, l, farHaze, seed, left);
         }
     }
 
@@ -1263,6 +1263,12 @@ final class WorldScene {
         o[4] = sl > 0.01f ? sy / sl : 0f;
         o[5] = s1 > s0 ? sl / (s1 - s0) : 0f;
         o[6] = q[5 * hi + 3] < q[5 * lo + 3] ? 1f : 0f; // coming nearer
+        if (o.length >= 10) { // where it is across (metres) and its heading on the ground (2.43, for the boats)
+            o[7] = q[5 * lo + 2] + (q[5 * hi + 2] - q[5 * lo + 2]) * u;
+            float gx = q[5 * hi + 2] - q[5 * lo + 2], gz = q[5 * hi + 3] - q[5 * lo + 3], gl = (float) Math.hypot(gx, gz);
+            o[8] = gl > 1e-4f ? gx / gl : 0f;
+            o[9] = gl > 1e-4f ? gz / gl : 1f;
+        }
         return true;
     }
 
@@ -1335,9 +1341,11 @@ final class WorldScene {
     }
 
     /**
-     * The boats on the big rivers and canals (2.43): barges, tour boats and small motor boats on a river, tour boats
-     * with their glass roofs and small boats on a canal, each keeping to the right at a boat's pace with a pale wake
-     * behind it; at night dark with their cabins' lights. Only where the water shows (a bridge or a building hides them).
+     * The boats on the big rivers and canals (2.43): Kenney's Watercraft Kit (CC0, packed by tools/scenes/boats.py):
+     * freighters, tow boats, tour boats and houseboats, speed boats, a fishing boat and sailing boats on a river,
+     * houseboats and small boats on a canal; each drawn in 3D at its heading, lit by the scene's sun, keeping to the
+     * right at a boat's pace with a pale wake behind it; at night dark with their cabins' lights. A far boat (a few
+     * pixels) is drawn as a simple hull. Only where the water shows (a bridge or a building hides them).
      */
     static final class Boats {
         byte[] mask;
@@ -1345,132 +1353,193 @@ final class WorldScene {
         float[][] runs;
         float[] len;
         float[][] start, speed;
-        /** Each boat's type: 0 a barge, 1 a tour boat, 2 a small motor boat. */
-        int[][] type;
-        int[][] hull;
-        float lights, fk;
+        /** Each boat's model ({@link #models()}), or -1 for the simple hull (no models). */
+        int[][] model;
+        float lights, fk, w2, hzr, hc, f, x0, k, night, lx, ly, lz;
+        int haze;
 
-        static Boats make(Data d, byte[] mask, int mw, int mh, float x0, float k, float f, float lights, long seed, boolean left) {
+        static Boats make(Data d, byte[] mask, int mw, int mh, float x0, float k, float f, CityScene.Light l, int haze,
+                          long seed, boolean left) {
             Boats b = new Boats();
             b.mask = mask;
             b.mw = mw;
             b.mh = mh;
-            b.lights = lights;
+            b.lights = l.lights;
+            b.night = l.night;
+            b.haze = haze;
             b.fk = f * k;
+            b.w2 = d.w / 2f;
+            b.hzr = HZ * d.h;
+            b.hc = d.hc;
+            b.f = f;
+            b.x0 = x0;
+            b.k = k;
+            // the sun as the buildings have it (115 degrees round from the view), a little up
+            double rel = Math.toRadians(l.sunLeft ? -115 : 115);
+            float sx = (float) Math.sin(rel), sz = (float) Math.cos(rel), sy = 0.8f, sl = (float) Math.sqrt(sx * sx + sy * sy + sz * sz);
+            b.lx = sx / sl;
+            b.ly = sy / sl;
+            b.lz = sz / sl;
             float[] lane = new float[d.boats.length];
             for (int i = 0; i < lane.length; i++) lane[i] = d.boatKind[i] == 1 ? 2.5f : 9f;
             List<Integer> owner = new ArrayList<>();
             List<float[]> runs = runs(d, d.boats, lane, owner, x0, k, f, left);
+            Model[] ms = models();
             Random r = new Random(seed ^ 0xB0A7L);
             b.runs = runs.toArray(new float[0][]);
             b.len = new float[b.runs.length];
             b.start = new float[b.runs.length][];
             b.speed = new float[b.runs.length][];
-            b.type = new int[b.runs.length][];
-            b.hull = new int[b.runs.length][];
+            b.model = new int[b.runs.length][];
             for (int i = 0; i < b.runs.length; i++) {
                 float L = b.runs[i][b.runs[i].length - 1];
                 b.len[i] = L;
                 boolean canal = d.boatKind[owner.get(i)] == 1;
-                float gap = canal ? 170f : 260f;
-                float want = L / gap;
+                float want = L / (canal ? 170f : 260f);
                 int c = (int) want + (r.nextFloat() < want - (int) want ? 1 : 0);
                 b.start[i] = new float[c];
                 b.speed[i] = new float[c];
-                b.type[i] = new int[c];
-                b.hull[i] = new int[c];
+                b.model[i] = new int[c];
                 for (int j = 0; j < c; j++) {
                     b.start[i][j] = r.nextFloat() * L;
                     float u = r.nextFloat();
-                    int ty = canal ? (u < 0.6f ? 1 : 2) : (u < 0.25f ? 0 : u < 0.7f ? 1 : 2);
-                    b.type[i][j] = ty;
-                    b.speed[i][j] = (ty == 0 ? 2.5f : ty == 1 ? 3.2f : 5f) * (canal ? 0.6f : 1f) * (0.8f + 0.4f * r.nextFloat());
-                    b.hull[i][j] = ty == 0 ? 0xFF4A5378 : ty == 1 ? 0xFFF4F2EE : pick(BOAT_HULLS, BOAT_SHARE, r.nextFloat());
+                    // on a river a quarter freighters and tow boats, two fifths tour boats, the rest small; on a canal
+                    // houseboats and small boats
+                    int kind = canal ? (u < 0.55f ? 1 : 2) : (u < 0.25f ? 0 : u < 0.65f ? 1 : 2);
+                    b.model[i][j] = pickModel(ms, kind, canal ? 2 : 1, r.nextFloat());
+                    float pace = kind == 0 ? 2.5f : kind == 1 ? 3.2f : 5f; // metres a second
+                    b.speed[i][j] = pace * (canal ? 0.6f : 1f) * (0.8f + 0.4f * r.nextFloat());
                 }
             }
             return b;
         }
     }
 
-    private static final int[] BOAT_HULLS = {0xFFF4F2EE, 0xFF2F4A7A, 0xFFB8494F, 0xFF3E8C8A};
-    private static final Path BOAT_PATH = new Path();
-
-    /**
-     * A hull (or a deck) along its way: from {@code s0} to {@code s1} pixels along (ux, uy) from (x, y), its half
-     * width (nx, ny), narrowing to a point over the last {@code bow} pixels.
-     */
-    private static void hullPath(Path path, float x, float y, float ux, float uy, float nx, float ny, float s0, float s1, float bow) {
-        path.reset();
-        float sh = s1 - Math.max(0f, Math.min(bow, s1 - s0));
-        path.moveTo(x + ux * s0 + nx, y + uy * s0 + ny);
-        path.lineTo(x + ux * sh + nx, y + uy * sh + ny);
-        path.lineTo(x + ux * s1, y + uy * s1);
-        path.lineTo(x + ux * sh - nx, y + uy * sh - ny);
-        path.lineTo(x + ux * s0 - nx, y + uy * s0 - ny);
-        path.close();
+    /** A boat as tools/scenes/boats.py packs it: its length 1 along +Z (the bow), its waterline at 0. */
+    static final class Model {
+        int kind, where, length;
+        float[] v, n;
+        int[] f, col;
+        float beam;
     }
-    private static final float[] BOAT_SHARE = {0.5f, 0.2f, 0.15f, 0.15f};
+
+    private static Model[] models;
+
+    /** The boats' models (assets/boats.bin), read once; none if it can't be read. */
+    static synchronized Model[] models() {
+        if (models != null) return models;
+        List<Model> out = new ArrayList<>();
+        try (InputStream in = assets.open("boats.bin")) {
+            java.nio.ByteBuffer bb = java.nio.ByteBuffer.wrap(readAll(in)).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            if (bb.get() == 'B' && bb.get() == 'T' && bb.get() == 'S' && bb.get() == '1') {
+                int count = bb.get() & 0xFF;
+                for (int i = 0; i < count; i++) {
+                    Model m = new Model();
+                    m.kind = bb.get() & 0xFF;
+                    m.where = bb.get() & 0xFF;
+                    m.length = bb.get() & 0xFF;
+                    int nv = bb.getShort() & 0xFFFF, nf = bb.getShort() & 0xFFFF;
+                    m.v = new float[3 * nv];
+                    float minx = Float.MAX_VALUE, maxx = -Float.MAX_VALUE;
+                    for (int j = 0; j < 3 * nv; j++) m.v[j] = bb.getFloat();
+                    for (int j = 0; j < nv; j++) { minx = Math.min(minx, m.v[3 * j]); maxx = Math.max(maxx, m.v[3 * j]); }
+                    m.beam = maxx - minx;
+                    m.f = new int[3 * nf];
+                    for (int j = 0; j < 3 * nf; j++) m.f[j] = bb.getShort() & 0xFFFF;
+                    m.col = new int[nf];
+                    for (int j = 0; j < nf; j++) m.col[j] = 0xFF000000 | ((bb.get() & 0xFF) << 16) | ((bb.get() & 0xFF) << 8) | (bb.get() & 0xFF);
+                    m.n = new float[3 * nf];
+                    for (int j = 0; j < nf; j++) {
+                        int a0 = 3 * m.f[3 * j], a1 = 3 * m.f[3 * j + 1], a2 = 3 * m.f[3 * j + 2];
+                        float ux = m.v[a1] - m.v[a0], uy = m.v[a1 + 1] - m.v[a0 + 1], uz = m.v[a1 + 2] - m.v[a0 + 2];
+                        float vx = m.v[a2] - m.v[a0], vy = m.v[a2 + 1] - m.v[a0 + 1], vz = m.v[a2 + 2] - m.v[a0 + 2];
+                        float nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+                        float nl = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
+                        if (nl < 1e-9f) nl = 1f;
+                        m.n[3 * j] = nx / nl;
+                        m.n[3 * j + 1] = ny / nl;
+                        m.n[3 * j + 2] = nz / nl;
+                    }
+                    out.add(m);
+                }
+            }
+        } catch (Exception ignored) { }
+        models = out.toArray(new Model[0]);
+        return models;
+    }
+
+    /** One of the models of {@code kind} that sails {@code where} (1 rivers, 2 canals), or -1. */
+    private static int pickModel(Model[] ms, int kind, int where, float u) {
+        int n = 0;
+        for (Model m : ms) if (m.kind == kind && (m.where & where) != 0) n++;
+        if (n == 0) return -1;
+        int pick = Math.min(n - 1, (int) (u * n));
+        for (int i = 0; i < ms.length; i++) if (ms[i].kind == kind && (ms[i].where & where) != 0 && pick-- == 0) return i;
+        return -1;
+    }
+
+    private static final Path BOAT_PATH = new Path();
+    private static float[] bx = new float[256], by = new float[256], bwx = new float[256], bwy = new float[256], bwz = new float[256];
+    private static long[] bkeys = new long[512];
 
     /** The boats at {@code t} seconds (the city's {@code boats}, or nothing). */
     static void boats(Canvas c, Boats bt, float t, Paint p, float px) {
         if (bt == null) return;
         p.setShader(null);
         float day = clamp(1f - bt.lights * 1.4f), night = bt.lights < 0.05f ? 0f : bt.lights;
-        float[] o = new float[7];
+        Model[] ms = models();
+        float[] o = new float[10];
         p.setStrokeCap(Paint.Cap.ROUND);
+        p.setStrokeJoin(Paint.Join.ROUND);
         for (int r = 0; r < bt.runs.length; r++) {
             float[] q = bt.runs[r];
             float L = bt.len[r];
             for (int j = 0; j < bt.start[r].length; j++) {
                 place(q, (bt.start[r][j] + t * bt.speed[r][j]) % L, o);
-                float x = o[0], y = o[1], z = o[2], ux = o[3], uy = o[4];
+                // on screen from where it is on the ground (a lane's points can be far apart, and in perspective the
+                // screen isn't straight between them)
+                float z = o[2], x = (bt.w2 + o[7] * bt.f / z - bt.x0) * bt.k, y = (bt.hzr + bt.hc * bt.f / z) * bt.k;
+                float ux = o[3], uy = o[4];
                 if (!shows(bt.mask, bt.mw, bt.mh, x, y)) continue;
-                int ty = bt.type[r][j];
-                float lm = ty == 0 ? 38f : ty == 1 ? 24f : 8f, wm = ty == 0 ? 7f : ty == 1 ? 5f : 2.6f;
+                int mi = bt.model[r][j];
+                Model m = mi >= 0 && mi < ms.length ? ms[mi] : null;
+                float lm = m != null ? m.length : 12f, wm = m != null ? m.beam * m.length * (m.kind == 0 ? 0.6f : 0.85f) : 3.5f;
                 float len = lm * o[5], wid = wm * bt.fk / z;
                 if (Math.max(len, wid) < 1.1f) continue;
                 float ww = Math.max(0.8f, wid), hl = Math.max(ww * 0.6f, len / 2f);
                 float a = 0.6f + 0.4f * Math.min(1f, 600f / z);
+                // its wake: a pale streak behind it, as wide as the boat and widening a little, fading
                 p.setStyle(Paint.Style.STROKE);
-                // its wake: a pale streak behind it, fading
-                float wake = Math.max(len * 1.6f, 3f * ww);
+                float wake = Math.max(len * 1.3f, 3f * ww);
                 for (int s2 = 0; s2 < 3; s2++) {
-                    float w0 = hl + wake * s2 / 3f, w1 = hl + wake * (s2 + 1) / 3f;
-                    p.setStrokeWidth(ww * (1.1f + 0.35f * s2));
-                    p.setColor(Scene.alpha(0xFFFFFFFF, (0.34f - 0.1f * s2) * a * (0.35f + 0.65f * day)));
+                    float w0 = hl * 0.8f + wake * s2 / 3f, w1 = hl * 0.8f + wake * (s2 + 1) / 3f;
+                    p.setStrokeWidth(ww * (0.55f + 0.2f * s2));
+                    p.setColor(Scene.alpha(0xFFFFFFFF, (0.3f - 0.09f * s2) * a * (0.35f + 0.65f * day)));
                     c.drawLine(x - ux * w0, y - uy * w0, x - ux * w1, y - uy * w1, p);
                 }
                 p.setStyle(Paint.Style.FILL);
-                // the hull, pointed at its bow; then its deck: a barge's cargo cover and its wheelhouse at the stern, a
-                // tour boat's long glass roof, a small boat's cabin
-                float nx = -uy * ww / 2f, ny = ux * ww / 2f, bow = Math.min(hl, ww * 1.1f);
-                hullPath(BOAT_PATH, x, y, ux, uy, nx, ny, -hl, hl, bow);
-                p.setColor(Scene.alpha(Scene.mix(bt.hull[r][j], 0xFF141A33, 0.75f * night), a));
-                c.drawPath(BOAT_PATH, p);
-                if (ww > 1.3f) {
-                    float sx2 = 0.62f; // the deck a little narrower than the hull
-                    if (ty == 0) {
-                        hullPath(BOAT_PATH, x, y - ww * 0.12f, ux, uy, nx * sx2, ny * sx2, -hl * 0.55f, hl * 0.82f, bow * 0.6f);
-                        p.setColor(Scene.alpha(Scene.mix(0xFFC9A3A7, 0xFF1C2340, 0.7f * night), a)); // its cargo, covered
-                        c.drawPath(BOAT_PATH, p);
-                        hullPath(BOAT_PATH, x, y - ww * 0.35f, ux, uy, nx * 0.7f, ny * 0.7f, -hl * 0.95f, -hl * 0.7f, 0f);
-                        p.setColor(Scene.alpha(Scene.mix(0xFFF2EFEA, 0xFF1C2340, 0.7f * night), a)); // the wheelhouse
-                        c.drawPath(BOAT_PATH, p);
-                    } else {
-                        float c0 = ty == 1 ? -hl * 0.8f : -hl * 0.55f, c1 = ty == 1 ? hl * 0.6f : hl * 0.1f;
-                        hullPath(BOAT_PATH, x, y - ww * 0.25f, ux, uy, nx * sx2, ny * sx2, c0, c1, 0f);
-                        int cabin = ty == 1 ? 0xFF8FB2CF : 0xFFF2EFEA; // a tour boat's glass roof, a small boat's cabin
-                        p.setColor(Scene.alpha(Scene.mix(cabin, 0xFF1C2340, 0.7f * night), a));
-                        c.drawPath(BOAT_PATH, p);
-                    }
+                if (m != null && len >= 3.5f) {
+                    model(c, p, bt, m, o, day, night, a);
+                } else { // far off: a simple pointed hull in a boat's white
+                    float nx = -uy * ww / 2f, ny = ux * ww / 2f;
+                    BOAT_PATH.reset();
+                    float sh = hl - Math.min(hl, ww * 1.1f);
+                    BOAT_PATH.moveTo(x - ux * hl + nx, y - uy * hl + ny);
+                    BOAT_PATH.lineTo(x + ux * sh + nx, y + uy * sh + ny);
+                    BOAT_PATH.lineTo(x + ux * hl, y + uy * hl);
+                    BOAT_PATH.lineTo(x + ux * sh - nx, y + uy * sh - ny);
+                    BOAT_PATH.lineTo(x - ux * hl - nx, y - uy * hl - ny);
+                    BOAT_PATH.close();
+                    p.setColor(Scene.alpha(Scene.mix(Scene.mix(0xFFF2EFEA, bt.haze, fog(z, bt.night)), 0xFF141A33, 0.75f * night), a));
+                    c.drawPath(BOAT_PATH, p);
                 }
                 if (night > 0f) { // its lights: the cabin's warm windows, and their reflection down the water
-                    int n = ty == 0 ? 1 : ty == 1 ? 4 : 1;
+                    int n = m != null && m.kind == 1 ? 4 : 1;
                     float rad = Math.max(0.6f, Math.min(1.2f * px, 0.7f * bt.fk / z));
-                    for (int m = 0; m < n; m++) {
-                        float u = n == 1 ? (ty == 0 ? -0.8f : 0f) : -0.6f + 1.2f * m / (n - 1);
-                        float lx = x + ux * hl * u, ly = y + uy * hl * u - ww * 0.3f;
-                        p.setColor(Scene.alpha(WARM[m % WARM.length], Math.min(1f, 1.1f * night)));
+                    for (int k2 = 0; k2 < n; k2++) {
+                        float u = n == 1 ? (m != null && m.kind == 0 ? -0.75f : 0f) : -0.5f + 1.0f * k2 / (n - 1);
+                        float lx = x + ux * hl * u, ly = y + uy * hl * u - Math.max(ww * 0.4f, 0.12f * lm * bt.fk / z);
+                        p.setColor(Scene.alpha(WARM[k2 % WARM.length], Math.min(1f, 1.1f * night)));
                         c.drawCircle(lx, ly, rad, p);
                         p.setColor(Scene.alpha(WARM[1], 0.22f * night * a));
                         c.drawRect(lx - rad * 0.6f, ly + rad, lx + rad * 0.6f, ly + rad * 5f, p);
@@ -1478,5 +1547,66 @@ final class WorldScene {
                 }
             }
         }
+    }
+
+    /**
+     * One boat's model at its place (o: x, y, z, its way on screen, pixels a metre, coming, X, its heading on the ground):
+     * every face turned to the camera, far to near, lit by the sun as the buildings are, softened to the scene's
+     * colours by day, hazed with distance, dark at night. Faces under a sixth of a pixel are left out.
+     */
+    private static void model(Canvas c, Paint p, Boats bt, Model m, float[] o, float day, float night, float a) {
+        int nv = m.v.length / 3, nf = m.f.length / 3;
+        if (bx.length < nv) {
+            bx = new float[nv]; by = new float[nv]; bwx = new float[nv]; bwy = new float[nv]; bwz = new float[nv];
+        }
+        if (bkeys.length < nf) bkeys = new long[nf];
+        // the model's frame turned onto its heading; the scene's frame (x right, y up, z ahead) is left-handed and the
+        // model's right-handed, so its x is taken the other way (else every face would turn inside out); a freighter
+        // slimmed to a river barge's lines
+        float X0 = o[7], Z0 = o[2], hx = o[8], hz = o[9], rx = -hz, rz = hx, Lm = m.length;
+        float slim = m.kind == 0 ? 0.6f : 0.85f;
+        for (int i = 0; i < nv; i++) {
+            float mx = m.v[3 * i] * Lm * slim, my = m.v[3 * i + 1] * Lm, mz = m.v[3 * i + 2] * Lm;
+            float X = X0 + mx * rx + mz * hx, Z = Z0 + mx * rz + mz * hz;
+            if (Z < 2f) return;
+            bwx[i] = X;
+            bwy[i] = my;
+            bwz[i] = Z;
+            bx[i] = (bt.w2 + X * bt.f / Z - bt.x0) * bt.k;
+            by[i] = (bt.hzr + (bt.hc - my) * bt.f / Z) * bt.k;
+        }
+        int nk = 0;
+        for (int j = 0; j < nf; j++) {
+            int i0 = m.f[3 * j], i1 = m.f[3 * j + 1], i2 = m.f[3 * j + 2];
+            float nX = m.n[3 * j] * rx + m.n[3 * j + 2] * hx, nY = m.n[3 * j + 1], nZ = m.n[3 * j] * rz + m.n[3 * j + 2] * hz;
+            float cx = (bwx[i0] + bwx[i1] + bwx[i2]) / 3f, cy = (bwy[i0] + bwy[i1] + bwy[i2]) / 3f, cz = (bwz[i0] + bwz[i1] + bwz[i2]) / 3f;
+            if (nX * -cx + nY * (bt.hc - cy) + nZ * -cz <= 0f) continue; // turned away
+            float area = Math.abs((bx[i1] - bx[i0]) * (by[i2] - by[i0]) - (bx[i2] - bx[i0]) * (by[i1] - by[i0])) * 0.5f;
+            if (area < 0.16f) continue;
+            float dist = cx * cx + (cy - bt.hc) * (cy - bt.hc) + cz * cz;
+            bkeys[nk++] = ((long) Float.floatToIntBits(dist) << 16) | j;
+        }
+        java.util.Arrays.sort(bkeys, 0, nk);
+        float fogA = fog(Z0, bt.night);
+        p.setStyle(Paint.Style.FILL_AND_STROKE); // a hair larger, so the seams between faces never show
+        p.setStrokeWidth(0.35f);
+        for (int kk = nk - 1; kk >= 0; kk--) {
+            int j = (int) (bkeys[kk] & 0xFFFF);
+            int i0 = m.f[3 * j], i1 = m.f[3 * j + 1], i2 = m.f[3 * j + 2];
+            float nX = m.n[3 * j] * rx + m.n[3 * j + 2] * hx, nY = m.n[3 * j + 1], nZ = m.n[3 * j] * rz + m.n[3 * j + 2] * hz;
+            float lit = 0.62f + 0.38f * Math.max(0f, nX * bt.lx + nY * bt.ly + nZ * bt.lz);
+            int col = Scene.mix(m.col[j], 0xFFEEEAF2, 0.18f * day); // softened to the pastel day
+            col = 0xFF000000 | (Math.round(((col >> 16) & 0xFF) * lit) << 16) | (Math.round(((col >> 8) & 0xFF) * lit) << 8)
+                    | Math.round((col & 0xFF) * lit);
+            col = Scene.mix(Scene.mix(col, bt.haze, fogA), 0xFF141A33, 0.72f * night);
+            p.setColor(Scene.alpha(col, a));
+            BOAT_PATH.reset();
+            BOAT_PATH.moveTo(bx[i0], by[i0]);
+            BOAT_PATH.lineTo(bx[i1], by[i1]);
+            BOAT_PATH.lineTo(bx[i2], by[i2]);
+            BOAT_PATH.close();
+            c.drawPath(BOAT_PATH, p);
+        }
+        p.setStyle(Paint.Style.FILL);
     }
 }
