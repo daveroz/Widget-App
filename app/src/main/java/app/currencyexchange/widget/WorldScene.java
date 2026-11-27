@@ -936,8 +936,47 @@ final class WorldScene {
                 }
             }
         }
+        streetTrees(d, f, r, out);
         out.sort((a, b) -> Float.compare(b[0], a[0]));
         return out;
+    }
+
+    /**
+     * Trees along the main roads' pavements (2.43): both sides, 2.5 m out from the kerb, about every 14 m with gaps
+     * here and there, up to 1.2 km off (none along motorways, none where the pavement crosses water); a little smaller
+     * than the parks' trees. Each as an extra: distance, 0 (a tree), x, y, size, drawn in depth with the buildings.
+     */
+    private static void streetTrees(Data d, float f, Random r, List<float[]> out) {
+        if (d.roads == null) return;
+        List<float[]> lines = new ArrayList<>();
+        List<Float> lanes = new ArrayList<>();
+        for (int i = 0; i < d.roads.length; i++) {
+            if (d.roadW[i] >= 20f) continue; // a motorway: no pavement
+            lines.add(d.roads[i]);
+            lanes.add(d.roadW[i] / 2f + 2.5f);
+        }
+        float[] lane = new float[lanes.size()];
+        for (int i = 0; i < lane.length; i++) lane[i] = lanes.get(i);
+        List<float[]> runs = runs(d, lines.toArray(new float[0][]), lane, null, 0f, 1f, f, false);
+        float[] o = new float[7];
+        int made = 0;
+        for (float[] q : runs) {
+            float L = q[q.length - 1];
+            for (float at = r.nextFloat() * 14f; at < L && made < 2500; at += 11f + r.nextFloat() * 6f) {
+                if (r.nextFloat() < 0.22f) continue; // a gap: a driveway, a crossing, a missing tree
+                place(q, at, o);
+                float x = o[0], y = o[1], z = o[2];
+                if (z < 30f || z > 1200f || x < -10f || x > d.w + 10f || inWater(d, x, y)) continue;
+                out.add(new float[]{z * (float) Math.sqrt(1 + Math.pow((x - d.w / 2f) / f, 2)), 0, x, y,
+                        Math.max(0.4f, (6f + r.nextFloat() * 2f) / z * f)});
+                made++;
+            }
+        }
+    }
+
+    private static boolean inWater(Data d, float x, float y) {
+        for (int i = 0; i < d.ground.length; i++) if (d.groundKind[i] == WATER && inside(d.ground[i], x, y)) return true;
+        return false;
     }
 
     /** A tree's crown as cut from paper (the video's), its side to the light lighter. */
