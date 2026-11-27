@@ -438,6 +438,8 @@ final class WorldScene {
         Canvas depth = depthBmp == null ? null : new Canvas(depthBmp);
         if (depth != null) depth.scale(0.5f, 0.5f);
         Paint dpaint = new Paint();
+        dpaint.setAntiAlias(false); // a code, not a colour: never blended at an edge (2.43)
+        dpaint.setDither(false);
         for (int kind : order) {
             for (int i = 0; i < d.ground.length; i++) {
                 if (d.groundKind[i] != kind) continue;
@@ -1276,17 +1278,32 @@ final class WorldScene {
         Canvas td = new Canvas(tdBmp);
         td.scale(0.5f, 0.5f);
         Paint tp = new Paint();
+        tp.setAntiAlias(false); // codes, never blended
+        tp.setDither(false);
+        int[] sd = new int[hw * hh];
+        depthBmp.getPixels(sd, 0, hw, 0, 0, hw, hh);
         for (float[] x : trees) { // far to near, as they came
             float rr = x[4] * 0.35f * k;
             if (rr < 0.6f) continue;
             float X = (x[2] - x0) * k, Y = x[3] * k;
+            // mostly hidden (more than half its crown behind something nearer): left out whole, no specks of it
+            int seen = 0, hid = 0;
+            for (float oy = -rr; oy <= rr; oy += Math.max(1f, rr / 2f)) {
+                for (float ox = -rr; ox <= rr; ox += Math.max(1f, rr / 2f)) {
+                    int hx = (int) ((X + ox) / 2f), hy = (int) ((Y - rr + oy) / 2f);
+                    if (hx < 0 || hy < 0 || hx >= hw || hy >= hh) continue;
+                    seen++;
+                    int code = sd[hy * hw + hx];
+                    if ((code >>> 24) >= 128 && depthAt(code, (X + ox) / k + x0, (Y - rr + oy) / k, d, f) < x[0] * 0.995f) hid++;
+                }
+            }
+            if (seen > 0 && hid * 2 > seen) continue;
             float fog = fog(x[0], night);
             crown(lc, p, path, X, Y - rr, rr, Scene.mix(treeC, farHaze, fog), Scene.mix(treeLit, farHaze, fog), rnd);
             tp.setColor(depthCode(x[0]));
             td.drawCircle(X, Y - rr, rr * 1.15f, tp);
         }
-        int[] sd = new int[hw * hh], tdp = new int[hw * hh];
-        depthBmp.getPixels(sd, 0, hw, 0, 0, hw, hh);
+        int[] tdp = new int[hw * hh];
         tdBmp.getPixels(tdp, 0, hw, 0, 0, hw, hh);
         tdBmp.recycle();
         int lw = layer.getWidth(), lh = layer.getHeight();
