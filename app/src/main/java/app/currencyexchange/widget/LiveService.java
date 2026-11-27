@@ -108,7 +108,10 @@ public class LiveService extends Service {
                 if (Intent.ACTION_TIME_TICK.equals(a)) {
                     // the system's own minute tick: the most reliable trigger for the clocks
                     if (on) handler.post(() -> minuteWork(getApplicationContext(), "tick"));
-                } else if (Intent.ACTION_SCREEN_ON.equals(a)) start();
+                } else if (Intent.ACTION_SCREEN_ON.equals(a)) {
+                    start();
+                    WidgetProvider.ratesIfDue(getApplicationContext(), null); // the rates of right now as the screen comes on (2.41)
+                }
                 else stopLoops();
             }
         };
