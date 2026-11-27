@@ -146,7 +146,6 @@ final class SkyCell {
         CityScene.birds(c, sky, light, t, seed, px);
         CityScene.helicopter(c, sky, light, t, seed, px);
         Sky.weather(c, sky, t, dot);
-        if (sky.flare != null) c.drawBitmap(sky.flare, 0, 0, paint); // the lens's flare, faint (2.31)
         c.drawBitmap(sky.front, 0, 0, paint);
         if (storm) { // the flash lights the city too
             float f = Festive.flash(t, seed);

@@ -53,10 +53,8 @@ final class Sky {
         long seed;
         /** How much of the morning's colours there are (0: the evening's, 1: the morning's), for the city's (2.29). */
         float morning;
-        /** The sun on screen (2.31): where, how big, how much of it shows (0 when it's down or hidden); for the flare. */
+        /** The sun on screen (2.31): where, how big, how much of it shows (0 when it's down or hidden). */
         float sunX, sunY, sunR, sunVis;
-        /** The lens flare (2.31): ghosts along the line from the sun through the middle, a halo, a streak; null if none. */
-        Bitmap flare;
         /** The stars (when the night is clear enough): where, how big, how bright, how fast each twinkles. */
         float[] sx, sy, ss, sa, sf, sp;
         boolean[] sb;
@@ -178,7 +176,7 @@ final class Sky {
             L.sunX = sx;
             L.sunY = sy;
             L.sunR = sunR;
-            L.sunVis = vis * clamp((sAlt + 2f) / 3f) * (1f - 0.75f * low); // the flare: faint, and gone as it sets
+            L.sunVis = vis * clamp((sAlt + 2f) / 3f) * (1f - 0.75f * low); // how much of it shows, gone as it sets
         }
 
         // the moon, as big as the sun (smaller since 2.31), where it really is: lit as much as it is, its bright side towards the sun, the
@@ -304,35 +302,7 @@ final class Sky {
         fc.drawRect(0, 0, w, h, p);
         p.setShader(null);
         WorldScene.punch(L.back, 0f, 0.25f); // the sky a little more vivid, as the graded reference's (2.33)
-        L.flare = flare(L, w, h);
         return L;
-    }
-
-    /**
-     * The lens flare (2.31, subtle, after Cloudscape's: github.com/Fishypants/cloudscape): a few faint coloured ghosts
-     * along the line from the sun through the middle of the picture, a soft halo ring and a thin streak through the
-     * sun, as a camera's lens makes; only while the sun shows. Drawn over the city.
-     */
-    private static Bitmap flare(Layers L, int w, int h) {
-        if (L.sunVis < 0.08f || L.sunX < -0.15f * w || L.sunX > 1.15f * w) return null;
-        Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(b);
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        float cx = w / 2f, cy = h / 2f, dx = L.sunX - cx, dy = L.sunY - cy, k = L.sunVis;
-        float[] at = {-0.35f, 0.45f, 0.8f, 1.25f, 1.6f}, size = {0.03f, 0.06f, 0.02f, 0.1f, 0.045f};
-        int[] tint = {0xFFFFD9A0, 0xFFA0E0FF, 0xFFFFA0D8, 0xFFB8FFC8, 0xFFFFC890};
-        for (int i = 0; i < at.length; i++) {
-            float gx = cx - dx * at[i], gy = cy - dy * at[i], r = size[i] * w;
-            p.setShader(new RadialGradient(gx, gy, r, new int[]{Scene.alpha(tint[i], 0.07f * k / (1 + 0.3f * i)),
-                    Scene.alpha(tint[i], 0.11f * k / (1 + 0.3f * i)), tint[i] & 0x00FFFFFF}, new float[]{0f, 0.75f, 1f},
-                    Shader.TileMode.CLAMP));
-            c.drawCircle(gx, gy, r, p);
-        }
-        float hx = cx - dx * 0.3f, hy = cy - dy * 0.3f, hr = 0.42f * w; // the halo ring
-        p.setShader(new RadialGradient(hx, hy, hr * 1.08f, new int[]{0x00A8C8FF, 0x00A8C8FF, Scene.alpha(0xFFA8C8FF, 0.06f * k),
-                0x00A8C8FF}, new float[]{0f, 0.86f, 0.93f, 1f}, Shader.TileMode.CLAMP));
-        c.drawCircle(hx, hy, hr * 1.08f, p);
-        return b;
     }
 
     /** The stars at {@code t} seconds, each twinkling at its own pace. */
