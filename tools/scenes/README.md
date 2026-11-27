@@ -131,6 +131,18 @@ cell goes (2.40; before, any whose top stood in the top sixth of the cell); **15
 2's low-poly blocks; **16, at screen size**: the ground simplified to 0.6 px and its specks dropped, footprints to half a
 pixel, a block showing less than 6 px dropped.
 
+## Bridges and tunnels (2.43)
+
+Overture's road flags mark bridges (`is_bridge`, or a level of 1 and up) and tunnels (`is_tunnel`, or a level under
+0), each over its share of a segment. A bridge's road is raised to its deck: on a landmark bridge the middle of the
+model's upward faces 4 to 30 m up under it (Tower Bridge about 15 m), on any other `BRIDGE_H` (10 m), with a `RAMP`
+(40 m) where a raised stretch meets the ground (not where it meets another bridge's end); the cars' lines carry each
+point's height. A bridge that's not a landmark gets its deck (the road and a metre of pavement each side) and its
+side turned to the camera (1.6 m deep) as faces between each pair of points, drawn in depth with the buildings; a
+landmark bridge has its own, and its cars are always shown on it (hidden through its towers). Tunnels are hidden.
+Neither bridges nor tunnels are drawn as roads on the ground any more. The app hides a boat only where something
+nearer than it stands (a depth map of every face and block, half size), so boats pass under the decks.
+
 ## Boats (2.43, `boats.py`)
 
 The boats on the big rivers and canals are Kenney's Watercraft Kit 2.1 (CC0, kenney.nl; its licence in
@@ -156,10 +168,13 @@ list's first.
 - ground: count, then each shape's kind (2 water, 3 park, 4 road) and points;
 - items, far to near: count, then each: a **block** (`0`, distance byte, height in half metres, its footprint's points on
   the ground) or a **landmark face** (`1 + kind`: 5 body, 6 glass, 7 light, 9 roof; facing 0-254 of a turn or 255;
-  distance byte; the material's hue and chroma; flags, 1 = the hero; its points). Kind 10 (2.32) is see-through
+  distance byte; the material's hue and chroma; flags, 1 = the hero; its points). Kind 12 (2.43) is a bridge's deck
+(facing 255) or one of its sides: the road raised over the water, drawn in the road's colour, its cars shown on it; Kind 10 (2.32) is see-through
   ironwork (a model's `ironwork` material, the Eiffel Tower's lattice): both its sides are kept, it hides nothing behind
   it, and the app draws it as girders (a faint fill, a cross-hatch of bars about every 8 m, rails along its edges);
-- (version 4) the cars' roads: count, then each main road's width in metres and its centre line's points;
+- (version 4) the cars' roads: count, then each main road's width in metres and its centre line's points (since
+  version 5, 2.43, then each point's height in half metres, a bridge's deck, and each point's mode: 0 shown where the
+  road shows, 1 on a landmark bridge, always shown, 2 hidden, in a tunnel or a landmark bridge's tower);
 - (version 5, 2.43) the boats' lanes: count, then each one's kind (0 a river, 1 a canal) and its centre line's points:
   the rivers' and canals' centre lines (Overture's water lines) where they run inside the water drawn, at least 5 m
   in from its banks (so only big rivers and canals mapped as water), 40 m to 3.5 km off.

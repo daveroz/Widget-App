@@ -68,7 +68,7 @@ final class WorldScene {
 
     private static final float HZ = 0.64f, FN = (float) (0.5 / Math.tan(Math.toRadians(20)));
     private static final int WALL = 0, ROOF = 1, WATER = 2, PARK = 3, ROAD = 4, LM = 5, LM_GLASS = 6, LM_LIGHT = 7,
-            LM_ROOF = 9, LM_LATTICE = 10, LM_GIRDER = 11;
+            LM_ROOF = 9, LM_LATTICE = 10, LM_GIRDER = 11, DECK = 12;
 
     /** A scene as read: the reference frame (3:1, 280 tall), the camera, the hills, the ground and the items. */
     static final class Data {
@@ -87,6 +87,9 @@ final class WorldScene {
         /** The main roads' centre lines (format 4, 2.32; null before): width (m) and points, for the cars at night. */
         float[] roadW;
         float[][] roads;
+        /** Each road point's height (m; a bridge's deck) and mode (0, 1 on a landmark bridge, 2 hidden: a tunnel), format 5. */
+        float[][] roadH;
+        byte[][] roadM;
         /** The rivers' and canals' centre lines (format 5, 2.43; null before): kind (0 a river, 1 a canal) and points, for the boats. */
         int[] boatKind;
         float[][] boats;
@@ -256,9 +259,20 @@ final class WorldScene {
             int nt = (int) r.uvar();
             d.roadW = new float[nt];
             d.roads = new float[nt][];
+            if (version >= 5) {
+                d.roadH = new float[nt][];
+                d.roadM = new byte[nt][];
+            }
             for (int i = 0; i < nt; i++) {
                 d.roadW[i] = r.u8();
                 d.roads[i] = r.pts();
+                if (version >= 5) {
+                    int np = d.roads[i].length / 2;
+                    d.roadH[i] = new float[np];
+                    d.roadM[i] = new byte[np];
+                    for (int j = 0; j < np; j++) d.roadH[i][j] = r.u8() / 2f;
+                    for (int j = 0; j < np; j++) d.roadM[i][j] = (byte) r.u8();
+                }
             }
         }
         if (version >= 5 && r.p < b.length) { // the boats' lanes (2.43)
@@ -418,6 +432,12 @@ final class WorldScene {
         mp.setColor(0xFFFF0000);
         Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
         wp.setColor(0xFF00FF00);
+        // (2.43) how far off whatever stands at each pixel is (half size; the ground: nothing), so a boat is hidden only by
+        // what stands nearer than it, never by the bank behind it
+        Bitmap depthBmp = d.boats != null ? Bitmap.createBitmap(Math.max(2, w / 2), Math.max(2, h / 2), Bitmap.Config.ARGB_8888) : null;
+        Canvas depth = depthBmp == null ? null : new Canvas(depthBmp);
+        if (depth != null) depth.scale(0.5f, 0.5f);
+        Paint dpaint = new Paint();
         for (int kind : order) {
             for (int i = 0; i < d.ground.length; i++) {
                 if (d.groundKind[i] != kind) continue;
@@ -486,13 +506,32 @@ final class WorldScene {
             }
             if (i == d.kind.length) break;
             float fog = d.main[i] ? 0 : fog(d.dist[i], night);
+            if (depth != null) dpaint.setColor(depthCode(d.dist[i]));
             if (d.kind[i] == -1) {
-                block(c, glow, mask, clear, gp, p, path, d, d.pts[i], d.height[i], f, x0, k, hz, sun, fog, l, litC, shadeC, roofC,
+                block(c, glow, mask, depth, dpaint, clear, gp, p, path, d, d.pts[i], d.height[i], f, x0, k, hz, sun, fog, l, litC, shadeC, roofC,
                         farHaze, share, lights);
                 continue;
             }
             int kind = d.kind[i];
             float[] s = d.pts[i];
+            if (kind == DECK) { // a bridge's deck (2.43): the road raised over the water, and its sides in the light
+                int col;
+                if (d.facing[i] < 0) col = road;
+                else {
+                    double lit = Math.cos(Math.toRadians(d.facing[i] - sun));
+                    col = Scene.mix(lit > 0.1 ? litC : shadeC, l.edge, 0.25f);
+                }
+                poly(path, s, x0, k);
+                p.setColor(Scene.mix(col, farHaze, fog));
+                p.setStrokeWidth(0.6f);
+                p.setStyle(Paint.Style.FILL_AND_STROKE);
+                c.drawPath(path, p);
+                p.setStyle(Paint.Style.FILL);
+                if (glow != null) glow.drawPath(path, clear);
+                if (mask != null) mask.drawPath(path, d.facing[i] < 0 ? mp : clear); // its cars show on it; boats pass under
+                if (depth != null) depth.drawPath(path, dpaint);
+                continue;
+            }
             int base;
             if (kind == LM_ROOF) base = roofC;
             else if (d.facing[i] < 0) base = l.near;
@@ -544,6 +583,7 @@ final class WorldScene {
                 if (glow != null) glow.drawPath(path, clear);
                 if (mask != null) mask.drawPath(path, clear);
             }
+            if (depth != null && kind != LM_LATTICE) depth.drawPath(path, dpaint);
             if (d.main[i]) { // the hero's extent across (for the Eiffel Tower's sparkle)
                 for (int j = 0; j < s.length; j += 2) {
                     heroL = Math.min(heroL, (s[j] - x0) * k);
@@ -592,8 +632,18 @@ final class WorldScene {
             int[] mpx = new int[mw * mh];
             maskBmp.getPixels(mpx, 0, mw, 0, 0, mw, mh);
             maskBmp.recycle();
-            if (d.roads != null) built.traffic = Traffic.make(d, channel(mpx, 16), mw, mh, x0, k, f, lights, seed, left);
-            if (d.boats != null) built.boats = Boats.make(d, channel(mpx, 8), mw, mh, x0, k, f, l, farHaze, seed, left);
+            if (d.roads != null) built.traffic = Traffic.make(d, channel(mpx, 16), mw, mh, x0, k, f, l, seed, left);
+            if (d.boats != null) {
+                built.boats = Boats.make(d, channel(mpx, 8), mw, mh, x0, k, f, l, farHaze, seed, left);
+                if (depthBmp != null && depthBmp.getWidth() == mw && depthBmp.getHeight() == mh) {
+                    int[] dpx = new int[mw * mh];
+                    depthBmp.getPixels(dpx, 0, mw, 0, 0, mw, mh);
+                    float[] dm = new float[dpx.length];
+                    for (int i = 0; i < dm.length; i++) dm[i] = (dpx[i] >>> 24) < 128 ? Float.MAX_VALUE : (float) Math.expm1((dpx[i] & 0xFFFFFF) / 100000.0);
+                    built.boats.depth = dm;
+                }
+            }
+            if (depthBmp != null) depthBmp.recycle();
         }
     }
 
@@ -695,7 +745,7 @@ final class WorldScene {
      * straight above its foot), the ones facing the camera drawn far to near, lit or in shade by which way they face,
      * a rim of light along a tall one's top, its windows at night; then its roof if it's lower than the camera.
      */
-    private static void block(Canvas c, Canvas glow, Canvas mask, Paint clear, Paint gp, Paint p, Path path, Data d, float[] s, float hm,
+    private static void block(Canvas c, Canvas glow, Canvas mask, Canvas depth, Paint dpaint, Paint clear, Paint gp, Paint p, Path path, Data d, float[] s, float hm,
                               float f, float x0, float k, float hzScreen, float sun, float fog, CityScene.Light l, int litC,
                               int shadeC, int roofC, int farHaze, float share, float lights) {
         int n = s.length / 2;
@@ -771,6 +821,7 @@ final class WorldScene {
             p.setShader(null);
             if (glow != null) glow.drawPath(path, clear);
             if (mask != null) mask.drawPath(path, clear);
+            if (depth != null) depth.drawPath(path, dpaint);
             if (Math.abs(bx - ax) > 1.5f && Math.abs(ay - aty) > 8f) { // the rim along a tall one's top
                 p.setColor(Scene.mix(col, l.rim, 0.55f * (1 - fog)));
                 p.setStrokeWidth(1f);
@@ -791,6 +842,7 @@ final class WorldScene {
             c.drawPath(path, p);
             if (glow != null) glow.drawPath(path, clear);
             if (mask != null) mask.drawPath(path, clear);
+            if (depth != null) depth.drawPath(path, dpaint);
         }
     }
 
@@ -952,16 +1004,20 @@ final class WorldScene {
         List<Float> lanes = new ArrayList<>();
         for (int i = 0; i < d.roads.length; i++) {
             if (d.roadW[i] >= 20f) continue; // a motorway: no pavement
+            boolean raised = false; // a bridge or a tunnel: no trees (2.43)
+            if (d.roadH != null && d.roadH[i] != null) for (float hh : d.roadH[i]) raised |= hh > 0.05f;
+            if (d.roadM != null && d.roadM[i] != null) for (byte mm : d.roadM[i]) raised |= mm != 0;
+            if (raised) continue;
             lines.add(d.roads[i]);
             lanes.add(d.roadW[i] / 2f + 2.5f);
         }
         float[] lane = new float[lanes.size()];
         for (int i = 0; i < lane.length; i++) lane[i] = lanes.get(i);
-        List<float[]> runs = runs(d, lines.toArray(new float[0][]), lane, null, 0f, 1f, f, false);
-        float[] o = new float[7];
+        List<float[]> runs = runs(d, lines.toArray(new float[0][]), null, null, lane, null, 0f, 1f, f, false);
+        float[] o = new float[12];
         int made = 0;
         for (float[] q : runs) {
-            float L = q[q.length - 1];
+            float L = runLength(q);
             for (float at = r.nextFloat() * 14f; at < L && made < 2500; at += 11f + r.nextFloat() * 6f) {
                 if (r.nextFloat() < 0.22f) continue; // a gap: a driveway, a crossing, a missing tree
                 place(q, at, o);
@@ -1126,18 +1182,21 @@ final class WorldScene {
         int[][] col;
         float lights, fk;
 
-        static Traffic make(Data d, byte[] mask, int mw, int mh, float x0, float k, float f, float lights, long seed, boolean left) {
+        static Traffic make(Data d, byte[] mask, int mw, int mh, float x0, float k, float f, CityScene.Light l, long seed,
+                            boolean left) {
             Traffic tr = new Traffic();
             tr.mask = mask;
             tr.mw = mw;
             tr.mh = mh;
-            tr.lights = lights;
+            tr.lights = l.lights;
+            // the cars in the scene's own tones, not paint colours (2.43): pale, light, mid, deep
+            int[] tones = {Scene.mix(l.lit, 0xFFFFFFFF, 0.35f), l.lit, l.near, l.shade, Scene.mix(l.shade, l.front, 0.5f)};
             tr.fk = f * k;
             float[] lane = new float[d.roads.length];
             for (int i = 0; i < lane.length; i++) lane[i] = Math.max(1.6f, d.roadW[i] / 4f);
-            List<float[]> runs = runs(d, d.roads, lane, null, x0, k, f, left);
+            List<float[]> runs = runs(d, d.roads, d.roadH, d.roadM, lane, null, x0, k, f, left);
             float total = 0;
-            for (float[] q : runs) total += q[q.length - 1];
+            for (float[] q : runs) total += runLength(q);
             float gap = Math.max(15f, total / 2000f); // a car every 15 m or so per lane (only those in sight are drawn), at most 2,000
             Random r = new Random(seed ^ 0xCA75L);
             tr.runs = runs.toArray(new float[0][]);
@@ -1146,7 +1205,7 @@ final class WorldScene {
             tr.speed = new float[tr.runs.length][];
             tr.col = new int[tr.runs.length][];
             for (int i = 0; i < tr.runs.length; i++) {
-                float L = tr.runs[i][tr.runs[i].length - 1];
+                float L = runLength(tr.runs[i]);
                 tr.len[i] = L;
                 float want = L / gap;
                 int c = (int) want + (r.nextFloat() < want - (int) want ? 1 : 0);
@@ -1156,7 +1215,7 @@ final class WorldScene {
                 for (int j = 0; j < c; j++) {
                     tr.start[i][j] = r.nextFloat() * L;
                     tr.speed[i][j] = 7f + r.nextFloat() * 6f; // 25 to 47 km/h
-                    tr.col[i][j] = pick(CAR_COLOURS, CAR_SHARE, r.nextFloat());
+                    tr.col[i][j] = pick(tones, CAR_SHARE, r.nextFloat());
                 }
             }
             return tr;
@@ -1164,9 +1223,8 @@ final class WorldScene {
 
     }
 
-    /** The share of each car colour by day (2.43): white, black, grey, silver, blue, red, beige, in the pastel light. */
-    private static final int[] CAR_COLOURS = {0xFFF6F3F0, 0xFF353A52, 0xFF8E90A6, 0xFFC8C9D6, 0xFF5F78B4, 0xFFC4505E, 0xFFE3D3A6};
-    private static final float[] CAR_SHARE = {0.26f, 0.2f, 0.17f, 0.13f, 0.1f, 0.09f, 0.05f};
+    /** The share of each of the cars' tones by day (2.43): pale, light, mid, deep, deepest. */
+    private static final float[] CAR_SHARE = {0.3f, 0.2f, 0.2f, 0.15f, 0.15f};
 
     private static int pick(int[] cols, float[] share, float u) {
         float acc = 0;
@@ -1177,6 +1235,11 @@ final class WorldScene {
         return cols[cols.length - 1];
     }
 
+    /** A distance as a colour for the depth map (2.43): its log, in the colour's 24 bits. */
+    private static int depthCode(float dist) {
+        return 0xFF000000 | (int) Math.min(0xFFFFFF, Math.max(0, Math.log1p(Math.max(0f, dist)) * 100000.0));
+    }
+
     /** One channel of the half-size mask (16 red: the roads, 8 green: the water), any of it counting. */
     private static byte[] channel(int[] px, int shift) {
         byte[] m = new byte[px.length];
@@ -1184,14 +1247,17 @@ final class WorldScene {
         return m;
     }
 
+    /** A run's stride: x, y (pixels), X, Z (metres on the ground), s (metres along), height (m), mode. */
+    private static final int RS = 7;
+
     /**
-     * The lanes along {@code lines} (screen points of lines on the ground): each way in its own lane {@code lane[i]}
-     * metres to the right of the line (or the left where they drive so; a boat keeps to the right as well), each run as
-     * x, y (pixels), X, Z (metres on the ground), s (metres along), five per point. {@code owner} (may be null) gets
-     * each run's line.
+     * The lanes along {@code lines} (screen points of lines, at {@code heights} metres up, null: on the ground): each way
+     * in its own lane {@code lane[i]} metres to the right of the line (or the left where they drive so; a boat keeps to
+     * the right as well), each run as {@link #RS} numbers a point; {@code modes} (may be null) each point's mode (0 shown
+     * where the road shows, 1 on a landmark bridge: always, 2 hidden). {@code owner} (may be null) gets each run's line.
      */
-    private static List<float[]> runs(Data d, float[][] lines, float[] laneM, List<Integer> owner, float x0, float k, float f,
-                                      boolean left) {
+    private static List<float[]> runs(Data d, float[][] lines, float[][] heights, byte[][] modes, float[] laneM,
+                                      List<Integer> owner, float x0, float k, float f, boolean left) {
         float hzr = HZ * d.h;
         List<float[]> runs = new ArrayList<>();
         float[] buf = new float[256];
@@ -1199,12 +1265,15 @@ final class WorldScene {
             float[] s = lines[i];
             int n = s.length / 2;
             if (n < 2) continue;
-            float[] gx = new float[n], gz = new float[n];
+            float[] gx = new float[n], gz = new float[n], gh = new float[n], gm = new float[n];
             boolean[] ok = new boolean[n];
             for (int j = 0; j < n; j++) {
                 float y = s[2 * j + 1];
-                ok[j] = y > hzr + 0.3f;
-                gz[j] = ok[j] ? d.hc * f / (y - hzr) : 0f;
+                gh[j] = heights != null && heights[i] != null && j < heights[i].length ? heights[i][j] : 0f;
+                gm[j] = modes != null && modes[i] != null && j < modes[i].length ? modes[i][j] : 0f;
+                float over = d.hc - gh[j];
+                ok[j] = y > hzr + 0.3f && over > 1f;
+                gz[j] = ok[j] ? over * f / (y - hzr) : 0f;
                 gx[j] = (s[2 * j] - d.w / 2f) * gz[j] / f;
             }
             float lane = laneM[i];
@@ -1219,11 +1288,13 @@ final class WorldScene {
                     if (tl < 0.01f) continue;
                     float sd = left ? -1f : 1f; // the right-hand side of the way it goes is (tz, -tx)
                     float px0 = gx[j] + tz / tl * lane * sd, pz0 = Math.max(5f, gz[j] - tx / tl * lane * sd);
-                    if (5 * cnt + 5 > buf.length) buf = java.util.Arrays.copyOf(buf, buf.length * 2);
-                    buf[5 * cnt] = (d.w / 2f + px0 * f / pz0 - x0) * k;
-                    buf[5 * cnt + 1] = (hzr + d.hc * f / pz0) * k;
-                    buf[5 * cnt + 2] = px0;
-                    buf[5 * cnt + 3] = pz0;
+                    if (RS * cnt + RS > buf.length) buf = java.util.Arrays.copyOf(buf, buf.length * 2);
+                    buf[RS * cnt] = (d.w / 2f + px0 * f / pz0 - x0) * k;
+                    buf[RS * cnt + 1] = (hzr + (d.hc - gh[j]) * f / pz0) * k;
+                    buf[RS * cnt + 2] = px0;
+                    buf[RS * cnt + 3] = pz0;
+                    buf[RS * cnt + 5] = gh[j];
+                    buf[RS * cnt + 6] = gm[j];
                     cnt++;
                 }
                 flush(runs, buf, cnt);
@@ -1233,41 +1304,51 @@ final class WorldScene {
         return runs;
     }
 
+    /** A run's length in metres (its last point's distance along). */
+    private static float runLength(float[] q) { return q[q.length - RS + 4]; }
+
     /** Ends a run: its distances along added; kept if it's long enough. Returns 0 (the next run's count). */
     private static int flush(List<float[]> runs, float[] buf, int cnt) {
         if (cnt < 2) return 0;
-        float[] q = java.util.Arrays.copyOf(buf, 5 * cnt);
+        float[] q = java.util.Arrays.copyOf(buf, RS * cnt);
         float acc = 0;
         q[4] = 0;
         for (int i = 1; i < cnt; i++) {
-            acc += (float) Math.hypot(q[5 * i + 2] - q[5 * i - 3], q[5 * i + 3] - q[5 * i - 2]);
-            q[5 * i + 4] = acc;
+            acc += (float) Math.hypot(q[RS * i + 2] - q[RS * (i - 1) + 2], q[RS * i + 3] - q[RS * (i - 1) + 3]);
+            q[RS * i + 4] = acc;
         }
         if (acc > 5f) runs.add(q);
         return 0;
     }
 
-    /** Where a car or boat is along its run at {@code at} metres: x, y, z, the run's direction on screen and pixels per metre. */
+    /**
+     * Where a car or boat is along its run at {@code at} metres: x, y, z, the run's direction on screen, pixels per metre,
+     * coming nearer; with room, X and its heading on the ground (7 to 9), its height (10) and its mode (11, the larger
+     * of its two points': hidden wins, a landmark bridge's next).
+     */
     private static boolean place(float[] q, float at, float[] o) {
-        int np = q.length / 5, lo = 0, hi = np - 1;
+        int np = q.length / RS, lo = 0, hi = np - 1;
         while (hi - lo > 1) {
             int mid = (lo + hi) >>> 1;
-            if (q[5 * mid + 4] <= at) lo = mid; else hi = mid;
+            if (q[RS * mid + 4] <= at) lo = mid; else hi = mid;
         }
-        float s0 = q[5 * lo + 4], s1 = q[5 * hi + 4], u = s1 > s0 ? (at - s0) / (s1 - s0) : 0f;
-        float sx = q[5 * hi] - q[5 * lo], sy = q[5 * hi + 1] - q[5 * lo + 1], sl = (float) Math.hypot(sx, sy);
-        o[0] = q[5 * lo] + sx * u;
-        o[1] = q[5 * lo + 1] + sy * u;
-        o[2] = q[5 * lo + 3] + (q[5 * hi + 3] - q[5 * lo + 3]) * u;
+        int L0 = RS * lo, H0 = RS * hi;
+        float s0 = q[L0 + 4], s1 = q[H0 + 4], u = s1 > s0 ? (at - s0) / (s1 - s0) : 0f;
+        float sx = q[H0] - q[L0], sy = q[H0 + 1] - q[L0 + 1], sl = (float) Math.hypot(sx, sy);
+        o[0] = q[L0] + sx * u;
+        o[1] = q[L0 + 1] + sy * u;
+        o[2] = q[L0 + 3] + (q[H0 + 3] - q[L0 + 3]) * u;
         o[3] = sl > 0.01f ? sx / sl : 1f;
         o[4] = sl > 0.01f ? sy / sl : 0f;
         o[5] = s1 > s0 ? sl / (s1 - s0) : 0f;
-        o[6] = q[5 * hi + 3] < q[5 * lo + 3] ? 1f : 0f; // coming nearer
-        if (o.length >= 10) { // where it is across (metres) and its heading on the ground (2.43, for the boats)
-            o[7] = q[5 * lo + 2] + (q[5 * hi + 2] - q[5 * lo + 2]) * u;
-            float gx = q[5 * hi + 2] - q[5 * lo + 2], gz = q[5 * hi + 3] - q[5 * lo + 3], gl = (float) Math.hypot(gx, gz);
+        o[6] = q[H0 + 3] < q[L0 + 3] ? 1f : 0f; // coming nearer
+        if (o.length >= 12) {
+            o[7] = q[L0 + 2] + (q[H0 + 2] - q[L0 + 2]) * u;
+            float gx = q[H0 + 2] - q[L0 + 2], gz = q[H0 + 3] - q[L0 + 3], gl = (float) Math.hypot(gx, gz);
             o[8] = gl > 1e-4f ? gx / gl : 0f;
             o[9] = gl > 1e-4f ? gz / gl : 1f;
+            o[10] = q[L0 + 5] + (q[H0 + 5] - q[L0 + 5]) * u;
+            o[11] = Math.max(q[L0 + 6], q[H0 + 6]);
         }
         return true;
     }
@@ -1286,14 +1367,16 @@ final class WorldScene {
         p.setShader(null);
         float body = clamp(1f - tr.lights * 1.4f), lightsA = tr.lights < 0.05f ? 0f : tr.lights;
         if (body < 0.02f && lightsA <= 0f) return;
-        float[] o = new float[7];
+        float[] o = new float[12];
         for (int r = 0; r < tr.runs.length; r++) {
             float[] q = tr.runs[r];
             float L = tr.len[r];
             for (int j = 0; j < tr.start[r].length; j++) {
                 place(q, (tr.start[r][j] + t * tr.speed[r][j]) % L, o);
                 float x = o[0], y = o[1], z = o[2], ux = o[3], uy = o[4];
-                if (!shows(tr.mask, tr.mw, tr.mh, x, y)) continue;
+                if (o[11] >= 2f) continue; // in a tunnel (or through a landmark bridge's tower)
+                if (o[11] < 1f && !shows(tr.mask, tr.mw, tr.mh, x, y)) continue; // on a landmark bridge: always
+
                 if (body > 0.02f) {
                     float len = 4.6f * o[5], wid = 1.9f * tr.fk / z;
                     if (Math.max(len, wid) >= 0.9f) {
@@ -1356,7 +1439,10 @@ final class WorldScene {
         /** Each boat's model ({@link #models()}), or -1 for the simple hull (no models). */
         int[][] model;
         float lights, fk, w2, hzr, hc, f, x0, k, night, lx, ly, lz;
-        int haze;
+        int haze, dark, light;
+        /** How far off what stands at each pixel is (half size, {@link Float#MAX_VALUE} for the ground), to hide a boat
+         * only where something nearer than it stands: under a bridge's deck, behind a building. */
+        float[] depth;
 
         static Boats make(Data d, byte[] mask, int mw, int mh, float x0, float k, float f, CityScene.Light l, int haze,
                           long seed, boolean left) {
@@ -1367,6 +1453,9 @@ final class WorldScene {
             b.lights = l.lights;
             b.night = l.night;
             b.haze = haze;
+            // the boats in the scene's own tones (2.43): each model's colours by their lightness, from deep to pale
+            b.dark = Scene.mix(l.shade, l.front, 0.4f);
+            b.light = Scene.mix(l.lit, 0xFFFFFFFF, 0.4f);
             b.fk = f * k;
             b.w2 = d.w / 2f;
             b.hzr = HZ * d.h;
@@ -1383,7 +1472,7 @@ final class WorldScene {
             float[] lane = new float[d.boats.length];
             for (int i = 0; i < lane.length; i++) lane[i] = d.boatKind[i] == 1 ? 2.5f : 9f;
             List<Integer> owner = new ArrayList<>();
-            List<float[]> runs = runs(d, d.boats, lane, owner, x0, k, f, left);
+            List<float[]> runs = runs(d, d.boats, null, null, lane, owner, x0, k, f, left);
             Model[] ms = models();
             Random r = new Random(seed ^ 0xB0A7L);
             b.runs = runs.toArray(new float[0][]);
@@ -1392,7 +1481,7 @@ final class WorldScene {
             b.speed = new float[b.runs.length][];
             b.model = new int[b.runs.length][];
             for (int i = 0; i < b.runs.length; i++) {
-                float L = b.runs[i][b.runs[i].length - 1];
+                float L = runLength(b.runs[i]);
                 b.len[i] = L;
                 boolean canal = d.boatKind[owner.get(i)] == 1;
                 float want = L / (canal ? 170f : 260f);
@@ -1488,7 +1577,7 @@ final class WorldScene {
         p.setShader(null);
         float day = clamp(1f - bt.lights * 1.4f), night = bt.lights < 0.05f ? 0f : bt.lights;
         Model[] ms = models();
-        float[] o = new float[10];
+        float[] o = new float[12];
         p.setStrokeCap(Paint.Cap.ROUND);
         p.setStrokeJoin(Paint.Join.ROUND);
         for (int r = 0; r < bt.runs.length; r++) {
@@ -1500,7 +1589,8 @@ final class WorldScene {
                 // screen isn't straight between them)
                 float z = o[2], x = (bt.w2 + o[7] * bt.f / z - bt.x0) * bt.k, y = (bt.hzr + bt.hc * bt.f / z) * bt.k;
                 float ux = o[3], uy = o[4];
-                if (!shows(bt.mask, bt.mw, bt.mh, x, y)) continue;
+                float dist = (float) Math.sqrt(o[7] * o[7] + z * z + bt.hc * bt.hc);
+                if (nearer(bt, x, y, dist)) continue; // its middle hidden: under a bridge, behind a building
                 int mi = bt.model[r][j];
                 Model m = mi >= 0 && mi < ms.length ? ms[mi] : null;
                 float lm = m != null ? m.length : 12f, wm = m != null ? m.beam * m.length * (m.kind == 0 ? 0.6f : 0.85f) : 3.5f;
@@ -1508,6 +1598,11 @@ final class WorldScene {
                 if (Math.max(len, wid) < 1.1f) continue;
                 float ww = Math.max(0.8f, wid), hl = Math.max(ww * 0.6f, len / 2f);
                 float a = 0.6f + 0.4f * Math.min(1f, 600f / z);
+                // what stands nearer than it over it (a bridge's deck, a pier, a building) is cut out of it, on a layer
+                float R = Math.max(len * 1.6f + 3f * ww, 8f), tall = lm * bt.fk / z * 1.1f + 2f;
+                android.graphics.RectF box = new android.graphics.RectF(x - R, y - tall - R * 0.2f, x + R, y + R * 0.6f);
+                Bitmap cut = occluders(bt, box, dist);
+                int saved = cut != null ? c.saveLayer(box, null) : -1;
                 // its wake: a pale streak behind it, as wide as the boat and widening a little, fading
                 p.setStyle(Paint.Style.STROKE);
                 float wake = Math.max(len * 1.3f, 3f * ww);
@@ -1530,7 +1625,7 @@ final class WorldScene {
                     BOAT_PATH.lineTo(x + ux * sh - nx, y + uy * sh - ny);
                     BOAT_PATH.lineTo(x - ux * hl - nx, y - uy * hl - ny);
                     BOAT_PATH.close();
-                    p.setColor(Scene.alpha(Scene.mix(Scene.mix(0xFFF2EFEA, bt.haze, fog(z, bt.night)), 0xFF141A33, 0.75f * night), a));
+                    p.setColor(Scene.alpha(Scene.mix(Scene.mix(bt.light, bt.haze, fog(z, bt.night)), 0xFF141A33, 0.75f * night), a));
                     c.drawPath(BOAT_PATH, p);
                 }
                 if (night > 0f) { // its lights: the cabin's warm windows, and their reflection down the water
@@ -1545,8 +1640,53 @@ final class WorldScene {
                         c.drawRect(lx - rad * 0.6f, ly + rad, lx + rad * 0.6f, ly + rad * 5f, p);
                     }
                 }
+                if (saved >= 0) {
+                    Paint cp = new Paint(Paint.FILTER_BITMAP_FLAG);
+                    cp.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
+                    int hx0 = (int) Math.floor(box.left / 2f), hy0 = (int) Math.floor(box.top / 2f);
+                    c.drawBitmap(cut, null, new android.graphics.RectF(hx0 * 2f, hy0 * 2f, (hx0 + cut.getWidth()) * 2f,
+                            (hy0 + cut.getHeight()) * 2f), cp);
+                    c.restoreToCount(saved);
+                    cut.recycle();
+                }
             }
         }
+    }
+
+    /** Whether something nearer than {@code dist} stands at (x, y) (the depth map, half size). */
+    private static boolean nearer(Boats bt, float x, float y, float dist) {
+        if (bt.depth == null) return false;
+        int mx = (int) (x * 0.5f), my = (int) (y * 0.5f);
+        if (mx < 0 || my < 0 || mx >= bt.mw || my >= bt.mh) return false;
+        return bt.depth[my * bt.mw + mx] < dist * 0.97f;
+    }
+
+    /** What stands nearer than {@code dist} within {@code box} (half size, opaque where it does), or null if nothing. */
+    private static Bitmap occluders(Boats bt, android.graphics.RectF box, float dist) {
+        if (bt.depth == null) return null;
+        int x0 = Math.max(0, (int) Math.floor(box.left / 2f)), y0 = Math.max(0, (int) Math.floor(box.top / 2f));
+        int x1 = Math.min(bt.mw, (int) Math.ceil(box.right / 2f)), y1 = Math.min(bt.mh, (int) Math.ceil(box.bottom / 2f));
+        if (x1 <= x0 || y1 <= y0) return null;
+        int w = x1 - x0, h = y1 - y0;
+        int[] px = new int[w * h];
+        boolean any = false;
+        float lim = dist * 0.97f;
+        for (int yy = 0; yy < h; yy++) {
+            for (int xx = 0; xx < w; xx++) {
+                if (bt.depth[(y0 + yy) * bt.mw + x0 + xx] < lim) {
+                    px[yy * w + xx] = 0xFF000000;
+                    any = true;
+                }
+            }
+        }
+        if (!any) return null;
+        // its left and top edges at the box's (clipped to the map): pad so the drawing lines up with the box
+        int bx0 = (int) Math.floor(box.left / 2f), by0 = (int) Math.floor(box.top / 2f);
+        if (bx0 == x0 && by0 == y0) return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888);
+        int W2 = x1 - bx0, H2 = y1 - by0;
+        int[] full = new int[W2 * H2];
+        for (int yy = 0; yy < h; yy++) System.arraycopy(px, yy * w, full, (yy + y0 - by0) * W2 + (x0 - bx0), w);
+        return Bitmap.createBitmap(full, W2, H2, Bitmap.Config.ARGB_8888);
     }
 
     /**
@@ -1595,7 +1735,9 @@ final class WorldScene {
             int i0 = m.f[3 * j], i1 = m.f[3 * j + 1], i2 = m.f[3 * j + 2];
             float nX = m.n[3 * j] * rx + m.n[3 * j + 2] * hx, nY = m.n[3 * j + 1], nZ = m.n[3 * j] * rz + m.n[3 * j + 2] * hz;
             float lit = 0.62f + 0.38f * Math.max(0f, nX * bt.lx + nY * bt.ly + nZ * bt.lz);
-            int col = Scene.mix(m.col[j], 0xFFEEEAF2, 0.18f * day); // softened to the pastel day
+            int mc = m.col[j];
+            float lum = (0.299f * ((mc >> 16) & 0xFF) + 0.587f * ((mc >> 8) & 0xFF) + 0.114f * (mc & 0xFF)) / 255f;
+            int col = Scene.mix(bt.dark, bt.light, (float) Math.pow(lum, 0.85));
             col = 0xFF000000 | (Math.round(((col >> 16) & 0xFF) * lit) << 16) | (Math.round(((col >> 8) & 0xFF) * lit) << 8)
                     | Math.round((col & 0xFF) * lit);
             col = Scene.mix(Scene.mix(col, bt.haze, fogA), 0xFF141A33, 0.72f * night);
