@@ -16,15 +16,11 @@ from PIL import Image, ImageDraw
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'app', 'src', 'main', 'assets', 'boats.bin')
 
-# name, kind, where (1 rivers, 2 canals, 3 both), length (m), at most this many faces
+# name, kind, where (1 rivers, 2 canals, 3 both), length (m), at most this many faces. Since 2.43 only the two tow
+# boats, after the user: a river push boat's real size (25 m long; the app makes them 16 m on a canal), in the kit's own
+# proportions (about 12 m across, its wheelhouse 13 m up)
 BOATS = [
-    ('ship-cargo-a', 0, 1, 70, 240), ('ship-cargo-b', 0, 1, 70, 220), ('ship-cargo-c', 0, 1, 60, 180),
-    ('boat-tow-a', 0, 1, 20, 180), ('boat-tow-b', 0, 1, 20, 180),
-    ('boat-house-a', 1, 3, 24, 180), ('boat-house-b', 1, 3, 22, 180),
-    ('boat-house-d', 1, 3, 20, 180), ('boat-house-c', 2, 3, 14, 140),
-    # the small ones each with a cabin that reads from above, even end on (2.43: the speed boats' bare decks read as
-    # triangles at a widget's size, after the user, and the round tugs and ferry as blobs)
-    ('boat-fishing-small', 2, 3, 10, 110), ('boat-sail-a', 2, 1, 9, 120), ('boat-sail-b', 2, 1, 9, 120),
+    ('boat-tow-a', 0, 3, 25, 180), ('boat-tow-b', 0, 3, 25, 180),
 ]
 
 
@@ -103,17 +99,13 @@ def simplify(v, f, c, most):
 
 
 def normalise(v):
-    """Length 1 along +Z, the bow (the narrower end) forward, centred, its waterline at 0 (a tenth of its height under)."""
+    """Length 1 along +Z (the kit's bow forward), centred, its waterline at 0 (a tenth of its height under)."""
     ext = np.ptp(v, 0)
     if ext[0] > ext[2]:  # its length along X: turn it
         v = v[:, [2, 1, 0]] * np.array([-1.0, 1.0, 1.0])  # a turn, not a mirror (keeps the faces outward)
     v = v - np.array([(v[:, 0].max() + v[:, 0].min()) / 2, v[:, 1].min(), (v[:, 2].max() + v[:, 2].min()) / 2])
     L = np.ptp(v[:, 2])
-    v = v / L
-    z = v[:, 2]
-    front = np.ptp(v[z > 0.3][:, 0]) if (z > 0.3).any() else 1
-    back = np.ptp(v[z < -0.3][:, 0]) if (z < -0.3).any() else 1
-    if front > back: v[:, 2] *= -1; v[:, 0] *= -1
+    v = v / L  # the kit's boats face +Z already
     v[:, 1] -= 0.1 * v[:, 1].max()
     return v
 

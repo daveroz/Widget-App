@@ -965,9 +965,9 @@ final class WorldScene {
                 for (int t = 0; t < count; t++) {
                     float x = minx + r.nextFloat() * (maxx - minx), y = miny + r.nextFloat() * (maxy - miny);
                     if (y <= hzr + 1 || !inside(s, x, y)) continue;
-                    if (inWater(d, x, y)) continue; // a park running into a river: none in the water (2.43)
-                    float z = d.hc * f / (y - hzr);
-                    out.add(new float[]{z, 0, x, y, Math.max(0.5f, 9f / z * f)});
+                    float z = d.hc * f / (y - hzr), size = Math.max(0.5f, 9f / z * f);
+                    if (inWater(d, x, y, size * 0.35f)) continue; // a park running into a river: none in the water (2.43)
+                    out.add(new float[]{z, 0, x, y, size});
                 }
             } else if (d.groundKind[i] == ROAD && lights > 0.05f) {
                 int n = s.length / 2;
@@ -1023,22 +1023,31 @@ final class WorldScene {
                 if (r.nextFloat() < 0.22f) continue; // a gap: a driveway, a crossing, a missing tree
                 place(q, at, o);
                 float x = o[0], y = o[1], z = o[2];
-                if (z < 30f || z > 1200f || x < -10f || x > d.w + 10f || inWater(d, x, y)) continue;
-                out.add(new float[]{z * (float) Math.sqrt(1 + Math.pow((x - d.w / 2f) / f, 2)), 0, x, y,
-                        Math.max(0.4f, (6f + r.nextFloat() * 2f) / z * f)});
+                float size = Math.max(0.4f, (6f + r.nextFloat() * 2f) / z * f);
+                if (z < 30f || z > 1200f || x < -10f || x > d.w + 10f || inWater(d, x, y, size * 0.35f)) continue;
+                out.add(new float[]{z * (float) Math.sqrt(1 + Math.pow((x - d.w / 2f) / f, 2)), 0, x, y, size});
                 made++;
             }
         }
     }
 
-    /** Whether (x, y) is in the water or within a pixel of it (2.43: so no tree stands in a river, nor on its very edge). */
-    private static boolean inWater(Data d, float x, float y) {
+    /**
+     * Whether a tree at (x, y), its crown {@code r} across, would stand in the water (2.43): its foot in the water or within
+     * a pixel of it, or water on both sides of it or before it within its crown's width (a narrow island or pier, too
+     * thin to show as land, reads as a tree in the river).
+     */
+    private static boolean inWater(Data d, float x, float y, float r) {
+        float rr = Math.max(1.5f, r);
+        int around = 0;
         for (int i = 0; i < d.ground.length; i++) {
             if (d.groundKind[i] != WATER) continue;
             float[] s = d.ground[i];
             if (inside(s, x, y) || inside(s, x - 1f, y) || inside(s, x + 1f, y) || inside(s, x, y + 1f) || inside(s, x, y - 1f)) return true;
+            if (inside(s, x - rr, y)) around |= 1;
+            if (inside(s, x + rr, y)) around |= 2;
+            if (inside(s, x, y + rr)) around |= 4;
         }
-        return false;
+        return around == 3 || (around & 4) != 0 && (around & 3) != 0;
     }
 
     /** A tree's crown as cut from paper (the video's), its side to the light lighter. */
@@ -1442,8 +1451,9 @@ final class WorldScene {
         float[][] runs;
         float[] len;
         float[][] start, speed;
-        /** Each boat's model ({@link #models()}), or -1 for the simple hull (no models). */
+        /** Each boat's model ({@link #models()}), or -1 for the simple hull (no models); each run's size (a canal's smaller). */
         int[][] model;
+        float[] scale;
         float lights, fk, w2, hzr, hc, f, x0, k, night, lx, ly, lz;
         int haze, dark, light;
         /** How far off what stands at each pixel is (half size, {@link Float#MAX_VALUE} for the ground), to hide a boat
@@ -1461,7 +1471,7 @@ final class WorldScene {
             b.haze = haze;
             // the boats in the scene's own tones (2.43): each model's colours by their lightness, from deep to pale
             b.dark = Scene.mix(l.shade, l.front, 0.4f);
-            b.light = Scene.mix(l.lit, 0xFFFFFFFF, 0.4f);
+            b.light = Scene.mix(l.lit, 0xFFFFFFFF, 0.12f);
             b.fk = f * k;
             b.w2 = d.w / 2f;
             b.hzr = HZ * d.h;
@@ -1486,6 +1496,7 @@ final class WorldScene {
             b.start = new float[b.runs.length][];
             b.speed = new float[b.runs.length][];
             b.model = new int[b.runs.length][];
+            b.scale = new float[b.runs.length];
             for (int i = 0; i < b.runs.length; i++) {
                 float L = runLength(b.runs[i]);
                 b.len[i] = L;
@@ -1497,14 +1508,10 @@ final class WorldScene {
                 b.model[i] = new int[c];
                 for (int j = 0; j < c; j++) {
                     b.start[i][j] = r.nextFloat() * L;
-                    float u = r.nextFloat();
-                    // on a river a quarter freighters and tow boats, two fifths tour boats, the rest small; on a canal
-                    // houseboats and small boats
-                    int kind = canal ? (u < 0.55f ? 1 : 2) : (u < 0.25f ? 0 : u < 0.65f ? 1 : 2);
-                    b.model[i][j] = pickModel(ms, kind, canal ? 2 : 1, r.nextFloat());
-                    float pace = kind == 0 ? 2.5f : kind == 1 ? 3.2f : 5f; // metres a second
-                    b.speed[i][j] = pace * (canal ? 0.6f : 1f) * (0.8f + 0.4f * r.nextFloat());
+                    b.model[i][j] = pickModel(ms, canal ? 2 : 1, r.nextFloat());
+                    b.speed[i][j] = (canal ? 2f : 3f) * (0.8f + 0.4f * r.nextFloat()); // a push boat's pace, m/s
                 }
+                b.scale[i] = canal ? CANAL_SCALE : 1f;
             }
             return b;
         }
@@ -1563,15 +1570,18 @@ final class WorldScene {
         return models;
     }
 
-    /** One of the models of {@code kind} that sails {@code where} (1 rivers, 2 canals), or -1. */
-    private static int pickModel(Model[] ms, int kind, int where, float u) {
+    /** One of the models that sails {@code where} (1 rivers, 2 canals), or -1. */
+    private static int pickModel(Model[] ms, int where, float u) {
         int n = 0;
-        for (Model m : ms) if (m.kind == kind && (m.where & where) != 0) n++;
+        for (Model m : ms) if ((m.where & where) != 0) n++;
         if (n == 0) return -1;
         int pick = Math.min(n - 1, (int) (u * n));
-        for (int i = 0; i < ms.length; i++) if (ms[i].kind == kind && (ms[i].where & where) != 0 && pick-- == 0) return i;
+        for (int i = 0; i < ms.length; i++) if ((ms[i].where & where) != 0 && pick-- == 0) return i;
         return -1;
     }
+
+    /** A boat on a canal is this much the size of one on a river (2.43: a 16 m push boat for a 25 m one). */
+    private static final float CANAL_SCALE = 0.65f;
 
     private static final Path BOAT_PATH = new Path();
     private static float[] bx = new float[256], by = new float[256], bwx = new float[256], bwy = new float[256], bwz = new float[256];
@@ -1599,7 +1609,8 @@ final class WorldScene {
                 if (nearer(bt, x, y, dist)) continue; // its middle hidden: under a bridge, behind a building
                 int mi = bt.model[r][j];
                 Model m = mi >= 0 && mi < ms.length ? ms[mi] : null;
-                float lm = m != null ? m.length : 12f, wm = m != null ? m.beam * m.length * (m.kind == 0 ? 0.6f : m.kind == 1 ? 0.85f : 0.75f) : 3.5f;
+                float sc = bt.scale[r];
+                float lm = (m != null ? m.length : 20f) * sc, wm = (m != null ? m.beam * m.length : 8f) * sc;
                 float len = lm * o[5], wid = wm * bt.fk / z;
                 if (Math.max(len, wid) < 1.1f) continue;
                 float ww = Math.max(0.8f, wid), hl = Math.max(ww * 0.6f, len / 2f);
@@ -1621,7 +1632,7 @@ final class WorldScene {
                 }
                 p.setStyle(Paint.Style.FILL);
                 if (m != null && len >= 3.5f) {
-                    model(c, p, bt, m, o, day, night, a);
+                    model(c, p, bt, m, sc, o, day, night, a);
                 } else { // far off: a rounded hull with a small cabin on it, in the scene's tones (2.43: not a wedge)
                     int hullC = Scene.mix(Scene.mix(bt.dark, bt.haze, fog(z, bt.night)), 0xFF141A33, 0.75f * night);
                     int cabC = Scene.mix(Scene.mix(bt.light, bt.haze, fog(z, bt.night)), 0xFF141A33, 0.7f * night);
@@ -1636,11 +1647,11 @@ final class WorldScene {
                     c.drawLine(x - ux * hh * 0.45f, y - uy * hh * 0.45f - ww * 0.35f, x + ux * hh * 0.15f, y + uy * hh * 0.15f - ww * 0.35f, p);
                     p.setStyle(Paint.Style.FILL);
                 }
-                if (night > 0f) { // its lights: the cabin's warm windows, and their reflection down the water
-                    int n = m != null && m.kind == 1 ? 4 : 1;
+                if (night > 0f) { // its lights: the wheelhouse's warm windows, and their reflection down the water
+                    int n = 2;
                     float rad = Math.max(0.6f, Math.min(1.2f * px, 0.7f * bt.fk / z));
                     for (int k2 = 0; k2 < n; k2++) {
-                        float u = n == 1 ? (m != null && m.kind == 0 ? -0.75f : 0f) : -0.5f + 1.0f * k2 / (n - 1);
+                        float u = -0.45f + 0.35f * k2; // along the wheelhouse, a little aft of the middle
                         float lx = x + ux * hl * u, ly = y + uy * hl * u - Math.max(ww * 0.4f, 0.12f * lm * bt.fk / z);
                         p.setColor(Scene.alpha(WARM[k2 % WARM.length], Math.min(1f, 1.1f * night)));
                         c.drawCircle(lx, ly, rad, p);
@@ -1702,19 +1713,17 @@ final class WorldScene {
      * every face turned to the camera, far to near, lit by the sun as the buildings are, softened to the scene's
      * colours by day, hazed with distance, dark at night. Faces under a sixth of a pixel are left out.
      */
-    private static void model(Canvas c, Paint p, Boats bt, Model m, float[] o, float day, float night, float a) {
+    private static void model(Canvas c, Paint p, Boats bt, Model m, float sc, float[] o, float day, float night, float a) {
         int nv = m.v.length / 3, nf = m.f.length / 3;
         if (bx.length < nv) {
             bx = new float[nv]; by = new float[nv]; bwx = new float[nv]; bwy = new float[nv]; bwz = new float[nv];
         }
         if (bkeys.length < nf) bkeys = new long[nf];
-        // the model's frame turned onto its heading; the scene's frame (x right, y up, z ahead) is left-handed and the
-        // model's right-handed, so its x is taken the other way (else every face would turn inside out); a freighter
-        // slimmed to a river barge's lines
-        float X0 = o[7], Z0 = o[2], hx = o[8], hz = o[9], rx = -hz, rz = hx, Lm = m.length;
-        float slim = m.kind == 0 ? 0.6f : m.kind == 1 ? 0.85f : 0.75f;
+        // the model's frame turned onto its heading, at its real size; the scene's frame (x right, y up, z ahead) is
+        // left-handed and the model's right-handed, so its x is taken the other way (else every face would turn inside out)
+        float X0 = o[7], Z0 = o[2], hx = o[8], hz = o[9], rx = -hz, rz = hx, Lm = m.length * sc;
         for (int i = 0; i < nv; i++) {
-            float mx = m.v[3 * i] * Lm * slim, my = m.v[3 * i + 1] * Lm, mz = m.v[3 * i + 2] * Lm;
+            float mx = m.v[3 * i] * Lm, my = m.v[3 * i + 1] * Lm, mz = m.v[3 * i + 2] * Lm;
             float X = X0 + mx * rx + mz * hx, Z = Z0 + mx * rz + mz * hz;
             if (Z < 2f) return;
             bwx[i] = X;
@@ -1745,7 +1754,7 @@ final class WorldScene {
             float lit = 0.62f + 0.38f * Math.max(0f, nX * bt.lx + nY * bt.ly + nZ * bt.lz);
             int mc = m.col[j];
             float lum = (0.299f * ((mc >> 16) & 0xFF) + 0.587f * ((mc >> 8) & 0xFF) + 0.114f * (mc & 0xFF)) / 255f;
-            int col = Scene.mix(bt.dark, bt.light, (float) Math.pow(lum, 0.85));
+            int col = Scene.mix(bt.dark, bt.light, (float) Math.pow(lum, 1.15)); // a grey wheelhouse a mid tone, not white
             col = 0xFF000000 | (Math.round(((col >> 16) & 0xFF) * lit) << 16) | (Math.round(((col >> 8) & 0xFF) * lit) << 8)
                     | Math.round((col & 0xFF) * lit);
             col = Scene.mix(Scene.mix(col, bt.haze, fogA), 0xFF141A33, 0.72f * night);
