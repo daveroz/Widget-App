@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** Built-in list of ~480 cities (name, country, time zone, coordinates) so picking a city needs no network. */
+/** Built-in list of 421 places (name, country, time zone, coordinates) so picking a city needs no network. */
 final class CityData {
     private CityData() {}
 

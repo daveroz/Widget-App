@@ -32,16 +32,21 @@ The baked scene files are a derivative database of ODbL data, so they're offered
 4. **Merge**: touching buildings of about the same height (bins of 3 m near, widening with distance) in the same 160 m
    cell become one block, as the video's blocks.
 5. **Faces**: walls facing away from the camera and roofs above it are never stored.
-6. **Sub-pixel**: any face smaller than a fifth of a pixel goes.
+6. **Sub-pixel**: any face smaller than a fifth of a pixel goes (since 2.40 the hero's faces only below a twenty-fifth,
+   so a far hero such as the Cristo keeps its shape).
 7. **Occlusion**: faces with fewer than 2 pixels showing (drawn at twice the size, in painter's order) go.
-8. **Far terrain**: the hills become two silhouette lines (2.5–9 km and 9–32 km), not meshes.
+8. **Far terrain**: the hills become two silhouette lines (2.5–9 km and 9–32 km), not meshes; since 2.40 a building
+   further than the first line's ridge in its column and lower than that line on screen is hidden behind the hill and
+   goes.
 9. **Camera height**: never lower than 50 m (75 m before 2.32); a short landmark is looked down on a little more, from
    higher up.
-10. **Air**: nothing within 140 m (or a fifth of the camera's distance) of the camera stays, so no building fills the
-    view or swallows the camera.
-12. **Clear view**: a plain building between the camera and the main landmark (or the city's focus), nearer than it,
-    whose top would cover any of it, goes, so the landmark is never hidden; since 2.32 another landmark there that would
-    cover the hero's foot goes too (Dubai's Address Sky View before the Burj Khalifa).
+10. **Air**: nothing within 40 m of the camera stays, so no building swallows the camera (140 m, or a fifth of the
+    camera's distance, before 2.40; a building too big in view now goes by rule 17 instead).
+12. **Clear view** (2.40, after the user: only what really covers the landmark goes): the hero is drawn on screen and
+    every block and landmark nearer than it outlined (its footprint at the ground and at its top); while more than 35% of
+    the hero is hidden, the one hiding most of it goes, then the next. A building in front of its foot stays, as in a
+    photo. (2.31 to 2.39: any plain building whose top covered any of it went, and any landmark covering its foot.) A
+    place with no hero keeps everything.
 13. **Hero**: another landmark that would stand taller on screen than the main one (and than about 60% of the cell)
     goes, so a near tower never dwarfs the city's landmark.
 11. **Lamps**: street lamps hidden behind a nearer face go; the rest carry their distance, so they're drawn in depth
@@ -72,6 +77,18 @@ or `lat`/`lon` and a focus `height` and `width`), the side it's seen from (`az`:
 camera) and, where a city needs it, `foot` (where the landmark's foot stands; nearer the horizon brings the camera down,
 so a low, wide landmark such as Tower Bridge stands against the sky), `hmin` (the lowest camera) and `zoom`.
 
+**Rule 20, a landmark on its hill** (2.40, Rio's Cristo Redentor on Corcovado): the scene's ground is flat, so such a
+landmark is seen from the city below, far off, as the postcards show it: `"hill": {"az", "d", "hc", "view", "scale",
+"ground", "from"}` sets the camera (its side, distance and height over the city's ground, `ground` metres over the sea,
+and its lens, degrees up and down), the hills get a third, nearest line from `from` metres to just past the landmark
+(finer terrain, zoom 12, so the mountain's shape holds), and the landmark stands where that line is drawn under it, so it
+never floats; `scale` draws it larger than life so it reads at a widget's size (the Cristo 2.2 times). At night it is
+floodlit whole, a cool white.
+
+**Drawn landmarks** (2.40): a landmark the catalog lacks is drawn by `bake.py` from its published measures and placed as
+a catalog entry (`PROC`), with `clear` metres round it free of plain buildings: the Obelisco of Buenos Aires (67.5 m, a
+square shaft 6.8 m a side tapering to 3.5 m, a pyramid tip), seen down the Avenida 9 de Julio.
+
 ## Night lights
 
 After the reference poster (warm windows in grids, an orange-pink bloom, pink street lamps) and the approach in
@@ -96,10 +113,10 @@ stolslilabs/paved#513 (windows as emissive faces given a halo by bloom, warm poo
 
 ## Two tiers
 
-- **Tier 1** (`majors.txt`, 158 major cities): the full map as above, with a hero landmark (the hand-set one in
+- **Tier 1** (`majors.txt`, 160 major cities; Whittier and La Serena since 2.40): the full map as above, with a hero landmark (the hand-set one in
   `cities.json` or `bake_all.py`'s `HERO`, else the tallest catalog landmark within 6 km, never one on a hilltop) and its
   camera (hand-set, else rule 14).
-- **Tier 2** (every other place in the app's list, 321): a low-poly version of itself (rule 15): a 45 m grid, each cell
+- **Tier 2** (every other place in the app's list, 261): a low-poly version of itself (rule 15): a 45 m grid, each cell
   with enough building in it a block as tall as its buildings on average (to 4 m), runs of equal cells joined; its real
   water, parks, main roads and hills; the camera chosen the same way.
 - Places with almost nothing to show (fewer than 30 shapes) get no scene and keep the drawn one. Scenes are centred on
@@ -107,7 +124,8 @@ stolslilabs/paved#513 (windows as emissive faces given a halo by bloom, warm poo
 
 More rules: **14, the automatic camera**: of eight sides, the one with the richest view: a deep skyline round and behind
 the focus, water in view, mountains on the horizon (weighed well), nothing tall right in front of the camera; **17, no
-wall in front**: a plain block nearer than the focus whose top would stand in the top sixth of the cell goes; **15**: tier
+wall in front**: a block nearer than the hero (or focus) whose outline on screen would cover more than 30% of a square
+cell goes (2.40; before, any whose top stood in the top sixth of the cell); **15**: tier
 2's low-poly blocks; **16, at screen size**: the ground simplified to 0.6 px and its specks dropped, footprints to half a
 pixel, a block showing less than 6 px dropped.
 
@@ -119,7 +137,7 @@ list's first.
 
 - header: `WSC3`, version (4; 3 before 2.32), tier, width, height, the camera's look azimuth (degrees), its height
   (quarter metres), and since version 4 its lens (the focal length in cell heights, times 10,000);
-- hills: count, then each line's points (the far line first);
+- hills: count, then each line's points (the far line first; a third, nearest line since 2.40 for rule 20);
 - ground: count, then each shape's kind (2 water, 3 park, 4 road) and points;
 - items, far to near: count, then each: a **block** (`0`, distance byte, height in half metres, its footprint's points on
   the ground) or a **landmark face** (`1 + kind`: 5 body, 6 glass, 7 light, 9 roof; facing 0-254 of a turn or 255;

@@ -158,3 +158,5 @@ Wellington|NZ
 Yerevan|AM
 Zagreb|HR
 Zurich|CH
+Whittier|US
+La Serena|CL

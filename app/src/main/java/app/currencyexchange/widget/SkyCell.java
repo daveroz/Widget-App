@@ -94,7 +94,7 @@ final class SkyCell {
         light = CityScene.light(sky, sunLeft);
         // the city as it really is, from open map data (2.31; its streets, landmarks, water and hills), or else the drawn
         // scene (its streets as its continent's, 2.27)
-        CityScene.Built real = WorldScene.build(city, cc, w, h, px, light, seed);
+        CityScene.Built real = WorldScene.build(city, cc, lat, lon, w, h, px, light, seed);
         built = real != null ? real : CityScene.build(city, lat, zone, w, h, px, light, seed);
         // the final grade (2.34, after the user's Lightroom edit): richer colour everywhere, the day's shadows lifted
         float lift = Grade.day(el);

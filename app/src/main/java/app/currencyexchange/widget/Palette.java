@@ -36,12 +36,14 @@ final class Palette {
     // night a deep navy (hue 265, not violet), darker and calmer; the blue hour navy to a violet horizon; dusk violet,
     // a crimson-magenta and orange; the golden hour plum, coral and amber; the day a quieter, deeper blue to a pale
     // haze. (2.31's punchier lights: night 0A0B30 141760 2B2486, blue hour 1B1672 3A2AA2 7E3FBE, dusk 4A2B9E BE46A8
-    // FF7E78, golden 6A62D6 FF86A6 FFC160, day 3C7FE6 66BFEE D6F0E4.)
+    // FF7E78, golden 6A62D6 FF86A6 FFC160, day 3C7FE6 66BFEE D6F0E4.) Since 2.40 midday after the user's two pastel
+    // references (a Miami bay and a causeway): a soft teal-cerulean top, aqua in the middle and a pale butter-yellow
+    // horizon (2.33's day: 3B70C2 67A1D6 B9D6E8).
     private static final int[] NIGHT = {0xFF030A2B, 0xFF061645, 0xFF152861};
     private static final int[] BLUE_HOUR = {0xFF0B1649, 0xFF1E2769, 0xFF503C8A};
     private static final int[] DUSK = {0xFF442D7D, 0xFFBC467C, 0xFFF77C56};
     private static final int[] GOLDEN = {0xFFB5596D, 0xFFDA645C, 0xFFF89845};
-    private static final int[] DAY = {0xFF3B70C2, 0xFF67A1D6, 0xFFB9D6E8};
+    private static final int[] DAY = {0xFF5E9AC0, 0xFF95C4CA, 0xFFF0EBB5};
 
     /** Where each light is at its fullest (the sun's height, degrees) and how broad its bell is. */
     private static float bell(float e, float at, float width) {
@@ -126,6 +128,17 @@ final class Palette {
      */
     private static final float[] DAY_L = {0.96f, 1.0f, 0.8f, 0.46f, 0.6f, 0.52f, 1.04f};
 
+    /**
+     * 2.40, midday after the pastel references (measured in OKLCH): each role's lightness share, hue and colour by full
+     * day: sunlit faces peach-cream, the body a soft lilac, faces in shade lavender-periwinkle, the streets a lavender
+     * grey, trees and palms periwinkle-violet, edges a pale pink, the far city a lavender haze. Lighter than 2.33's day
+     * (airy, as the references) but with more spread between sun and shade than their flat colour, and their colour kept
+     * a little under theirs since the final grade adds a third.
+     */
+    private static final float[] PASTEL_L = {1.0f, 1.16f, 0.9f, 0.66f, 0.76f, 0.64f, 1.18f};
+    private static final float[] PASTEL_H = {305f, 48f, 330f, 282f, 285f, 280f, 15f};
+    private static final float[] PASTEL_C = {0.04f, 0.05f, 0.034f, 0.066f, 0.04f, 0.09f, 0.035f};
+
     /** The city's colours, by role ({@link #FAR} ... {@link #RIM}), worked out from the sky by the video's rule. */
     static int[] city(float e, float morning) {
         int[] sky = sky(e, morning);
@@ -139,21 +152,20 @@ final class Palette {
             // 2.33, after the graded reference: deeper, so the lights and the sky stand out (by day 0.88 of 2.31's, at
             // night a faint moonlit lift instead of 2.31's strong one); calmer at night
             float share = ROLES[i][0] + (DAY_L[i] - ROLES[i][0]) * day;
+            float g = smooth(6f, 16f, e);
+            share += (PASTEL_L[i] - share) * g; // 2.40: midday's pastel lightness
             float L = mean * share * (1f - 0.12f * day) * (1f - 0.34f * backlit) + 0.02f * night;
             float h = Math.max(258f, Math.min(290f, top[2] - ROLES[i][1])); // within the blue to indigo band
             float C = Math.max(0.03f + 0.015f * night, top[1] * ROLES[i][2] * (1f - 0.28f * day)) * 1.1f;
             out[i] = fromLch(Math.min(0.9f, L), C, h);
-            float g = smooth(6f, 16f, e);
-            if (g > 0f && (i == LIT || i == NEAR || i == SHADE || i == EDGE || i == STREET)) {
-                // 2.37: by full day the city as daylight shows it, not the illustration's blue: faces in the sun a soft
-                // warm stone, faces in shade a cool blue-grey (the sky lights them), the body and edges a warm grey,
-                // the streets asphalt; blended in OKLab (no green on the way), each building's own material on top
-                float tc = i == LIT ? 0.01f : i == SHADE ? 0.04f : i == STREET ? 0.008f : i == EDGE ? 0.007f : 0.006f; // 2.39: less warm
-                float th = i == LIT ? 72f : i == SHADE ? 256f : i == STREET ? 250f : 80f;
+            if (g > 0f) {
+                // by full day the city as the pastel references paint it (2.40; 2.37 to 2.39 a daylight grey), blended
+                // in OKLab (no green on the way), each building's own material on top
+                float tc = PASTEL_C[i], th = PASTEL_H[i];
                 double r1 = Math.toRadians(h), r2 = Math.toRadians(th);
                 float a1 = (float) (C * Math.cos(r1)), b1 = (float) (C * Math.sin(r1));
                 float a2 = (float) (tc * Math.cos(r2)), b2 = (float) (tc * Math.sin(r2));
-                out[i] = rgb(Math.min(0.9f, L), a1 + (a2 - a1) * g, b1 + (b2 - b1) * g);
+                out[i] = rgb(Math.min(0.92f, L), a1 + (a2 - a1) * g, b1 + (b2 - b1) * g);
             }
         }
         // the rim along the roofs: the horizon's warmth, light

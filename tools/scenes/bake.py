@@ -53,6 +53,8 @@ TOP_MARGIN = 0.10
 FOOT_LOW = 0.88
 FN_WIDE = 0.5 / math.tan(math.radians(30))
 OCC_MIN_PX = 2
+LM_COVER = 0.35  # rule 12 (2.40): at most this much of the hero hidden by what stands in front of it
+EXCESS = 0.30  # rule 17 (2.40): a block nearer than the hero filling more than this much of a square cell goes (New York's 195 m tower in front of the Empire State fills 34%)
 
 KINDS = {'wall': 0, 'roof': 1, 'water': 2, 'park': 3, 'road': 4, 'lm': 5, 'lm_glass': 6, 'lm_light': 7, 'land': 8, 'lm_roof': 9,
          'lm_lattice': 10,  # lattice (2.32): see-through ironwork, drawn as girders by the app
@@ -179,15 +181,47 @@ def eiffel_parts():
     return parts
 
 
+def obelisco_parts():
+    """The Obelisco of Buenos Aires (2.40; not in the catalog), drawn from its published measures: 67.5 m tall, a square
+    shaft 6.8 m a side at its foot narrowing to 3.5 m at 63.5 m, and a pyramid tip. In the model's frame (Y up, -Z north,
+    +X east, metres), its faces wound outwards."""
+    H0, H1, A, B = 63.5, 67.5, 3.4, 1.75
+    v = [[-A, 0, -A], [A, 0, -A], [A, 0, A], [-A, 0, A], [-B, H0, -B], [B, H0, -B], [B, H0, B], [-B, H0, B], [0, H1, 0]]
+    tris = []
+    for i in range(4):
+        j = (i + 1) % 4
+        tris += [[i, j, 4 + j], [i, 4 + j, 4 + i], [4 + i, 4 + j, 8]]
+    v = np.array(v, float)
+    out = []
+    for t in tris:  # outward: the normal away from the shaft's axis
+        a, b, c = v[t]
+        n = np.cross(b - a, c - a)
+        ctr = (a + b + c) / 3
+        out.append(t if n[0] * ctr[0] + n[2] * ctr[2] > 0 else [t[0], t[2], t[1]])
+    return [(v, np.array(out), 'obelisco-stone', (238, 234, 224))]
+
+
+# landmarks drawn here (2.40), not in the catalog: like a catalog entry; `clear` metres round the anchor have no plain
+# building (whatever the map has standing there)
+PROC = {
+    'buenos-aires-obelisco': {'id': 'buenos-aires-obelisco', 'name': 'Obelisco de Buenos Aires', 'model': 'obelisco',
+                              'lng': -58.38157, 'lat': -34.60372, 'bearing': -2.5, 'elevation': 0.0, 'clear': 8.0},
+}
+CAT.update(PROC)
+LM_OVR = {}  # per bake: a landmark's raised elevation and scale (rule 20)
+
+
 def landmark_mesh(pid, f):
     """A catalog landmark as triangles in local metres, with their material names and colours."""
-    pl = CAT[pid]
-    md = MODEL_FILE.get(pl['model'])
-    if not md: return None
+    pl = dict(CAT[pid], **LM_OVR.get(pid, {}))
     x0, z0 = f(pl['lng'], pl['lat'])
     b = math.radians(-pl.get('bearing', 0.0))
     s = pl.get('scale', 1.0)
     rot = np.array([[math.cos(b), 0, math.sin(b)], [0, 1, 0], [-math.sin(b), 0, math.cos(b)]])
+    if pl['model'] == 'obelisco':
+        return [(v * s @ rot.T + np.array([x0, pl.get('elevation', 0.0), z0]), fs, name, col) for v, fs, name, col in obelisco_parts()]
+    md = MODEL_FILE.get(pl['model'])
+    if not md: return None
     if pl['model'] == 'eiffel-tower':  # the tower from Eiffel's own plates (2.32), the replicas too
         parts = eiffel_parts()
         if parts:
@@ -210,53 +244,59 @@ def landmark_mesh(pid, f):
     return out
 
 
-def terrain_silhouette(lon, lat, cam, inv, look):
-    """The hills' line on the horizon: per column, the highest angle of the ground 3 to 30 km off (two layers)."""
-    z = 10
+_TILES = {}
+
+
+def elev(lo, la, z=10):
+    """The ground's height (m over the sea) at a point, from the Terrarium tiles at zoom z (cached on disk)."""
     n = 2 ** z
-    cache = {}
-    def tile(tx, ty):
-        k = (tx, ty)
-        if k not in cache:
-            p = os.path.join(HERE, 'terr', f'{z}_{tx}_{ty}.png')
-            os.makedirs(os.path.dirname(p), exist_ok=True)
-            if not os.path.exists(p):
-                try:
-                    urllib.request.urlretrieve(f'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{tx}/{ty}.png', p)
-                except Exception:
-                    cache[k] = None
-                    return None
+    x = (lo + 180) / 360 * n
+    y = (1 - math.log(math.tan(math.radians(la)) + 1 / math.cos(math.radians(la))) / math.pi) / 2 * n
+    tx, ty = int(x), int(y)
+    k = (z, tx, ty)
+    if k not in _TILES:
+        p = os.path.join(HERE, 'terr', f'{z}_{tx}_{ty}.png')
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        if not os.path.exists(p):
+            try:
+                urllib.request.urlretrieve(f'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{tx}/{ty}.png', p)
+            except Exception:
+                _TILES[k] = None
+        if k not in _TILES:
             im = np.asarray(Image.open(p).convert('RGB')).astype(np.float32)
-            cache[k] = im[:, :, 0] * 256 + im[:, :, 1] + im[:, :, 2] / 256 - 32768
-        return cache[k]
-    def elev(lo, la):
-        x = (lo + 180) / 360 * n
-        y = (1 - math.log(math.tan(math.radians(la)) + 1 / math.cos(math.radians(la))) / math.pi) / 2 * n
-        t = tile(int(x), int(y))
-        if t is None: return 0.0
-        return float(t[min(255, int((y % 1) * 256)), min(255, int((x % 1) * 256))])
-    base = elev(lon, lat)
+            _TILES[k] = im[:, :, 0] * 256 + im[:, :, 1] + im[:, :, 2] / 256 - 32768
+    t = _TILES[k]
+    if t is None: return 0.0
+    return float(t[min(255, int((y % 1) * 256)), min(255, int((x % 1) * 256))])
+
+
+def terrain_silhouette(lon, lat, cam, inv, look, layers=None, z=10, n=26, base=None, with_dist=False):
+    """The hills' line on the horizon: per column, the highest angle of the ground 2.5 to 32 km off (two layers; a
+    third, nearer, for a landmark on its hill, rule 20). With with_dist also the distance of the first layer's ridge."""
+    if base is None: base = elev(lon, lat, z)
     half = math.atan(ASPECT * 0.5 / FN)
-    cols = 120
-    layers = [(2500, 9000), (9000, 32000)]
-    out = []
-    for d0, d1 in layers:
+    cols = 120 if z <= 10 else 240
+    layers = layers or [(2500, 9000), (9000, 32000)]
+    out, dists = [], []
+    for li, (d0, d1) in enumerate(layers):
         line = []
         for i in range(cols + 1):
             a = -half + 2 * half * i / cols
             az = math.radians(look) + a
-            best = -1e9
-            for d in np.geomspace(d0, d1, 26):
+            best, bd = -1e9, d1
+            for d in np.geomspace(d0, d1, n):
                 x = cam.c[0] + math.sin(az) * d
                 zz = cam.c[2] - math.cos(az) * d
                 lo, la = inv(x, zz)
-                h = elev(lo, la) - base - d * d / (2 * 6371000) * 0.87  # the earth's curve, less refraction
+                h = elev(lo, la, z) - base - d * d / (2 * 6371000) * 0.87  # the earth's curve, less refraction
                 along = d * math.cos(a)
-                best = max(best, (h - cam.c[1]) / along)
+                ang = (h - cam.c[1]) / along
+                if ang > best: best, bd = ang, d
             sx = math.tan(a) * cam.f + ASPECT * REF_H / 2
             line.append((sx, HZ * REF_H - best * cam.f))
+            if li == 0: dists.append(bd * math.cos(a))
         out.append(line)
-    return out, base
+    return (out, base, dists) if with_dist else (out, base)
 
 
 TIERS = {
@@ -353,6 +393,7 @@ def choose_az(f, inv, d, hc, T, focus_h, lon0=None, lat0=None, cands=None):
 def bake(key, cfg):
     global FN
     FN = FN0  # the standard lens until this city's is chosen
+    LM_OVR.clear()
     T = TIERS[cfg.get('tier', 1)]
     main = cfg.get('main')
     if not main and cfg.get('tier', 1) == 1 and 'lat' in cfg:
@@ -365,6 +406,9 @@ def bake(key, cfg):
     f, inv = to_local(lon0, lat0)
     # the composition: the main landmark's foot at 88% down, its top near 20%, inside 55% of a square cell's width
     hF, wF = cfg.get('height', 60.0), cfg.get('width', 60.0)
+    hill = cfg.get('hill')  # rule 20: the landmark on its hill (seen from the city below, its own camera)
+    if main and hill:
+        LM_OVR[main] = {'scale': hill.get('scale', 1.0)}
     if main:
         m = landmark_mesh(main, f)
         allv = np.vstack([x[0] for x in m])
@@ -395,6 +439,8 @@ def bake(key, cfg):
     # diagonals between them; a hand-set side moves to the nearest corner (the better view of two equally near), an
     # automatic camera takes the corner with the richest view
     corners = None
+    if hill:
+        cfg = dict(cfg, diagonal=False, az=hill['az'])
     if main and cfg.get('diagonal', True):
         rect = shapely.MultiPoint(allv[:, [0, 2]]).convex_hull.minimum_rotated_rectangle
         if rect.geom_type == 'Polygon':
@@ -418,9 +464,32 @@ def bake(key, cfg):
         FN = fn
     elif 'az' not in cfg:
         cfg = dict(cfg, az=choose_az(f, inv, d, hc, T, hF, lon0, lat0))
+    if hill:  # rule 20: its camera as set (distance, height over the city's ground, lens)
+        d, hc = hill['d'], hill['hc']
+        FN = 0.5 / math.tan(math.radians(hill['view'] / 2))
     az = math.radians(cfg['az'])
     cam = Cam(math.sin(az) * d, -math.cos(az) * d, hc, (cfg['az'] + 180) % 360)
     look = (cfg['az'] + 180) % 360
+    W2 = ASPECT * REF_H
+    # the hills first (2.40): a landmark on its hill stands on their line, and a building behind a ridge is hidden
+    if hill:
+        cx_lo, cx_la = inv(cam.c[0], cam.c[2])
+        g0 = hill.get('ground', elev(cx_lo, cx_la, 12))
+        sil, base, ridge = terrain_silhouette(lon0, lat0, cam, inv, look, layers=[(hill.get('from', 1200), d * 1.2), (d * 1.2, 9000), (9000, 32000)],
+                                              z=12, n=90, base=g0, with_dist=True)
+        # the landmark's foot on the hill's line where it stands (the line as drawn, so it never floats)
+        sx_m = math.tan(math.atan2(-(cam.c[0] * cam.right[0] + cam.c[2] * cam.right[2]), d)) * cam.f + W2 / 2
+        y_line = min(float(np.interp(sx_m, np.array(ln)[:, 0], np.array(ln)[:, 1])) for ln in sil)  # the highest line there
+        LM_OVR[main]['elevation'] = cam.c[1] + (HZ * REF_H - y_line) / cam.f * d - 0.5
+        stats_hill = {'ground': round(g0), 'raised': round(LM_OVR[main]['elevation']), 'dem': round(elev(lon0, lat0, 12) - g0)}
+        m = landmark_mesh(main, f)
+        allv = np.vstack([x[0] for x in m])
+    else:
+        sil, base, ridge = terrain_silhouette(lon0, lat0, cam, inv, look, with_dist=True)
+        stats_hill = None
+    sil_x = np.array([x for x, _ in sil[0]])
+    sil_y = np.array([y for _, y in sil[0]])
+    ridge = np.array(ridge)
     half = math.atan(ASPECT * 0.5 / FN) + 0.03
     # the box to read: the camera and the view's wedge out to the far limit
     pts = [(cam.c[0], cam.c[2])]
@@ -433,8 +502,9 @@ def bake(key, cfg):
     box = (lo0, la0, lo1, la1)
     wedge = Polygon(pts)
     stats = {'city': key, 'tier': cfg.get('tier', 1), 'main': main, 'az': cfg['az'], 'corners': corners}
+    if stats_hill: stats['hill'] = stats_hill
 
-    air = max(140.0, 0.2 * d)  # rule 10: nothing stands in the air round the camera
+    air = 40.0  # rule 10 (2.40: only what the camera would stand in; a building too big in view goes by rule 17)
     cam_pt = shapely.Point(cam.c[0], cam.c[2])
 
     def in_view(cx, cz):
@@ -470,16 +540,6 @@ def bake(key, cfg):
         if not mm: continue
         top = float(max(v[:, 1].max() for v, _, _, _ in mm))
         if top / max(along, 1) * cam.f > max(1.15 * main_px, 0.62 * REF_H) and along < d: continue
-        # rule 12 for landmarks too (2.32): one between the camera and the hero, nearer than it, that would cover its
-        # foot goes, so the hero is seen whole
-        if main and along < d - (wF * 0.65 + 10) * 0.5:
-            across = (x - cam.c[0]) * cam.right[0] + (z - cam.c[2]) * cam.right[2]
-            allv2 = np.vstack([v for v, _, _, _ in mm])
-            half_lm = 0.5 * float(max(np.ptp(allv2[:, 0]), np.ptp(allv2[:, 2])))
-            lane = 12 + (wF * 0.65 + 10 - 12) * along / d
-            foot_y0 = HZ * REF_H + cam.c[1] / d * cam.f
-            if abs(across) < lane + half_lm and HZ * REF_H - (top - cam.c[1]) / max(along, 1) * cam.f < foot_y0 - 2:
-                continue
         keep.append(pid)
     lms = keep
     stats['landmarks'] = lms
@@ -489,6 +549,8 @@ def bake(key, cfg):
     rows = tab.to_pylist() if tab is not None else []
     stats['buildings_read'] = len(rows)
     blds = []
+    clear = [shapely.Point(*f(CAT[pid]['lng'], CAT[pid]['lat'])).buffer(CAT[pid]['clear']) for pid in lms if CAT[pid].get('clear')]
+    behind = 0
     for r in rows:
         src = (r.get('sources') or [{}])[0].get('record_id') or ''
         if src.split('@')[0] in replaced: continue
@@ -498,7 +560,16 @@ def bake(key, cfg):
             ok, along = in_view(c.x, c.y)
             if not ok or along > T['far']: continue
             if poly.distance(cam_pt) < air: continue  # rule 10
+            if any(poly.intersects(cq) for cq in clear): continue  # the drawn landmark stands there
             h = height_of(r)
+            # behind a ridge (2.40): further than the hills' first line in its column, and its top below the line
+            sx_b = (c.x - cam.c[0]) * cam.right[0] + (c.y - cam.c[2]) * cam.right[2]
+            sx_b = sx_b / along * cam.f + W2 / 2
+            col = int(np.clip(np.searchsorted(sil_x, sx_b), 0, len(sil_x) - 1))
+            y_top = HZ * REF_H - (h - cam.c[1]) / along * cam.f
+            if along > ridge[col] and sil_y[col] < HZ * REF_H + 4 and y_top > sil_y[col] + 1:
+                behind += 1
+                continue
             px_h = h / along * cam.f
             px_w = math.sqrt(max(poly.area, 1)) / along * cam.f
             if px_h < 0.7 and px_w < 1.5: continue  # rule 2
@@ -531,35 +602,93 @@ def bake(key, cfg):
             q = q.simplify(max(0.8, along / cam.f * T['tol']), preserve_topology=True)
             hh = max([h for p, h in items if p.intersects(q)] or [float(np.median(hs))]) if len(items) < 40 else float(np.median(hs))
             merged.append((q, hh))
-    # rule 12: the view to the main landmark (or the city's focus) is kept clear: a plain building between the camera and
-    # it, nearer than it, whose top would cover any of it, goes
+    # rules 12 and 17 (2.40, after the user: only what really covers the hero, or fills the view, goes). On screen:
+    # each block's outline (its footprint at the ground and at its top), the hero's own faces
+    def outline(ring, h):
+        ring = np.asarray(ring)
+        p3 = np.r_[np.c_[ring[:, 0], np.zeros(len(ring)), ring[:, 1]], np.c_[ring[:, 0], np.full(len(ring), h), ring[:, 1]]]
+        sp, zz = cam.project(p3)
+        if (zz < 2).any(): return None
+        return shapely.MultiPoint(sp + np.array([W2 / 2, 0])).convex_hull
+    frame = sbox(0, 0, W2, REF_H)
     half_w = wF * 0.65 + 10
-    corridor = Polygon([(cam.c[0] + cam.right[0] * 12, cam.c[2] + cam.right[2] * 12),
-                        (cam.c[0] - cam.right[0] * 12, cam.c[2] - cam.right[2] * 12),
-                        (-cam.right[0] * half_w, -cam.right[2] * half_w), (cam.right[0] * half_w, cam.right[2] * half_w)])
-    foot_y = HZ * REF_H + cam.c[1] / d * cam.f
-    kept, cleared = [], 0
-    for q, h in merged:
-        if q.intersects(corridor):
+    outl = [outline(np.array(q.exterior.coords), h) for q, h in merged]
+    # rule 17: a block nearer than the hero that would fill much of the view (its outline over 40% of a square cell)
+    kept, kept_o, giants = [], [], 0
+    for (q, h), o in zip(merged, outl):
+        if o is not None and o.intersection(frame).area > EXCESS * REF_H * REF_H:
             cq = q.centroid
             ok, along = in_view(cq.x, cq.y)
-            if along < d - half_w * 0.5 and HZ * REF_H - (h - cam.c[1]) / max(along, 1) * cam.f < foot_y - 2:
-                cleared += 1
+            if along < d:
+                giants += 1
                 continue
-        kept.append((q, h))
-    merged = kept
-    # rule 17: no wall of a tower right in front: a plain block nearer than the focus whose top would stand in the top
-    # sixth of the cell goes (a near tower would fill the view, the wide cell's most of all)
-    kept, giants = [], 0
-    for q, h in merged:
+        kept.append((q, h)); kept_o.append(o)
+    merged, outl = kept, kept_o
+    # the biggest blocks left in view (their share of a square cell), to check rule 17 against
+    cov = []
+    for (q, h), o in zip(merged, outl):
+        if o is None: continue
         cq = q.centroid
         ok, along = in_view(cq.x, cq.y)
-        if ok and along < d and HZ * REF_H - (h - cam.c[1]) / max(along, 1) * cam.f < REF_H / 6:
-            giants += 1
-            continue
-        kept.append((q, h))
-    merged = kept
+        cov.append((round(o.intersection(frame).area / (REF_H * REF_H), 3), round(h), round(along)))
+    stats['cover_top'] = sorted(cov, reverse=True)[:4]
+    # rule 12: the hero seen: the blocks and landmarks nearer than it that hide more than 35% of it go, the biggest first,
+    # until no more than that is hidden (a building in front of its foot stays, as in a photo)
+    cleared = 0
+    if main:
+        hm = Image.new('L', (int(W2), REF_H), 0)
+        dh = ImageDraw.Draw(hm)
+        for v, fs, _, _ in landmark_mesh(main, f):
+            sp, zz = cam.project(v)
+            sp = sp + np.array([W2 / 2, 0])
+            for t_ in fs:
+                if (zz[t_] > 2).all(): dh.polygon([tuple(sp[j]) for j in t_], fill=1)
+        hero = np.asarray(hm, bool)
+        area = hero.sum()
+        if area > 0:
+            ys_, xs_ = np.nonzero(hero)
+            bx0, by0, bx1, by1 = xs_.min(), ys_.min(), xs_.max() + 1, ys_.max() + 1
+            hero_c = hero[by0:by1, bx0:bx1]
+            hb = sbox(bx0, by0, bx1, by1)
+            cands = []  # (cover, mask, ('b', index) or ('l', pid))
+            def cover(o):
+                if o is None or not o.intersects(hb): return None
+                im = Image.new('L', (int(bx1 - bx0), int(by1 - by0)), 0)
+                pts_ = [(x - bx0, y - by0) for x, y in np.array(o.exterior.coords)] if o.geom_type == 'Polygon' else None
+                if not pts_: return None
+                ImageDraw.Draw(im).polygon(pts_, fill=1)
+                mk = np.asarray(im, bool) & hero_c
+                return mk if mk.any() else None
+            for i, ((q, h), o) in enumerate(zip(merged, outl)):
+                cq = q.centroid
+                ok, along = in_view(cq.x, cq.y)
+                if along >= d - half_w * 0.5: continue
+                mk = cover(o)
+                if mk is not None: cands.append((int(mk.sum()), mk, ('b', i)))
+            for pid in lms:
+                if pid == main: continue
+                p_ = CAT[pid]
+                x_, z_ = f(p_['lng'], p_['lat'])
+                ok, along = in_view(x_, z_)
+                if along >= d - half_w * 0.5: continue
+                vv = np.vstack([v for v, _, _, _ in landmark_mesh(pid, f)])
+                sp, zz = cam.project(vv)
+                if (zz < 2).any(): continue
+                mk = cover(shapely.MultiPoint(sp + np.array([W2 / 2, 0])).convex_hull)
+                if mk is not None: cands.append((int(mk.sum()), mk, ('l', pid)))
+            cands.sort(key=lambda c: -c[0])
+            gone = set()
+            while cands:
+                u = np.zeros_like(hero_c)
+                for _, mk, _ in cands: u |= mk
+                if u.sum() <= LM_COVER * area: break
+                gone.add(cands.pop(0)[2])
+            cleared = len(gone)
+            merged = [m_ for i, m_ in enumerate(merged) if ('b', i) not in gone]
+            lms = [pid for pid in lms if ('l', pid) not in gone]
+            stats['landmarks'] = lms
     stats['giants_cleared'] = giants
+    stats['behind_ridge'] = behind
     stats['cleared_for_view'] = cleared
     stats['blocks'] = len(merged)
     blocks = []  # each block once: its footprint on the ground and its height; the app rebuilds its walls and roof
@@ -641,7 +770,7 @@ def bake(key, cfg):
         if (z < 2).any(): continue
         s = s + np.array([W2 / 2, 0])
         area = 0.5 * abs(np.dot(s[:, 0], np.roll(s[:, 1], 1)) - np.dot(s[:, 1], np.roll(s[:, 0], 1)))
-        if area < T['fmin']: continue  # rule 6
+        if area < (0.04 if len(col) == 4 else T['fmin']): continue  # rule 6 (the hero's faces kept far smaller: 2.40)
         if s[:, 0].max() < 0 or s[:, 0].min() > W2 or s[:, 1].max() < 0 or s[:, 1].min() > REF_H: continue
         dist = float(np.linalg.norm(p3.mean(0) - cam.c))
         proj.append((dist, kind, s, faz, col))
@@ -751,7 +880,6 @@ def bake(key, cfg):
         if ls.length >= 3: t2.append((wdt, np.array(ls.coords)))
     traffic = t2
     stats['traffic_lines'] = len(traffic)
-    sil, base = terrain_silhouette(lon0, lat0, cam, inv, look)
     scene = {'city': key, 'w': W2, 'h': REF_H, 'faces': proj, 'ground': gproj, 'hills': sil, 'lamps': lp, 'lamp_dist': 'euclid',
              'cam': {'hc': cam.c[1], 'dist': d, 'look': look, 'fn': FN}, 'traffic': traffic}
     stats['lamps'] = len(lp)
