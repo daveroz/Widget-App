@@ -33,10 +33,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.net.URLEncoder;
 import java.text.DateFormat;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -318,7 +316,7 @@ public class MainActivity extends Activity {
         cityGrid = vbox();
         col.addView(cityGrid, matchWrap(0));
         fillClockTiles();
-        hint(col, "Tap a city to choose another. Can't find yours? Type its name in the list's search box.");
+        hint(col, "Tap a city to choose another. Every place in the list has its own 3D scene.");
 
         section(col, "Clocks on the widget");
         int at = 0;
@@ -891,20 +889,16 @@ public class MainActivity extends Activity {
         String hay() { return (title + " " + sub).toLowerCase(Locale.ROOT); }
     }
 
+    /** A clock's city: only the list's places with their own 3D scene (2.41; no online search, which found places without one). */
     private void pickCity(final int slot) {
         List<Item> items = new ArrayList<>();
-        for (CityData.City c : CityData.all(this)) items.add(new Item(c.name, c.country() + "  ·  " + c.tz, c));
-        showPicker("City " + (slot + 1), items, true, p -> {
-            JSONObject geo;
-            String name;
-            if (p.payload instanceof CityData.City) {
-                CityData.City c = (CityData.City) p.payload;
-                name = c.name;
-                geo = c.toGeo();
-            } else {
-                name = p.title;
-                geo = (JSONObject) p.payload;
-            }
+        for (CityData.City c : CityData.all(this)) {
+            if (WorldScene.has(this, c.name, c.cc)) items.add(new Item(c.name, c.country() + "  ·  " + c.tz, c));
+        }
+        showPicker("City " + (slot + 1), items, p -> {
+            CityData.City c = (CityData.City) p.payload;
+            String name = c.name;
+            JSONObject geo = c.toGeo();
             Store.putGeo(this, name, geo);
             Store.sp(this).edit().putString("city" + slot, name).apply();
             updateClockTiles();
@@ -921,11 +915,11 @@ public class MainActivity extends Activity {
             if (code.startsWith("X") || code.length() != 3) continue; // metals, test codes, supranational units
             items.add(new Item(code, c.getDisplayName(Locale.ENGLISH), code));
         }
-        showPicker(title, items, false, p -> done.on((String) p.payload));
+        showPicker(title, items, p -> done.on((String) p.payload));
     }
 
-    /** Searchable list dialog. With {@code remote} the search box can also look cities up online (Open-Meteo, no key). */
-    private void showPicker(String title, final List<Item> base, final boolean remote, final Pick<Item> done) {
+    /** Searchable list dialog. */
+    private void showPicker(String title, final List<Item> base, final Pick<Item> done) {
         final Dialog d = new Dialog(this);
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout root = vbox();
@@ -935,7 +929,7 @@ public class MainActivity extends Activity {
         t.setLetterSpacing(0.14f);
         t.setPadding(dp(4), 0, 0, dp(12));
         root.addView(t);
-        final EditText q = input("", InputType.TYPE_CLASS_TEXT, false, remote ? "Search or type any city" : "Search");
+        final EditText q = input("", InputType.TYPE_CLASS_TEXT, false, "Search");
         root.addView(q);
         final ListView lv = new ListView(this);
         lv.setDividerHeight(0);
@@ -963,36 +957,13 @@ public class MainActivity extends Activity {
             done.on(shown.get(pos));
         });
 
-        final Runnable[] pending = new Runnable[1];
-        final List<Item> online = new ArrayList<>();
         q.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
             @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
             @Override public void afterTextChanged(Editable s) {
                 final String f = s.toString().trim().toLowerCase(Locale.ROOT);
-                filter(f);
-                if (pending[0] != null) ui.removeCallbacks(pending[0]);
-                if (remote && f.length() >= 3) {
-                    pending[0] = () -> new Thread(() -> {
-                        List<Item> found = geocodeSearch(f);
-                        ui.post(() -> {
-                            online.clear();
-                            online.addAll(found);
-                            filter(q.getText().toString().trim().toLowerCase(Locale.ROOT));
-                        });
-                    }).start();
-                    ui.postDelayed(pending[0], 450);
-                }
-            }
-
-            private void filter(String f) {
                 shown.clear();
                 for (Item it : base) if (f.isEmpty() || it.hay().contains(f)) shown.add(it);
-                for (Item it : online) {
-                    boolean dup = false;
-                    for (Item s2 : shown) if (s2.title.equalsIgnoreCase(it.title) && s2.sub.equals(it.sub)) { dup = true; break; }
-                    if (!dup && (f.isEmpty() || it.hay().contains(f.substring(0, Math.min(3, f.length()))))) shown.add(it);
-                }
                 ad.notifyDataSetChanged();
             }
         });
@@ -1004,31 +975,6 @@ public class MainActivity extends Activity {
             d.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
         d.show();
-    }
-
-    /** Open-Meteo geocoding: free, no key. Called from a background thread. */
-    private List<Item> geocodeSearch(String query) {
-        List<Item> out = new ArrayList<>();
-        try {
-            String url = "https://geocoding-api.open-meteo.com/v1/search?name=" + URLEncoder.encode(query, "UTF-8")
-                    + "&count=10&language=en&format=json";
-            JSONObject root = new JSONObject(Net.get(url));
-            JSONArray rs = root.optJSONArray("results");
-            if (rs == null) return out;
-            for (int i = 0; i < rs.length(); i++) {
-                JSONObject r = rs.getJSONObject(i);
-                if (!r.has("timezone")) continue;
-                JSONObject g = new JSONObject();
-                g.put("lat", r.getDouble("latitude"));
-                g.put("lon", r.getDouble("longitude"));
-                g.put("tz", r.getString("timezone"));
-                g.put("cc", r.optString("country_code", ""));
-                String admin = r.optString("admin1", "");
-                String sub = r.optString("country", "") + (admin.isEmpty() ? "" : "  ·  " + admin) + "  ·  " + r.getString("timezone");
-                out.add(new Item(r.getString("name"), sub, g));
-            }
-        } catch (Exception ignored) { }
-        return out;
     }
 
     // ------------------------------------------------------------------ UI building blocks

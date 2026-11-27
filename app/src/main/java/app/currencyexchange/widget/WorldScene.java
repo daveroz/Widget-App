@@ -50,6 +50,22 @@ final class WorldScene {
         if (assets == null && ctx != null) assets = ctx.getApplicationContext().getAssets();
     }
 
+    private static java.util.Set<String> files;
+
+    /** Whether the place {@code city} in country {@code cc} has its own scene (2.41: the clock city picker lists only these). */
+    static synchronized boolean has(Context ctx, String city, String cc) {
+        init(ctx);
+        if (files == null) {
+            files = new java.util.HashSet<>();
+            try {
+                String[] list = assets == null ? null : assets.list("scenes");
+                if (list != null) for (String f : list) if (f.endsWith(".bin")) files.add(f.substring(0, f.length() - 4));
+            } catch (java.io.IOException ignored) { }
+        }
+        String k = slug(city, cc);
+        return k != null && files.contains(k);
+    }
+
     private static final float HZ = 0.64f, FN = (float) (0.5 / Math.tan(Math.toRadians(20)));
     private static final int WALL = 0, ROOF = 1, WATER = 2, PARK = 3, ROAD = 4, LM = 5, LM_GLASS = 6, LM_LIGHT = 7,
             LM_ROOF = 9, LM_LATTICE = 10, LM_GIRDER = 11;
