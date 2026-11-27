@@ -313,6 +313,8 @@ final class WorldScene {
      */
     private static final float FADE_M = 45f, FADE_MAX = 60f, CITY_UP = 0.3f;
     private static final int MOON = 0xFF8C9CFF;
+    /** The hills by full day (2.42, after the pastel references): the nearest, near and far lines. */
+    private static final int HILL_DAY_NEAREST = 0xFF7B7FAD, HILL_DAY_NEAR = 0xFF9796C2, HILL_DAY_FAR = 0xFFD1B3CD;
     /** The floodlight on a hero high on its hill (2.40): a cool white, as the Cristo's. */
     private static final int HILL_FLOOD = 0xFFE6EAFF;
     /** Cars' lights on the main roads at night (2.32): headlights coming, tail lights going. */
@@ -347,18 +349,37 @@ final class WorldScene {
         float night = l.night, lights = l.lights;
         int farHaze = Scene.mix(l.far, l.horizon, 0.45f);
         // the hills on the horizon: the far line, then the near one (and the nearest, 2.40)
+        float hillDay = smoothF(6f, 16f, l.e) * (l.snow ? 0.5f : 1f);
         for (int i = d.hills.length - 1; i >= 0; i--) {
             float[] line = d.hills[i];
             if (line.length < 4) continue;
             path.reset();
             path.moveTo((line[0] - x0) * k, hz + 4 * k);
-            for (int j = 0; j < line.length; j += 2) path.lineTo((line[j] - x0) * k, Math.min(hz + 4 * k, line[j + 1] * k));
+            float ridge = hz;
+            for (int j = 0; j < line.length; j += 2) {
+                float y = Math.min(hz + 4 * k, line[j + 1] * k);
+                path.lineTo((line[j] - x0) * k, y);
+                ridge = Math.min(ridge, y);
+            }
             path.lineTo((line[line.length - 2] - x0) * k, hz + 4 * k);
             path.close();
             // a third, nearest line (2.40): the hill a landmark stands on, a little nearer and deeper
-            p.setColor(d.hills.length > 2 && i == 0 ? Scene.mix(Scene.mix(l.far, l.front, 0.4f), l.horizon, 0.12f)
-                    : Scene.mix(l.far, l.horizon, i == d.hills.length - 1 ? 0.55f : 0.35f));
+            boolean nearest = d.hills.length > 2 && i == 0, far = i == d.hills.length - 1;
+            int col = nearest ? Scene.mix(Scene.mix(l.far, l.front, 0.4f), l.horizon, 0.12f)
+                    : Scene.mix(l.far, l.horizon, far ? 0.55f : 0.35f);
+            // by day (2.42) the pastel references' far hills: periwinkle near, a pink lavender further off (the
+            // illustration's far colour with the butter horizon made a muddy taupe)
+            if (hillDay > 0f) col = Scene.mix(col, nearest ? HILL_DAY_NEAREST : far ? HILL_DAY_FAR : HILL_DAY_NEAR, hillDay);
+            // and by day never one flat tone: deeper at the ridge, fading into the haze down to the horizon (only by
+            // day: with a low sun the warm horizon turned their feet olive)
+            if (hillDay > 0.01f && hz + 4 * k - ridge > 2f) {
+                p.setShader(new LinearGradient(0, ridge, 0, hz + 4 * k, col, Scene.mix(col, l.horizon, 0.4f * hillDay),
+                        Shader.TileMode.CLAMP));
+            } else {
+                p.setColor(col);
+            }
             c.drawPath(path, p);
+            p.setShader(null);
         }
         // the ground: hazy far off, darker near
         int landFar = Scene.mix(l.far, l.horizon, 0.3f), landNear = Scene.mix(l.street, l.far, 0.15f);
