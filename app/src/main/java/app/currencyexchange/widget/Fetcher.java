@@ -240,9 +240,43 @@ final class Fetcher {
      * 0.2 to 0.3 % off on average, up to 1.2 % on a day the market moved. Answers HTTP 400 for currencies it doesn't
      * quote (crypto, metals).
      */
-    private static JSONArray wiseSeries(String from, String to) throws Exception {
+    private static JSONArray wiseSeries(String from, String to) throws Exception { return wiseSeries(from, to, Trend.DAYS); }
+
+    /** As above, with {@code days} daily points before the rate now (1 for the minute refresh: about 150 bytes). */
+    private static JSONArray wiseSeries(String from, String to, int days) throws Exception {
         return new JSONArray(Net.get("https://wise.com/rates/history+live?source=" + from.toUpperCase(Locale.ROOT)
-                + "&target=" + to.toUpperCase(Locale.ROOT) + "&length=" + Trend.DAYS + "&resolution=daily&unit=day"));
+                + "&target=" + to.toUpperCase(Locale.ROOT) + "&length=" + days + "&resolution=daily&unit=day"));
+    }
+
+    /**
+     * The market rate right now for every row Wise quotes (2.41), for the minute refresh while the screen is on: one
+     * tiny request each (yesterday's point and the rate now). Rows Wise doesn't quote (crypto, metals) keep the daily
+     * rate the full refresh stored, and aren't asked. Returns true when at least one rate was stored.
+     */
+    static boolean refreshLive(Context ctx) {
+        String to = Store.to(ctx).trim();
+        if (to.isEmpty()) return false;
+        String notQuoted = Store.sp(ctx).getString("mktErr", "");
+        boolean any = false;
+        List<String> done = new ArrayList<>();
+        for (int i = 0; i < Store.count(ctx); i++) {
+            String from = Store.from(ctx, i).trim();
+            String f = from.toLowerCase(Locale.ROOT);
+            if (f.isEmpty() || done.contains(f) || from.equalsIgnoreCase(to)) continue;
+            done.add(f);
+            if (notQuoted.contains(from + ": daily rate (Wise doesn't quote")) continue;
+            try {
+                JSONArray pts = wiseSeries(from, to, 1);
+                int n = pts.length();
+                double live = n == 0 ? 0 : pts.getJSONObject(n - 1).optDouble("value", 0);
+                if (live > 0) {
+                    Store.putRate(ctx, from, to, live);
+                    any = true;
+                }
+            } catch (Exception ignored) { } // the stored rate stays; the next minute asks again
+        }
+        if (any) Store.setMarketAt(ctx);
+        return any;
     }
 
     /** "HTTP 429" rather than "HTTP 429 for https://...": the address is noise on the settings screen. */

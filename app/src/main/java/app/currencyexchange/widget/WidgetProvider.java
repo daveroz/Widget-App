@@ -19,6 +19,13 @@ public class WidgetProvider extends AppWidgetProvider {
     private static final long PERIOD_MS = 15L * 60_000L;
     /** Older than this and the per-minute tick asks for a refresh itself (for when the system holds the job back). */
     private static final long STALE_MS = 20L * 60_000L;
+    /**
+     * While the screen is on the market rates are asked for every minute (2.41): Wise's feed moves each minute, and the
+     * periodic job (15 minutes at best) is often held back much longer by the system. A few seconds under a minute, so
+     * the tick on the minute always finds them due.
+     */
+    private static final long LIVE_MS = 55_000L;
+    private static final java.util.concurrent.atomic.AtomicBoolean LIVE_BUSY = new java.util.concurrent.atomic.AtomicBoolean();
 
     @Override
     public void onUpdate(Context ctx, AppWidgetManager awm, int[] ids) {
@@ -64,12 +71,42 @@ public class WidgetProvider extends AppWidgetProvider {
                 || Intent.ACTION_TIME_CHANGED.equals(a)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(a)) {
             tick(ctx);
+            final PendingResult pending = goAsync(); // the process stays up while the rates come in
+            ratesIfDue(ctx, pending::finish);
         }
     }
 
     /** Redraw from cache, queue a network refresh if stale, and arm the next per-minute redraw. */
     /** Called when the app opens: (re)starts the per-minute alarm chain right away. */
-    static void kick(Context ctx) { tick(ctx, "app"); }
+    static void kick(Context ctx) {
+        tick(ctx, "app");
+        ratesIfDue(ctx, null);
+    }
+
+    /**
+     * The minute refresh of the market rates (2.41): with the screen on and a Rates widget placed, when the rates are a
+     * minute old, the rate now for each row (a tiny request each, on a thread of its own), then the Rates widgets drawn
+     * again. {@code done} (may be null) runs when it's finished or not needed.
+     */
+    static void ratesIfDue(Context ctx, Runnable done) {
+        final Context app = ctx.getApplicationContext();
+        android.os.PowerManager pm = (android.os.PowerManager) app.getSystemService(Context.POWER_SERVICE);
+        boolean due = pm != null && pm.isInteractive() && widgetIds(app).length > 0
+                && System.currentTimeMillis() - Store.marketAt(app) >= LIVE_MS && LIVE_BUSY.compareAndSet(false, true);
+        if (!due) {
+            if (done != null) done.run();
+            return;
+        }
+        new Thread(() -> {
+            try {
+                if (Fetcher.refreshLive(app)) updateRates(app);
+            } catch (Throwable ignored) {
+            } finally {
+                LIVE_BUSY.set(false);
+                if (done != null) done.run();
+            }
+        }, "live-rates").start();
+    }
 
     /** If the minute chain has stopped (its next alarm is overdue), restart it. Called from other widgets' alarms and jobs. */
     static void heal(Context ctx) {
@@ -103,6 +140,11 @@ public class WidgetProvider extends AppWidgetProvider {
     /** Draws every Rates widget, and (2.26) every World clocks widget, afresh. */
     static void updateAll(Context ctx) {
         ClockWidgetProvider.updateAll(ctx);
+        updateRates(ctx);
+    }
+
+    /** Draws every Rates widget afresh. */
+    static void updateRates(Context ctx) {
         AppWidgetManager awm = AppWidgetManager.getInstance(ctx);
         int[] ids = widgetIds(ctx);
         if (ids.length == 0) return;
