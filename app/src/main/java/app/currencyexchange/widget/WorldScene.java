@@ -637,19 +637,24 @@ final class WorldScene {
             int[] mpx = new int[mw * mh];
             maskBmp.getPixels(mpx, 0, mw, 0, 0, mw, mh);
             maskBmp.recycle();
-            if (d.roads != null) built.traffic = Traffic.make(d, channel(mpx, 16), mw, mh, x0, k, f, l, seed, left);
+            // the depth map read once, for the cars and the boats: hidden only where something nearer stands (2.43)
+            float[] dm = null;
+            if (depthBmp.getWidth() == mw && depthBmp.getHeight() == mh) {
+                int[] dpx = new int[mw * mh];
+                depthBmp.getPixels(dpx, 0, mw, 0, 0, mw, mh);
+                dm = new float[dpx.length];
+                for (int i = 0; i < dm.length; i++) {
+                    dm[i] = (dpx[i] >>> 24) < 128 ? Float.MAX_VALUE
+                            : depthAt(dpx[i], (i % mw) * 2f / k + x0, (i / mw) * 2f / k, d, f);
+                }
+            }
+            if (d.roads != null) {
+                built.traffic = Traffic.make(d, channel(mpx, 16), mw, mh, x0, k, f, l, seed, left);
+                built.traffic.depth = dm;
+            }
             if (d.boats != null) {
                 built.boats = Boats.make(d, channel(mpx, 8), mw, mh, x0, k, f, l, farHaze, seed, left);
-                if (depthBmp != null && depthBmp.getWidth() == mw && depthBmp.getHeight() == mh) {
-                    int[] dpx = new int[mw * mh];
-                    depthBmp.getPixels(dpx, 0, mw, 0, 0, mw, mh);
-                    float[] dm = new float[dpx.length];
-                    for (int i = 0; i < dm.length; i++) {
-                        dm[i] = (dpx[i] >>> 24) < 128 ? Float.MAX_VALUE
-                                : depthAt(dpx[i], (i % mw) * 2f / k + x0, (i / mw) * 2f / k, d, f);
-                    }
-                    built.boats.depth = dm;
-                }
+                built.boats.depth = dm;
             }
         }
         depthBmp.recycle();
@@ -1209,6 +1214,9 @@ final class WorldScene {
         float[][] start, speed;
         /** Each car's colour by day (2.43). */
         int[][] col;
+        /** The scene's depth map (half size, on the ground; see {@link Boats#depth}): a car is hidden where something
+         * nearer than it stands (2.43). */
+        float[] depth;
         float lights, fk;
 
         static Traffic make(Data d, byte[] mask, int mw, int mh, float x0, float k, float f, CityScene.Light l, long seed,
@@ -1484,7 +1492,15 @@ final class WorldScene {
                 place(q, (tr.start[r][j] + t * tr.speed[r][j]) % L, o);
                 float x = o[0], y = o[1], z = o[2], ux = o[3], uy = o[4];
                 if (o[11] >= 2f) continue; // in a tunnel (or through a landmark bridge's tower)
-                if (o[11] < 1f && !shows(tr.mask, tr.mw, tr.mh, x, y)) continue; // on a landmark bridge: always
+                if (o[11] < 1f) { // on a landmark bridge: always shown
+                    if (!shows(tr.mask, tr.mw, tr.mh, x, y)) continue;
+                    // a building (a roof, a wall, a landmark) nearer than it at its middle or either end: hidden (2.43);
+                    // not on a bridge, whose own deck (in the map at its middle) would hide its far lane
+                    float dist = (float) Math.sqrt(o[7] * o[7] + z * z), reach = Math.max(1.5f, 3f * o[5]);
+                    if (o[10] < 0.5f && (nearerAt(tr.depth, tr.mw, tr.mh, x, y, dist)
+                            || nearerAt(tr.depth, tr.mw, tr.mh, x + ux * reach, y + uy * reach, dist)
+                            || nearerAt(tr.depth, tr.mw, tr.mh, x - ux * reach, y - uy * reach, dist))) continue;
+                }
 
                 if (body > 0.02f) {
                     float len = 4.6f * o[5], wid = 1.9f * tr.fk / z;
@@ -1776,10 +1792,15 @@ final class WorldScene {
 
     /** Whether something nearer than {@code dist} stands at (x, y) (the depth map, half size). */
     private static boolean nearer(Boats bt, float x, float y, float dist) {
-        if (bt.depth == null) return false;
+        return nearerAt(bt.depth, bt.mw, bt.mh, x, y, dist);
+    }
+
+    /** Whether something nearer than {@code dist} (a few metres' leeway) stands at (x, y) in a half-size depth map. */
+    private static boolean nearerAt(float[] depth, int mw, int mh, float x, float y, float dist) {
+        if (depth == null) return false;
         int mx = (int) (x * 0.5f), my = (int) (y * 0.5f);
-        if (mx < 0 || my < 0 || mx >= bt.mw || my >= bt.mh) return false;
-        return bt.depth[my * bt.mw + mx] < dist * 0.97f;
+        if (mx < 0 || my < 0 || mx >= mw || my >= mh) return false;
+        return depth[my * mw + mx] < dist * 0.97f - 2f;
     }
 
     /** What stands nearer than {@code dist} within {@code box} (half size, opaque where it does), or null if nothing. */
