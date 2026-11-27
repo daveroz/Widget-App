@@ -724,6 +724,8 @@ def bake(key, cfg):
     # --- the ground: water (with the ocean), parks, roads
     ground = []
     view = wedge.intersection(sbox(min(xs), min(zs), max(xs), max(zs)))
+    waterways = []  # (2.43) the rivers' and canals' centre lines (0 river, 1 canal), for the boats
+    water_u = None
     for kind, theme, cols, keep in [
         ('water', 'base/water', ['subtype', 'class', 'geometry'], lambda r: r['subtype'] in ('ocean', 'water', 'lake', 'river', 'canal', 'reservoir', 'pond', 'lagoon') or r['class'] in ('bay', 'river', 'harbour', 'basin', 'water', 'lake', 'riverbank', 'canal', 'reservoir')),
         ('park', 'base/land_use', ['subtype', 'class', 'geometry'], lambda r: r['subtype'] in ('park', 'recreation', 'golf', 'cemetery', 'horticulture') or r['class'] in ('park', 'garden', 'grass', 'forest', 'wood', 'recreation_ground', 'cemetery', 'golf_course', 'village_green', 'meadow')),
@@ -734,10 +736,14 @@ def bake(key, cfg):
         for r in t.to_pylist():
             if not keep(r): continue
             g = geom_local(W.loads(r['geometry']), f)
+            if kind == 'water' and g.geom_type in ('LineString', 'MultiLineString') and (
+                    r['class'] in ('river', 'canal') or r['subtype'] in ('river', 'canal')):
+                waterways.append((1 if 'canal' in (r['class'], r['subtype']) else 0, g))
             if g.geom_type not in ('Polygon', 'MultiPolygon'): continue
             acc.append(g.intersection(view))
         if not acc: continue
         u = unary_union(acc).simplify(T['gtol'])
+        if kind == 'water': water_u = u
         for p in polys(u):
             if p.area < 30: continue
             ground.append((KINDS[kind], p))
@@ -880,8 +886,37 @@ def bake(key, cfg):
         if ls.length >= 3: t2.append((wdt, np.array(ls.coords)))
     traffic = t2
     stats['traffic_lines'] = len(traffic)
+    # the boats' lanes (2.43): each river's and canal's centre line where it runs inside the water drawn (so only big
+    # rivers and canals mapped as water, at least about 10 m wide), 40 m to 3.5 km off, on screen, half a pixel
+    boats = []
+    if waterways and water_u is not None and not water_u.is_empty:
+        inside = water_u.buffer(-5.0)
+        for wk, g in waterways:
+            try:
+                g = g.intersection(inside)
+            except Exception:
+                continue
+            for ln in (g.geoms if hasattr(g, 'geoms') else [g]):
+                if ln.geom_type != 'LineString' or ln.length < 40: continue
+                ln = shapely.segmentize(ln, 25.0)
+                c2 = np.array(ln.coords)
+                sp, zz = cam.project(np.c_[c2[:, 0], np.zeros(len(c2)), c2[:, 1]])
+                sp = sp + np.array([W2 / 2, 0])
+                ok = (zz > 40) & (zz < 3500) & (sp[:, 0] > -30) & (sp[:, 0] < W2 + 30)
+                run = []
+                for v, o in zip(sp, ok):
+                    if o: run.append(v); continue
+                    if len(run) >= 2: boats.append((wk, run))
+                    run = []
+                if len(run) >= 2: boats.append((wk, run))
+    b2 = []
+    for wk, run in boats:
+        ls = shapely.LineString(run).simplify(0.5)
+        if ls.length >= 6: b2.append((wk, np.array(ls.coords)))
+    boats = b2
+    stats['boat_lanes'] = len(boats)
     scene = {'city': key, 'w': W2, 'h': REF_H, 'faces': proj, 'ground': gproj, 'hills': sil, 'lamps': lp, 'lamp_dist': 'euclid',
-             'cam': {'hc': cam.c[1], 'dist': d, 'look': look, 'fn': FN}, 'traffic': traffic}
+             'cam': {'hc': cam.c[1], 'dist': d, 'look': look, 'fn': FN}, 'traffic': traffic, 'boats': boats}
     stats['lamps'] = len(lp)
     stats['bytes'] = len(pack3(scene))
     stats['cam'] = {'height_m': round(cam.c[1]), 'distance_m': round(d), 'look': look,
@@ -1064,7 +1099,7 @@ def pack3(scene):
     import palette as PAL
     b = io.BytesIO()
     b.write(b'WSC3')
-    b.write(bytes([4, int(scene.get('tier', 1))]))
+    b.write(bytes([5, int(scene.get('tier', 1))]))
     b.write(struct.pack('<HHHHH', int(round(scene['w'])), int(scene['h']), int(scene['cam']['look']) % 360,
                         int(min(65535, round(scene['cam']['hc'] * 4))), int(round(scene['cam'].get('fn', FN0) * 10000))))
     last = [0, 0]
@@ -1101,5 +1136,10 @@ def pack3(scene):
     _uvar(b, len(scene.get('traffic', [])))
     for wdt, s in scene.get('traffic', []):
         b.write(bytes([min(255, int(wdt))]))
+        pts(s, 2)
+    # (format 5, 2.43) the boats' lanes: count, then each: its kind (0 a river, 1 a canal) and its centre line's points
+    _uvar(b, len(scene.get('boats', [])))
+    for wk, s in scene.get('boats', []):
+        b.write(bytes([wk]))
         pts(s, 2)
     return zlib.compress(b.getvalue(), 9)

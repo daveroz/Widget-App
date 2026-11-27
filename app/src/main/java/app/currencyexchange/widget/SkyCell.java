@@ -136,7 +136,8 @@ final class SkyCell {
         boolean storm = Festive.storm(code);
         if (storm) Festive.lightning(c, out.getWidth(), out.getHeight(), px, t, seed, dot);
         c.drawBitmap(built.still, 0, 0, paint);
-        WorldScene.traffic(c, built.traffic, t, dot, px); // the cars' lights on the roads at night (2.32)
+        WorldScene.boats(c, built.boats, t, dot, px); // the boats on the big rivers and canals (2.43)
+        WorldScene.traffic(c, built.traffic, t, dot, px); // the cars on the roads, their lights at night (2.32, by day 2.43)
         int minute = (int) Math.floorMod(Math.floorDiv(ms / 1000L + zone.getRules().getOffset(Instant.ofEpochMilli(ms))
                 .getTotalSeconds(), 60L), 60L);
         CityScene.sparkle(c, built, light, t, minute, px);

@@ -131,13 +131,13 @@ cell goes (2.40; before, any whose top stood in the top sixth of the cell); **15
 2's low-poly blocks; **16, at screen size**: the ground simplified to 0.6 px and its specks dropped, footprints to half a
 pixel, a block showing less than 6 px dropped.
 
-## Scene file (format 4, `assets/scenes/<name>-<cc>.bin`)
+## Scene file (format 5, `assets/scenes/<name>-<cc>.bin`)
 
 Deflated; little-endian; numbers after the header are zigzag variable-length, points delta-coded in half pixels of the
 reference frame (840 x 280: three times as wide as tall, the widest cell), each list's first point from the previous
 list's first.
 
-- header: `WSC3`, version (4; 3 before 2.32), tier, width, height, the camera's look azimuth (degrees), its height
+- header: `WSC3`, version (5; 4 before 2.43, 3 before 2.32), tier, width, height, the camera's look azimuth (degrees), its height
   (quarter metres), and since version 4 its lens (the focal length in cell heights, times 10,000);
 - hills: count, then each line's points (the far line first; a third, nearest line since 2.40 for rule 20);
 - ground: count, then each shape's kind (2 water, 3 park, 4 road) and points;
@@ -146,7 +146,10 @@ list's first.
   distance byte; the material's hue and chroma; flags, 1 = the hero; its points). Kind 10 (2.32) is see-through
   ironwork (a model's `ironwork` material, the Eiffel Tower's lattice): both its sides are kept, it hides nothing behind
   it, and the app draws it as girders (a faint fill, a cross-hatch of bars about every 8 m, rails along its edges);
-- (version 4) the cars' roads: count, then each main road's width in metres and its centre line's points.
+- (version 4) the cars' roads: count, then each main road's width in metres and its centre line's points;
+- (version 5, 2.43) the boats' lanes: count, then each one's kind (0 a river, 1 a canal) and its centre line's points:
+  the rivers' and canals' centre lines (Overture's water lines) where they run inside the water drawn, at least 5 m
+  in from its banks (so only big rivers and canals mapped as water), 40 m to 3.5 km off.
 
 Distance bytes are `log1p(metres) * 28`. A block's walls are rebuilt by the app: the camera is level, so every vertical
 edge stays vertical and a corner's top is straight above its foot, as far above the horizon as the block's height over

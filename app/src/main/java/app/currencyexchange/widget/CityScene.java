@@ -110,8 +110,10 @@ final class CityScene {
         List<Tree> trees = new ArrayList<>();
         /** Where the Eiffel Tower sparkles for five minutes every hour after dark (null elsewhere). */
         RectF sparkle;
-        /** The cars on a real city's roads at night (2.32; null elsewhere). */
+        /** The cars on a real city's roads (2.32 at night, 2.43 by day too; null elsewhere). */
         WorldScene.Traffic traffic;
+        /** The boats on a real city's big rivers and canals (2.43; null elsewhere). */
+        WorldScene.Boats boats;
     }
 
     /** The landmark (or skyline) and trees of {@code city} (at latitude {@code lat}), {@code w} × {@code h} pixels. */
