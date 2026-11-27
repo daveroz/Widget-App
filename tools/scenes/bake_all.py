@@ -16,7 +16,7 @@ def slug(name, cc):
 CURATED = {'Paris|FR': 'paris', 'Sydney|AU': 'sydney', 'New York|US': 'new-york', 'London|GB': 'london', 'Tokyo|JP': 'tokyo',
            'Charlotte|US': 'charlotte', 'Mexico City|MX': 'mexico-city', 'Dubai|AE': 'dubai', 'Barcelona|ES': 'barcelona',
            'Istanbul|TR': 'istanbul', 'San Francisco|US': 'san-francisco', 'Buenos Aires|AR': 'buenos-aires',
-           'Rio de Janeiro|BR': 'rio-de-janeiro'}
+           'Rio de Janeiro|BR': 'rio-de-janeiro', 'Juneau|US': 'juneau', 'Marquesas|PF': 'marquesas'}
 
 # a major city's iconic landmark where its tallest isn't (the camera still chosen automatically)
 HERO = {'Amsterdam|NL': 'amsterdam-rijksmuseum', 'Seattle|US': 'sea-space-needle', 'Singapore|SG': 'singapore-marina-bay-sands',

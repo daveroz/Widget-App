@@ -113,13 +113,15 @@ stolslilabs/paved#513 (windows as emissive faces given a halo by bloom, warm poo
 
 ## Two tiers
 
-- **Tier 1** (`majors.txt`, 160 major cities; Whittier and La Serena since 2.40): the full map as above, with a hero landmark (the hand-set one in
+- **Tier 1** (`majors.txt`, 160 major cities, Whittier and La Serena among them since 2.40, and 16 small places drawn in
+  full since 2.40 because too little of them survived tier 2's blocks: 176): the full map as above, with a hero landmark (the hand-set one in
   `cities.json` or `bake_all.py`'s `HERO`, else the tallest catalog landmark within 6 km, never one on a hilltop) and its
   camera (hand-set, else rule 14).
-- **Tier 2** (every other place in the app's list, 261): a low-poly version of itself (rule 15): a 45 m grid, each cell
+- **Tier 2** (every other place in the app's list, 245): a low-poly version of itself (rule 15): a 45 m grid, each cell
   with enough building in it a block as tall as its buildings on average (to 4 m), runs of equal cells joined; its real
   water, parks, main roads and hills; the camera chosen the same way.
-- Places with almost nothing to show (fewer than 30 shapes) get no scene and keep the drawn one. Scenes are centred on
+- Places with almost nothing to show (fewer than 30 shapes) get no scene and keep the drawn one (none since 2.40: the
+  16 that did are centred on their main town, `focus.json`, and drawn in full). Scenes are centred on
   Natural Earth's city centre (`focus.json`), not the time zone's point, which can be kilometres off.
 
 More rules: **14, the automatic camera**: of eight sides, the one with the richest view: a deep skyline round and behind

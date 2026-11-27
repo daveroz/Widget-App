@@ -69,5 +69,11 @@
    "ground": 0,
    "from": 1200
   }
+ },
+ "juneau": {
+  "az": 315
+ },
+ "marquesas": {
+  "az": 0
  }
 }

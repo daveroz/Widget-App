@@ -160,3 +160,21 @@ Zagreb|HR
 Zurich|CH
 Whittier|US
 La Serena|CL
+# small places drawn in full (2.40): too little of them survives tier 2's low-poly blocks, so they would have no scene;
+# each centred on its main town (focus.json): Waitangi, Weno, Torshavn, Honiara, London, Taiohae, Yaren, Kolonia, ...
+Chatham|NZ
+Chuuk|FM
+Eucla|AU
+Faroe|FO
+Glace Bay|CA
+Guadalcanal|SB
+Hovd|MN
+Jayapura|ID
+Juneau|US
+Kiritimati|KI
+Marquesas|PF
+Miquelon|PM
+Nauru|NR
+Pohnpei|FM
+Qyzylorda|KZ
+Ushuaia|AR
