@@ -104,7 +104,7 @@ final class CurrencyView {
             rv.setImageViewBitmap(id(ctx, "mkt_lbl_" + i), marketLbl);
             rv.setImageViewBitmap(id(ctx, "mkt_val_" + i), tight(reg, HEADER_SP, Util.fmt0(market), white));
             int mv = id(ctx, "mood_" + i);
-            if (mv != 0) rv.setImageViewBitmap(mv, mood(ctx, mood(hist, from, market) >= 0));
+            if (mv != 0) rv.setImageViewBitmap(mv, mood(ctx, mood(hist, from, market) <= 0)); // happy when the rate fell or held (2.40)
             rv.setImageViewBitmap(id(ctx, "visa_logo_" + i), visaLogo);
             double visa = Util.alignToMarket(Store.visa(ctx, from, to), market);
             int vv = id(ctx, "visa_val_" + i);

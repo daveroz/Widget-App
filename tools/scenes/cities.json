@@ -19,8 +19,7 @@
   "zoom": 0.72
  },
  "tokyo": {
-  "main": "tokyo-skytree",
-  "az": 90
+  "main": "tokyo-tower"
  },
  "charlotte": {
   "main": "bank-of-america-corporate-center",
@@ -52,5 +51,29 @@
   "height": 85,
   "width": 40,
   "az": 200
+ },
+ "buenos-aires": {
+  "main": "buenos-aires-obelisco",
+  "az": 357.5,
+  "diagonal": false,
+  "zoom": 0.8
+ },
+ "rio-de-janeiro": {
+  "main": "rio-christ-the-redeemer",
+  "hill": {
+   "az": 83,
+   "d": 3550,
+   "hc": 80,
+   "view": 22.6,
+   "scale": 2.2,
+   "ground": 0,
+   "from": 1200
+  }
+ },
+ "juneau": {
+  "az": 315
+ },
+ "marquesas": {
+  "az": 0
  }
 }

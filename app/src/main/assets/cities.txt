@@ -210,6 +210,7 @@ Kyiv|UA|Europe/Kyiv|50.433|30.517
 Kyoto|JP|Asia/Tokyo|35.010|135.770
 La Paz|BO|America/La_Paz|-16.500|-68.150
 La Rioja|AR|America/Argentina/La_Rioja|-29.433|-66.850
+La Serena|CL|America/Santiago|-29.905|-71.249
 Lagos|NG|Africa/Lagos|6.450|3.400
 Las Vegas|US|America/Los_Angeles|36.170|-115.140
 Libreville|GA|Africa/Libreville|0.383|9.450
@@ -409,6 +410,7 @@ Warsaw|PL|Europe/Warsaw|52.250|21.000
 Washington|US|America/New_York|38.910|-77.040
 Wellington|NZ|Pacific/Auckland|-41.290|174.780
 Whitehorse|CA|America/Whitehorse|60.717|-135.050
+Whittier|US|America/Los_Angeles|33.979|-118.033
 Windhoek|NA|Africa/Windhoek|-22.567|17.100
 Winnipeg|CA|America/Winnipeg|49.883|-97.150
 Yakutsk|RU|Asia/Yakutsk|62.000|129.667

@@ -94,7 +94,7 @@ final class SkyCell {
         light = CityScene.light(sky, sunLeft);
         // the city as it really is, from open map data (2.31; its streets, landmarks, water and hills), or else the drawn
         // scene (its streets as its continent's, 2.27)
-        CityScene.Built real = WorldScene.build(city, cc, w, h, px, light, seed);
+        CityScene.Built real = WorldScene.build(city, cc, lat, lon, w, h, px, light, seed);
         built = real != null ? real : CityScene.build(city, lat, zone, w, h, px, light, seed);
         // the final grade (2.34, after the user's Lightroom edit): richer colour everywhere, the day's shadows lifted
         float lift = Grade.day(el);
@@ -146,7 +146,6 @@ final class SkyCell {
         CityScene.birds(c, sky, light, t, seed, px);
         CityScene.helicopter(c, sky, light, t, seed, px);
         Sky.weather(c, sky, t, dot);
-        if (sky.flare != null) c.drawBitmap(sky.flare, 0, 0, paint); // the lens's flare, faint (2.31)
         c.drawBitmap(sky.front, 0, 0, paint);
         if (storm) { // the flash lights the city too
             float f = Festive.flash(t, seed);

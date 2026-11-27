@@ -109,10 +109,54 @@ final class WorldScene {
         return hit == null || hit.isEmpty() ? null : hit;
     }
 
+    /** The listed places that have a scene: slug, country, latitude, longitude (2.40). */
+    private static List<Object[]> mapped;
+
+    /**
+     * The scene of the nearest mapped place within 30 km (2.40): a clock found online under another spelling of a listed
+     * place ("Bengaluru" for the list's "Bangalore") or a suburb of one; in its own country when that's known.
+     */
+    private static String nearest(String cc, double lat, double lon) {
+        if (Double.isNaN(lat) || Double.isNaN(lon)) return null;
+        if (mapped == null) {
+            mapped = new ArrayList<>();
+            java.util.Set<String> have = new java.util.HashSet<>();
+            try {
+                String[] list = assets.list("scenes");
+                if (list != null) for (String f : list) if (f.endsWith(".bin")) have.add(f.substring(0, f.length() - 4));
+            } catch (java.io.IOException ignored) { }
+            try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
+                    assets.open("cities.txt"), java.nio.charset.StandardCharsets.UTF_8))) {
+                for (String l; (l = r.readLine()) != null; ) {
+                    String[] p = l.split("\\|");
+                    if (p.length < 5) continue;
+                    String k = slug(p[0], p[1]);
+                    if (k != null && have.contains(k)) {
+                        mapped.add(new Object[]{k, p[1], Double.parseDouble(p[3]), Double.parseDouble(p[4])});
+                    }
+                }
+            } catch (Exception ignored) { }
+        }
+        String best = null;
+        double bestKm = 30;
+        for (Object[] m : mapped) {
+            if (cc != null && !cc.equalsIgnoreCase((String) m[1])) continue;
+            double la = (Double) m[2], lo = (Double) m[3];
+            double dy = (la - lat) * 111.2, dx = (lo - lon) * 111.2 * Math.cos(Math.toRadians(lat));
+            double km = Math.sqrt(dx * dx + dy * dy);
+            if (km < bestKm) { bestKm = km; best = (String) m[0]; }
+        }
+        return best;
+    }
+
+    /** As below, without the place's position (no nearest-place fallback). */
+    static Data load(String city, String cc) { return load(city, cc, Double.NaN, Double.NaN); }
+
     /** The scene of {@code city} in country {@code cc}, or null when there's none (the drawn scene stays). */
-    static synchronized Data load(String city, String cc) {
+    static synchronized Data load(String city, String cc, double lat, double lon) {
         if (assets == null || city == null) return null;
         String key = cc != null ? slug(city, cc) : byName(city);
+        if (key == null) key = nearest(null, lat, lon);
         if (key == null) return null;
         Data d = CACHE.get(key);
         if (d == null) {
@@ -121,6 +165,7 @@ final class WorldScene {
             } catch (Exception e) {
                 d = NONE;
                 String alt = cc != null ? byName(city) : null; // its country as saved may differ from the list's
+                if (alt == null) alt = nearest(cc, lat, lon); // another spelling of a listed place, or its suburb
                 if (alt != null && !alt.equals(key)) {
                     try (InputStream in = new InflaterInputStream(assets.open("scenes/" + alt + ".bin"))) {
                         d = parse(readAll(in));
@@ -252,6 +297,8 @@ final class WorldScene {
      */
     private static final float FADE_M = 45f, FADE_MAX = 60f, CITY_UP = 0.3f;
     private static final int MOON = 0xFF8C9CFF;
+    /** The floodlight on a hero high on its hill (2.40): a cool white, as the Cristo's. */
+    private static final int HILL_FLOOD = 0xFFE6EAFF;
     /** Cars' lights on the main roads at night (2.32): headlights coming, tail lights going. */
     private static final int HEAD = 0xFFFFF1D2, TAIL = 0xFFFF3C3C;
     /** Where they drive on the left (the cars' lanes, 2.32). */
@@ -263,8 +310,9 @@ final class WorldScene {
      * The still picture of {@code city}'s scene ({@code w} x {@code h} pixels) for the light {@code l}, or null when the
      * place has no scene. Its beacons: the hero landmark's top, blinking at night.
      */
-    static CityScene.Built build(String city, String cc, int w, int h, float px, CityScene.Light l, long seed) {
-        Data d = load(city, cc);
+    static CityScene.Built build(String city, String cc, double lat, double lon, int w, int h, float px,
+                                 CityScene.Light l, long seed) {
+        Data d = load(city, cc, lat, lon);
         if (d == null) return null;
         CityScene.Built b = new CityScene.Built();
         b.still = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
@@ -282,7 +330,7 @@ final class WorldScene {
         Path path = new Path();
         float night = l.night, lights = l.lights;
         int farHaze = Scene.mix(l.far, l.horizon, 0.45f);
-        // the hills on the horizon: the far line, then the near one
+        // the hills on the horizon: the far line, then the near one (and the nearest, 2.40)
         for (int i = d.hills.length - 1; i >= 0; i--) {
             float[] line = d.hills[i];
             if (line.length < 4) continue;
@@ -291,7 +339,9 @@ final class WorldScene {
             for (int j = 0; j < line.length; j += 2) path.lineTo((line[j] - x0) * k, Math.min(hz + 4 * k, line[j + 1] * k));
             path.lineTo((line[line.length - 2] - x0) * k, hz + 4 * k);
             path.close();
-            p.setColor(Scene.mix(l.far, l.horizon, i == d.hills.length - 1 ? 0.55f : 0.35f));
+            // a third, nearest line (2.40): the hill a landmark stands on, a little nearer and deeper
+            p.setColor(d.hills.length > 2 && i == 0 ? Scene.mix(Scene.mix(l.far, l.front, 0.4f), l.horizon, 0.12f)
+                    : Scene.mix(l.far, l.horizon, i == d.hills.length - 1 ? 0.55f : 0.35f));
             c.drawPath(path, p);
         }
         // the ground: hazy far off, darker near
@@ -301,6 +351,12 @@ final class WorldScene {
         p.setShader(null);
         // the water: the sky in it, deeper (2.33: the graded reference's water is darker than the sky it mirrors)
         int waterFar = Scene.mix(Scene.mix(l.horizon, l.mid, 0.3f), l.near, 0.32f), waterNear = Scene.mix(Scene.mix(l.horizon, l.mid, 0.65f), l.near, 0.6f);
+        // by full day (2.40) the pastel references' water: mint far off, a deeper aqua-periwinkle near
+        float wDay = smoothF(6f, 16f, l.e) * (l.snow ? 0.4f : 1f);
+        if (wDay > 0f) {
+            waterFar = Scene.mix(waterFar, 0xFFB6D6CF, 0.6f * wDay);
+            waterNear = Scene.mix(waterNear, 0xFF88A8C9, 0.55f * wDay);
+        }
         int park = Scene.mix(l.front, l.street, 0.35f), road = Scene.mix(l.street, l.edge, 0.18f);
         int[] order = {PARK, WATER, ROAD};
         // the roads' traffic at night (2.32): where a road shows (it, less everything later drawn over it), at half size
@@ -399,7 +455,10 @@ final class WorldScene {
             poly(path, s, x0, k);
             if (d.main[i] && kind != LM_GLASS && lights > 0.05f) col = screen(col, MOON, 0.1f * lights); // the hero: a touch of moonlight, to stand out
             p.setColor(col);
-            if (d.main[i] && kind != LM_GLASS && lights > 0.05f && heroFoot > heroTop) {
+            if (d.main[i] && kind != LM_GLASS && lights > 0.05f && heroFoot < hz) {
+                // a hero high on its hill (2.40, the Cristo on Corcovado): floodlit whole, a cool white over the dark hill
+                p.setColor(screen(col, HILL_FLOOD, 0.6f * lights));
+            } else if (d.main[i] && kind != LM_GLASS && lights > 0.05f && heroFoot > heroTop) {
                 // the hero at night: lit from the street as every building is (the same strength and reach), warm at its
                 // foot and fading out 60% of the way up, never more than FADE_MAX
                 float footR = heroFoot / k, z = d.hc * f / Math.max(footR - HZ * d.h, 0.25f);
@@ -486,8 +545,10 @@ final class WorldScene {
     }
 
     /** The buildings' materials by day (2.37): their colour, its lightness ignored (each wall keeps its own). */
-    private static final int MAT_CONCRETE = 0xFFC6C9CE, MAT_STONE = 0xFFDEDCD7, MAT_SAND = 0xFFD2CABA,
-            MAT_GLASS = 0xFF8EA8C8, MAT_BRICK = 0xFFAE958A, MAT_DARK_GLASS = 0xFF6F86A6; // 2.39: the warm ones muted
+    // 2.40: in the pastel references' colours: concrete a lilac grey, stone a peach cream, sandstone a pale butter, glass
+    // an aqua, brick a dusty rose, dark glass a periwinkle (2.39's: C6C9CE DEDCD7 D2CABA 8EA8C8 AE958A 6F86A6)
+    private static final int MAT_CONCRETE = 0xFFC3C2D1, MAT_STONE = 0xFFEFD9CC, MAT_SAND = 0xFFE2DBC1,
+            MAT_GLASS = 0xFF8AAEBD, MAT_BRICK = 0xFFC9A3A7, MAT_DARK_GLASS = 0xFF717EAB;
 
     /**
      * {@code col} taking the hue and colour of the material {@code mat} at its own lightness, {@code k} of the way,
