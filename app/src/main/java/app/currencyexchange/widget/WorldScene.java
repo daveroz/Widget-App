@@ -432,9 +432,9 @@ final class WorldScene {
         mp.setColor(0xFFFF0000);
         Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
         wp.setColor(0xFF00FF00);
-        // (2.43) how far off whatever stands at each pixel is (half size; the ground: nothing), so a boat is hidden only by
-        // what stands nearer than it, never by the bank behind it
-        Bitmap depthBmp = d.boats != null ? Bitmap.createBitmap(Math.max(2, w / 2), Math.max(2, h / 2), Bitmap.Config.ARGB_8888) : null;
+        // (2.43) how far off (on the ground) whatever stands at each pixel is (half size; the ground: nothing), so a boat or
+        // a tree is hidden only by what stands nearer than it: each wall at its own distance, not its block's middle
+        Bitmap depthBmp = Bitmap.createBitmap(Math.max(2, w / 2), Math.max(2, h / 2), Bitmap.Config.ARGB_8888);
         Canvas depth = depthBmp == null ? null : new Canvas(depthBmp);
         if (depth != null) depth.scale(0.5f, 0.5f);
         Paint dpaint = new Paint();
@@ -481,6 +481,7 @@ final class WorldScene {
         p.setStrokeJoin(Paint.Join.ROUND);
         int e = 0;
         Random rnd = new Random(seed ^ 0x3D5EL);
+        List<float[]> trees = new ArrayList<>();
         for (int i = 0; i <= d.kind.length; i++) {
             float di = i < d.kind.length ? d.dist[i] : -1;
             while (e < extras.size() && extras.get(e)[0] > di) { // a tree or lamp further than this item: first
@@ -489,9 +490,7 @@ final class WorldScene {
                 float X = (x[2] - x0) * k, Y = x[3] * k;
                 if (X < -10 || X > w + 10) continue;
                 if (x[1] == 0) {
-                    float rr = x[4] * 0.35f * k;
-                    if (rr < 0.6f) continue;
-                    crown(c, p, path, X, Y - rr, rr, Scene.mix(treeC, farHaze, fog), Scene.mix(treeLit, farHaze, fog), rnd);
+                    trees.add(x); // drawn after everything, where nothing nearer stands (2.43)
                 } else {
                     float rad = Math.max(0.35f, Math.min(1.4f, 150f / Math.max(x[0], 1))); // in pixels
                     p.setColor(Scene.alpha(POOL, 0.28f * lights));
@@ -506,7 +505,7 @@ final class WorldScene {
             }
             if (i == d.kind.length) break;
             float fog = d.main[i] ? 0 : fog(d.dist[i], night);
-            if (depth != null) dpaint.setColor(depthCode(d.dist[i]));
+            if (depth != null) dpaint.setColor(depthCode((float) Math.sqrt(Math.max(1f, d.dist[i] * d.dist[i] - d.hc * d.hc * 0.5f))));
             if (d.kind[i] == -1) {
                 block(c, glow, mask, depth, dpaint, clear, gp, p, path, d, d.pts[i], d.height[i], f, x0, k, hz, sun, fog, l, litC, shadeC, roofC,
                         farHaze, share, lights);
@@ -597,6 +596,10 @@ final class WorldScene {
             }
             if (kind == LM_GLASS && lights > 0.05f) glassWindows(c, glow, gp, p, s, x0, k, share, lights, fog, i);
         }
+        // the trees (2.43): far to near on a layer of their own, each with its distance in a map of their own, then cut
+        // wherever a building or a landmark stands nearer than the tree there (it was ordered by its block's middle, so
+        // a tree just behind a big block's front could stand over it)
+        if (!trees.isEmpty()) drawTrees(c, trees, depthBmp, w, h, x0, k, night, farHaze, treeC, treeLit, rnd, path, p, d, f);
         // the glow: blurred, laid over by screen (the bloom)
         // the haze on the far distance (2.33): a thin veil of the horizon's light along it, about 8% at its densest
         float hzY = HZ * h;
@@ -639,12 +642,15 @@ final class WorldScene {
                     int[] dpx = new int[mw * mh];
                     depthBmp.getPixels(dpx, 0, mw, 0, 0, mw, mh);
                     float[] dm = new float[dpx.length];
-                    for (int i = 0; i < dm.length; i++) dm[i] = (dpx[i] >>> 24) < 128 ? Float.MAX_VALUE : (float) Math.expm1((dpx[i] & 0xFFFFFF) / 100000.0);
+                    for (int i = 0; i < dm.length; i++) {
+                        dm[i] = (dpx[i] >>> 24) < 128 ? Float.MAX_VALUE
+                                : depthAt(dpx[i], (i % mw) * 2f / k + x0, (i / mw) * 2f / k, d, f);
+                    }
                     built.boats.depth = dm;
                 }
             }
-            if (depthBmp != null) depthBmp.recycle();
         }
+        depthBmp.recycle();
     }
 
     private static float clamp(float v) { return Math.max(0f, Math.min(1f, v)); }
@@ -821,7 +827,10 @@ final class WorldScene {
             p.setShader(null);
             if (glow != null) glow.drawPath(path, clear);
             if (mask != null) mask.drawPath(path, clear);
-            if (depth != null) depth.drawPath(path, dpaint);
+            if (depth != null) { // this wall at its own distance (its middle on the ground)
+                dpaint.setColor(depthCode(wd[a]));
+                depth.drawPath(path, dpaint);
+            }
             if (Math.abs(bx - ax) > 1.5f && Math.abs(ay - aty) > 8f) { // the rim along a tall one's top
                 p.setColor(Scene.mix(col, l.rim, 0.55f * (1 - fog)));
                 p.setStrokeWidth(1f);
@@ -842,7 +851,10 @@ final class WorldScene {
             c.drawPath(path, p);
             if (glow != null) glow.drawPath(path, clear);
             if (mask != null) mask.drawPath(path, clear);
-            if (depth != null) depth.drawPath(path, dpaint);
+            if (depth != null) { // the roof: flat, so its distance at each pixel follows from its height (worked out when read)
+                dpaint.setColor(roofCode(hm));
+                depth.drawPath(path, dpaint);
+            }
         }
     }
 
@@ -1250,9 +1262,74 @@ final class WorldScene {
         return cols[cols.length - 1];
     }
 
-    /** A distance as a colour for the depth map (2.43): its log, in the colour's 24 bits. */
+    /**
+     * The trees (2.43), drawn after everything else: each where nothing in the depth map stands nearer than it. Their
+     * crowns go far to near onto a layer, their distances (on the ground) into a half-size map of their own; a tree's
+     * pixel stays only where the scene's depth there is further than the tree's.
+     */
+    private static void drawTrees(Canvas c, List<float[]> trees, Bitmap depthBmp, int w, int h, float x0, float k, float night,
+                                  int farHaze, int treeC, int treeLit, Random rnd, Path path, Paint p, Data d, float f) {
+        Bitmap layer = Bitmap.createBitmap(Math.max(2, w), Math.max(2, h), Bitmap.Config.ARGB_8888);
+        Canvas lc = new Canvas(layer);
+        int hw = depthBmp.getWidth(), hh = depthBmp.getHeight();
+        Bitmap tdBmp = Bitmap.createBitmap(hw, hh, Bitmap.Config.ARGB_8888);
+        Canvas td = new Canvas(tdBmp);
+        td.scale(0.5f, 0.5f);
+        Paint tp = new Paint();
+        for (float[] x : trees) { // far to near, as they came
+            float rr = x[4] * 0.35f * k;
+            if (rr < 0.6f) continue;
+            float X = (x[2] - x0) * k, Y = x[3] * k;
+            float fog = fog(x[0], night);
+            crown(lc, p, path, X, Y - rr, rr, Scene.mix(treeC, farHaze, fog), Scene.mix(treeLit, farHaze, fog), rnd);
+            tp.setColor(depthCode(x[0]));
+            td.drawCircle(X, Y - rr, rr * 1.15f, tp);
+        }
+        int[] sd = new int[hw * hh], tdp = new int[hw * hh];
+        depthBmp.getPixels(sd, 0, hw, 0, 0, hw, hh);
+        tdBmp.getPixels(tdp, 0, hw, 0, 0, hw, hh);
+        tdBmp.recycle();
+        int lw = layer.getWidth(), lh = layer.getHeight();
+        int[] lp = new int[lw * lh];
+        layer.getPixels(lp, 0, lw, 0, 0, lw, lh);
+        for (int yy = 0; yy < lh; yy++) {
+            int my = Math.min(hh - 1, yy / 2);
+            for (int xx = 0; xx < lw; xx++) {
+                int i = yy * lw + xx;
+                if (lp[i] == 0) continue;
+                int mi = my * hw + Math.min(hw - 1, xx / 2);
+                if ((sd[mi] >>> 24) < 128 || (tdp[mi] >>> 24) < 128) continue; // nothing stands there, or no tree's depth
+                // something nearer than the tree stands there: hidden
+                float xr = xx / k + x0, yr = yy / k;
+                float scene = depthAt(sd[mi], xr, yr, d, f), tree = depthAt(tdp[mi], xr, yr, d, f);
+                if (scene < tree * 0.995f - 0.5f) lp[i] = 0;
+            }
+        }
+        layer.setPixels(lp, 0, lw, 0, 0, lw, lh);
+        c.drawBitmap(layer, 0, 0, null);
+        layer.recycle();
+    }
+
+    /** A distance as a colour for the depth map (2.43): its log, in the colour's low 23 bits. */
     private static int depthCode(float dist) {
-        return 0xFF000000 | (int) Math.min(0xFFFFFF, Math.max(0, Math.log1p(Math.max(0f, dist)) * 100000.0));
+        return 0xFF000000 | (int) Math.min(0x7FFFFF, Math.max(0, Math.log1p(Math.max(0f, dist)) * 100000.0));
+    }
+
+    /** A flat roof {@code hm} metres up in the depth map: the top bit set, its height in tenths of a metre. */
+    private static int roofCode(float hm) {
+        return 0xFF800000 | (int) Math.min(0x7FFFFF, Math.max(0, hm * 10f));
+    }
+
+    /**
+     * The distance (on the ground) a depth map's code stands for at reference point (xr, yr): a distance as coded, or for
+     * a roof, where the line of sight through that point meets its plane.
+     */
+    private static float depthAt(int code, float xr, float yr, Data d, float f) {
+        if ((code & 0x800000) == 0) return (float) Math.expm1((code & 0x7FFFFF) / 100000.0);
+        float hm = (code & 0x7FFFFF) / 10f, dy = yr - HZ * d.h, over = d.hc - hm;
+        if (dy <= 0.05f || over <= 0.5f) return Float.MAX_VALUE;
+        float z = over * f / dy, xs = (xr - d.w / 2f) / f;
+        return z * (float) Math.sqrt(1 + xs * xs);
     }
 
     /** One channel of the half-size mask (16 red: the roads, 8 green: the water), any of it counting. */
@@ -1613,7 +1690,7 @@ final class WorldScene {
                 // screen isn't straight between them)
                 float z = o[2], x = (bt.w2 + o[7] * bt.f / z - bt.x0) * bt.k, y = (bt.hzr + bt.hc * bt.f / z) * bt.k;
                 float ux = o[3], uy = o[4];
-                float dist = (float) Math.sqrt(o[7] * o[7] + z * z + bt.hc * bt.hc);
+                float dist = (float) Math.sqrt(o[7] * o[7] + z * z); // on the ground, as the depth map has it
                 if (nearer(bt, x, y, dist)) continue; // its middle hidden: under a bridge, behind a building
                 int mi = bt.model[r][j];
                 Model m = mi >= 0 && mi < ms.length ? ms[mi] : null;
