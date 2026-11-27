@@ -763,7 +763,7 @@ public class MainActivity extends Activity {
             scenes = list == null ? 0 : list.length;
         } catch (java.io.IOException ignored) { }
         statusRow(false, "City scenes", scenes > 0, scenes + " places · map © OpenStreetMap contributors, Overture Maps"
-                + " (ODbL) · landmarks CC0 (alexwohlbruck/landmarks) · Eiffel Tower after Florian Cassayre's drawing (MIT) · terrain Mapzen");
+                + " (ODbL) · landmarks CC0 (alexwohlbruck/landmarks) · Eiffel Tower after Florian Cassayre's drawing (MIT) · boats Kenney's Watercraft Kit (CC0) · terrain Mapzen");
 
         SharedPreferences sp = Store.sp(this);
         long ok = sp.getLong("clockOkAt", 0), bad = sp.getLong("clockErrAt", 0);

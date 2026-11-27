@@ -58,7 +58,10 @@ EXCESS = 0.30  # rule 17 (2.40): a block nearer than the hero filling more than 
 
 KINDS = {'wall': 0, 'roof': 1, 'water': 2, 'park': 3, 'road': 4, 'lm': 5, 'lm_glass': 6, 'lm_light': 7, 'land': 8, 'lm_roof': 9,
          'lm_lattice': 10,  # lattice (2.32): see-through ironwork, drawn as girders by the app
-         'lm_girder': 11}  # girders (2.32): single bars of a structure (the Eiffel Tower's, after Eiffel's own plates)
+         'lm_girder': 11,  # girders (2.32): single bars of a structure (the Eiffel Tower's, after Eiffel's own plates)
+         'deck': 12}  # a bridge's deck (facing -1) and its sides (2.43), its road raised over the water
+BRIDGE_H = 10.0  # (2.43) a bridge's deck over the ground, where it's not a landmark with its own
+RAMP = 40.0  # metres over which a bridge's end comes down to the ground
 
 CAT = {}
 for f in glob.glob(REPO + '/catalog/landmarks/*.json'):
@@ -724,6 +727,8 @@ def bake(key, cfg):
     # --- the ground: water (with the ocean), parks, roads
     ground = []
     view = wedge.intersection(sbox(min(xs), min(zs), max(xs), max(zs)))
+    waterways = []  # (2.43) the rivers' and canals' centre lines (0 river, 1 canal), for the boats
+    water_u = None
     for kind, theme, cols, keep in [
         ('water', 'base/water', ['subtype', 'class', 'geometry'], lambda r: r['subtype'] in ('ocean', 'water', 'lake', 'river', 'canal', 'reservoir', 'pond', 'lagoon') or r['class'] in ('bay', 'river', 'harbour', 'basin', 'water', 'lake', 'riverbank', 'canal', 'reservoir')),
         ('park', 'base/land_use', ['subtype', 'class', 'geometry'], lambda r: r['subtype'] in ('park', 'recreation', 'golf', 'cemetery', 'horticulture') or r['class'] in ('park', 'garden', 'grass', 'forest', 'wood', 'recreation_ground', 'cemetery', 'golf_course', 'village_green', 'meadow')),
@@ -734,28 +739,148 @@ def bake(key, cfg):
         for r in t.to_pylist():
             if not keep(r): continue
             g = geom_local(W.loads(r['geometry']), f)
+            if kind == 'water' and g.geom_type in ('LineString', 'MultiLineString') and (
+                    r['class'] in ('river', 'canal') or r['subtype'] in ('river', 'canal')):
+                waterways.append((1 if 'canal' in (r['class'], r['subtype']) else 0, g))
             if g.geom_type not in ('Polygon', 'MultiPolygon'): continue
             acc.append(g.intersection(view))
         if not acc: continue
         u = unary_union(acc).simplify(T['gtol'])
+        if kind == 'water': water_u = u
         for p in polys(u):
             if p.area < 30: continue
             ground.append((KINDS[kind], p))
-    t, _ = overture.read('transportation/segment', box, ['subtype', 'class', 'geometry'])
+    t, _ = overture.read('transportation/segment', box, ['subtype', 'class', 'geometry', 'road_flags', 'level_rules'])
     lamps = []
-    centre = []  # the main roads' centre lines (their width), for the cars at night (2.32)
+    centre = []  # the main roads' centre lines: width, the line, each point's height (m) and mode (0, 1 on a landmark, 2 hidden)
+    # 2.43: bridges and tunnels. A bridge's road is raised to its deck (on a landmark bridge, the model's own deck; else
+    # BRIDGE_H, with a ramp at an end that meets the ground) and gets a deck and its sides as faces, drawn in depth; a
+    # tunnel's (and the stretch through a landmark bridge's towers) is hidden; neither is drawn on the ground
+    decks = []  # landmark meshes' upward faces (x0, z0, x1, z1, x2, z2, y) and their footprints, for their decks' heights
+    for pid in lms:
+        mm = landmark_mesh(pid, f)
+        if not mm: continue
+        tris = []
+        for v, fs, _, _ in mm:
+            tri = v[fs]
+            nrm = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+            ln = np.linalg.norm(nrm, axis=1)
+            up = (ln > 1e-9) & (np.abs(nrm[:, 1]) > 0.85 * np.maximum(ln, 1e-9))
+            for t3 in tri[up]:
+                y = float(t3[:, 1].mean())
+                if 4.0 <= y <= 30.0: tris.append((t3[:, [0, 2]], y))
+        if tris:
+            allv = np.vstack([v for v, _, _, _ in mm])
+            decks.append((shapely.MultiPoint(allv[:, [0, 2]]).convex_hull, tris))
+
+    def deck_at(x, z):
+        """The deck's height at (x, z) on a landmark bridge (the middle of its upward faces there), or None."""
+        pt = shapely.Point(x, z)
+        for hull, tris in decks:
+            if not hull.contains(pt): continue
+            hs = []
+            for t2, y in tris:
+                (ax, az), (bx, bz), (cx, cz) = t2
+                d0 = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz)
+                if abs(d0) < 1e-9: continue
+                l1 = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d0
+                l2 = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d0
+                if l1 >= 0 and l2 >= 0 and l1 + l2 <= 1: hs.append(y)
+            return float(np.median(hs)) if hs else None
+        return None
+
     if t is not None:
         widths = {'motorway': 22, 'trunk': 18, 'primary': 14, 'secondary': 11, 'tertiary': 9}
         lines = []
+        pieces = []  # (width, points (n,2), heights, modes)
         for r in t.to_pylist():
             if r['subtype'] != 'road' or r['class'] not in T['roads']: continue
             g = geom_local(W.loads(r['geometry']), f)
-            lines.append(g.buffer(widths[r['class']] / 2, cap_style=2).intersection(view))
-            centre.append((widths[r['class']], g))
-            for t_ in np.arange(0, g.length, T['lamp']):
-                p = g.interpolate(t_)
-                ok, along = in_view(p.x, p.y)
-                if ok and along < 3000: lamps.append((p.x, 0.0, p.y))
+            if g.geom_type != 'LineString' or g.length < 1: continue
+            up, under = [], []
+            for fl in (r.get('road_flags') or []):
+                vals, bt = fl.get('values') or [], fl.get('between') or [0.0, 1.0]
+                if 'is_bridge' in vals: up.append(bt)
+                if 'is_tunnel' in vals: under.append(bt)
+            for lv in (r.get('level_rules') or []):
+                bt = lv.get('between') or [0.0, 1.0]
+                if lv.get('value', 0) >= 1: up.append(bt)
+                elif lv.get('value', 0) <= -1: under.append(bt)
+            gs = shapely.segmentize(g, 10.0)
+            c2 = np.array(gs.coords)
+            seg = np.r_[0, np.cumsum(np.hypot(*np.diff(c2, axis=0).T))]
+            fr = seg / max(seg[-1], 1e-6)
+            inr = lambda rs, x: any(a - 1e-6 <= x <= b + 1e-6 for a, b in rs)
+            hgt = np.zeros(len(c2))
+            mode = np.zeros(len(c2), int)
+            for i_, (x_, z_) in enumerate(c2):
+                if inr(under, fr[i_]): mode[i_] = 2
+                if inr(up, fr[i_]):
+                    dk = deck_at(x_, z_)
+                    if dk is not None:
+                        hgt[i_] = dk + 0.3
+                        mode[i_] = 2 if mode[i_] == 2 else 1
+                    else:
+                        hgt[i_] = BRIDGE_H
+                        if mode[i_] == 2: mode[i_] = 0  # a covered bridge: still shown
+            pieces.append((widths[r['class']], c2, hgt, mode, seg))
+        # ramps: a bridge's end that doesn't meet another bridge's comes down to the ground over RAMP metres
+        ends = {}
+        for w_, c2, hgt, mode, seg in pieces:
+            for j_ in (0, len(c2) - 1):
+                if hgt[j_] > 0: ends[(round(c2[j_][0]), round(c2[j_][1]))] = ends.get((round(c2[j_][0]), round(c2[j_][1])), 0) + 1
+        for w_, c2, hgt, mode, seg in pieces:
+            raised = hgt > 0
+            if not raised.any(): continue
+            h0 = hgt.copy()
+            for j_ in range(len(c2)):
+                if not raised[j_]: continue
+                # the distance to where this raised stretch meets the ground (not counting a shared bridge end)
+                best = 1e9
+                for k_ in range(len(c2)):
+                    if not raised[k_]: best = min(best, abs(seg[j_] - seg[k_]))
+                for e_ in (0, len(c2) - 1):
+                    if raised[e_] and ends.get((round(c2[e_][0]), round(c2[e_][1])), 0) < 2 and mode[e_] != 1:
+                        best = min(best, abs(seg[j_] - seg[e_]))
+                if best < RAMP: h0[j_] = hgt[j_] * best / RAMP
+            hgt[:] = h0
+        for w_, c2, hgt, mode, seg in pieces:
+            # on the ground: what's neither raised nor hidden, as before
+            run = []
+            for j_ in range(len(c2)):
+                if hgt[j_] <= 0.05 and mode[j_] == 0:
+                    run.append(c2[j_]); continue
+                if len(run) >= 2: lines.append(shapely.LineString(run).buffer(w_ / 2, cap_style=2).intersection(view))
+                run = []
+            if len(run) >= 2: lines.append(shapely.LineString(run).buffer(w_ / 2, cap_style=2).intersection(view))
+            centre.append((w_, c2, hgt, mode))
+            # a bridge that's not a landmark: its deck (the road and a metre of pavement each side) and its sides, 1.6 m
+            # deep, as faces between each pair of points
+            for j_ in range(len(c2) - 1):
+                if not (hgt[j_] > 0.05 or hgt[j_ + 1] > 0.05) or mode[j_] == 1 or mode[j_ + 1] == 1: continue
+                a, b = c2[j_], c2[j_ + 1]
+                dv = b - a
+                L_ = np.hypot(*dv)
+                if L_ < 0.5: continue
+                nv = np.array([-dv[1], dv[0]]) / L_ * (w_ / 2 + 1.0)
+                ha, hb = hgt[j_], hgt[j_ + 1]
+                pa, pb, pc, pd = a + nv, b + nv, b - nv, a - nv
+                quad = np.array([[pa[0], ha, pa[1]], [pb[0], hb, pb[1]], [pc[0], hb, pc[1]], [pd[0], ha, pd[1]]], float)
+                faces.append((KINDS['deck'], quad, -1, None))
+                for sgn in (1, -1):  # the side turned to the camera
+                    pa, pb = a + sgn * nv, b + sgn * nv
+                    mid = (pa + pb) / 2
+                    nn = sgn * nv / np.linalg.norm(nv)
+                    if (cam.c[0] - mid[0]) * nn[0] + (cam.c[2] - mid[1]) * nn[1] <= 0: continue
+                    side = np.array([[pa[0], ha, pa[1]], [pb[0], hb, pb[1]], [pb[0], hb - 1.6, pb[1]], [pa[0], ha - 1.6, pa[1]]], float)
+                    faz = math.degrees(math.atan2(nn[0], -nn[1])) % 360
+                    faces.append((KINDS['deck'], side, faz, None))
+            for t_ in np.arange(0, seg[-1], T['lamp']):
+                j_ = int(np.searchsorted(seg, t_))
+                if j_ >= len(c2) or mode[j_] == 2: continue
+                p = c2[j_]
+                ok, along = in_view(p[0], p[1])
+                if ok and along < 3000: lamps.append((p[0], float(hgt[j_]), p[1]))
         if lines:
             u = unary_union(lines).simplify(2.0)
             for p in polys(u):
@@ -770,7 +895,7 @@ def bake(key, cfg):
         if (z < 2).any(): continue
         s = s + np.array([W2 / 2, 0])
         area = 0.5 * abs(np.dot(s[:, 0], np.roll(s[:, 1], 1)) - np.dot(s[:, 1], np.roll(s[:, 0], 1)))
-        if area < (0.04 if len(col) == 4 else T['fmin']): continue  # rule 6 (the hero's faces kept far smaller: 2.40)
+        if area < (0.04 if col is not None and len(col) == 4 else T['fmin']): continue  # rule 6 (the hero's faces kept far smaller: 2.40)
         if s[:, 0].max() < 0 or s[:, 0].min() > W2 or s[:, 1].max() < 0 or s[:, 1].min() > REF_H: continue
         dist = float(np.linalg.norm(p3.mean(0) - cam.c))
         proj.append((dist, kind, s, faz, col))
@@ -860,28 +985,65 @@ def bake(key, cfg):
 
     # the cars' roads (2.32): each main road's centre line in view, 20 m to 2.5 km off, simplified to half a pixel
     traffic = []
-    for wdt, g in centre:
-        for ln in (g.geoms if hasattr(g, 'geoms') else [g]):
-            if ln.geom_type != 'LineString' or ln.length < 5: continue
-            ln = shapely.segmentize(ln, 25.0)
-            c2 = np.array(ln.coords)
-            sp, zz = cam.project(np.c_[c2[:, 0], np.zeros(len(c2)), c2[:, 1]])
-            sp = sp + np.array([W2 / 2, 0])
-            ok = (zz > 20) & (zz < 2500) & (sp[:, 0] > -30) & (sp[:, 0] < W2 + 30)
-            run = []
-            for v, o in zip(sp, ok):
-                if o: run.append(v); continue
-                if len(run) >= 2: traffic.append((wdt, run))
-                run = []
+    for wdt, c2, hgt, mode in centre:
+        sp, zz = cam.project(np.c_[c2[:, 0], hgt, c2[:, 1]])
+        sp = sp + np.array([W2 / 2, 0])
+        ok = (zz > 20) & (zz < 2500) & (sp[:, 0] > -30) & (sp[:, 0] < W2 + 30)
+        run = []
+        for v, o_, h_, m_ in zip(sp, ok, hgt, mode):
+            if o_: run.append((v[0], v[1], h_, m_)); continue
             if len(run) >= 2: traffic.append((wdt, run))
+            run = []
+        if len(run) >= 2: traffic.append((wdt, run))
     t2 = []
     for wdt, run in traffic:
-        ls = shapely.LineString(run).simplify(0.5)
-        if ls.length >= 3: t2.append((wdt, np.array(ls.coords)))
+        # simplified to half a pixel, keeping every point where the height or the mode changes
+        r_ = np.array(run, float)
+        keep = [0]
+        for i_ in range(1, len(r_) - 1):
+            if r_[i_, 2] != r_[i_ - 1, 2] or r_[i_, 2] != r_[i_ + 1, 2] or r_[i_, 3] != r_[i_ - 1, 3] or r_[i_, 3] != r_[i_ + 1, 3]:
+                keep.append(i_); continue
+            a, b, c3 = r_[keep[-1], :2], r_[i_, :2], r_[i_ + 1, :2]
+            ab = c3 - a
+            dd = abs(ab[0] * (b[1] - a[1]) - ab[1] * (b[0] - a[0])) / max(1e-6, np.hypot(*ab))
+            if dd > 0.5: keep.append(i_)
+        keep.append(len(r_) - 1)
+        r_ = r_[keep]
+        if np.hypot(*(r_[-1, :2] - r_[0, :2])) >= 3 or len(r_) > 2:
+            t2.append((wdt, r_[:, :2], r_[:, 2], r_[:, 3].astype(int)))
     traffic = t2
     stats['traffic_lines'] = len(traffic)
+    # the boats' lanes (2.43): each river's and canal's centre line where it runs inside the water drawn (so only big
+    # rivers and canals mapped as water, at least about 10 m wide), 40 m to 3.5 km off, on screen, half a pixel
+    boats = []
+    if waterways and water_u is not None and not water_u.is_empty:
+        inside = water_u.buffer(-5.0)
+        for wk, g in waterways:
+            try:
+                g = g.intersection(inside)
+            except Exception:
+                continue
+            for ln in (g.geoms if hasattr(g, 'geoms') else [g]):
+                if ln.geom_type != 'LineString' or ln.length < 40: continue
+                ln = shapely.segmentize(ln, 25.0)
+                c2 = np.array(ln.coords)
+                sp, zz = cam.project(np.c_[c2[:, 0], np.zeros(len(c2)), c2[:, 1]])
+                sp = sp + np.array([W2 / 2, 0])
+                ok = (zz > 40) & (zz < 3500) & (sp[:, 0] > -30) & (sp[:, 0] < W2 + 30)
+                run = []
+                for v, o in zip(sp, ok):
+                    if o: run.append(v); continue
+                    if len(run) >= 2: boats.append((wk, run))
+                    run = []
+                if len(run) >= 2: boats.append((wk, run))
+    b2 = []
+    for wk, run in boats:
+        ls = shapely.LineString(run).simplify(0.5)
+        if ls.length >= 6: b2.append((wk, np.array(ls.coords)))
+    boats = b2
+    stats['boat_lanes'] = len(boats)
     scene = {'city': key, 'w': W2, 'h': REF_H, 'faces': proj, 'ground': gproj, 'hills': sil, 'lamps': lp, 'lamp_dist': 'euclid',
-             'cam': {'hc': cam.c[1], 'dist': d, 'look': look, 'fn': FN}, 'traffic': traffic}
+             'cam': {'hc': cam.c[1], 'dist': d, 'look': look, 'fn': FN}, 'traffic': traffic, 'boats': boats}
     stats['lamps'] = len(lp)
     stats['bytes'] = len(pack3(scene))
     stats['cam'] = {'height_m': round(cam.c[1]), 'distance_m': round(d), 'look': look,
@@ -1064,7 +1226,7 @@ def pack3(scene):
     import palette as PAL
     b = io.BytesIO()
     b.write(b'WSC3')
-    b.write(bytes([4, int(scene.get('tier', 1))]))
+    b.write(bytes([5, int(scene.get('tier', 1))]))
     b.write(struct.pack('<HHHHH', int(round(scene['w'])), int(scene['h']), int(scene['cam']['look']) % 360,
                         int(min(65535, round(scene['cam']['hc'] * 4))), int(round(scene['cam'].get('fn', FN0) * 10000))))
     last = [0, 0]
@@ -1098,8 +1260,17 @@ def pack3(scene):
         b.write(bytes([int(h / 360 * 255) % 256, min(255, int(C * 800)), 1 if (col is not None and len(col) == 4) else 0]))
         pts(s, 2)
     # (format 4, 2.32) the cars' roads: count, then each: its width in metres and its centre line's points
+    # (format 5, 2.43) and each point's height in half metres and its mode (0 shown where the road shows, 1 on a
+    # landmark bridge: always shown, 2 hidden: in a tunnel)
     _uvar(b, len(scene.get('traffic', [])))
-    for wdt, s in scene.get('traffic', []):
+    for wdt, s, hgt, mode in scene.get('traffic', []):
         b.write(bytes([min(255, int(wdt))]))
+        pts(s, 2)
+        b.write(bytes([min(250, max(0, int(round(h * 2)))) for h in hgt]))
+        b.write(bytes([int(m) for m in mode]))
+    # (format 5, 2.43) the boats' lanes: count, then each: its kind (0 a river, 1 a canal) and its centre line's points
+    _uvar(b, len(scene.get('boats', [])))
+    for wk, s in scene.get('boats', []):
+        b.write(bytes([wk]))
         pts(s, 2)
     return zlib.compress(b.getvalue(), 9)

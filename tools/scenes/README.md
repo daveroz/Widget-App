@@ -131,22 +131,54 @@ cell goes (2.40; before, any whose top stood in the top sixth of the cell); **15
 2's low-poly blocks; **16, at screen size**: the ground simplified to 0.6 px and its specks dropped, footprints to half a
 pixel, a block showing less than 6 px dropped.
 
-## Scene file (format 4, `assets/scenes/<name>-<cc>.bin`)
+## Bridges and tunnels (2.43)
+
+Overture's road flags mark bridges (`is_bridge`, or a level of 1 and up) and tunnels (`is_tunnel`, or a level under
+0), each over its share of a segment. A bridge's road is raised to its deck: on a landmark bridge the middle of the
+model's upward faces 4 to 30 m up under it (Tower Bridge about 15 m), on any other `BRIDGE_H` (10 m), with a `RAMP`
+(40 m) where a raised stretch meets the ground (not where it meets another bridge's end); the cars' lines carry each
+point's height. A bridge that's not a landmark gets its deck (the road and a metre of pavement each side) and its
+side turned to the camera (1.6 m deep) as faces between each pair of points, drawn in depth with the buildings; a
+landmark bridge has its own, and its cars are always shown on it (hidden through its towers). Tunnels are hidden.
+Neither bridges nor tunnels are drawn as roads on the ground any more. The app hides a boat only where something
+nearer than it stands (a depth map of every face and block, half size), so boats pass under the decks.
+
+## Boats (2.43, `boats.py`)
+
+The boats on the big rivers and canals are Kenney's Watercraft Kit 2.1 (CC0, kenney.nl; its licence in
+`LICENSE-kenney-watercraft.txt`): since 2.43, after the user, only its tow boat with the pale wheelhouse roof over a dark hull
+(`boat-tow-a`), at a river push boat's real size: 25 m long in the kit's own proportions (the app makes it 16 m on a
+canal). `boats.py` takes each one's
+faces with their colours from the kit's colour map, drops its hull bottom (never seen from above) and its small loose
+parts (railings, ropes, antennas: under 6% of its length), then its smallest faces down to 180, normalises it
+(length 1 along +Z, the kit's bow forward, its waterline at 0) and packs them all into `app/src/main/assets/boats.bin`
+(about 4 KB): `'BTS1'`, count, then each: kind (0 a freighter or tow boat, 1 a tour boat or houseboat, 2 a small
+boat), where it sails (1 rivers, 2 canals, 3 both), length in metres, vertex and face counts, the vertices (floats),
+the faces (shorts) and their colours. The app draws each boat in 3D at its heading, faces turned to the camera far to
+near, lit by the scene's sun; one a few pixels long as a simple hull.
+
+## Scene file (format 5, `assets/scenes/<name>-<cc>.bin`)
 
 Deflated; little-endian; numbers after the header are zigzag variable-length, points delta-coded in half pixels of the
 reference frame (840 x 280: three times as wide as tall, the widest cell), each list's first point from the previous
 list's first.
 
-- header: `WSC3`, version (4; 3 before 2.32), tier, width, height, the camera's look azimuth (degrees), its height
+- header: `WSC3`, version (5; 4 before 2.43, 3 before 2.32), tier, width, height, the camera's look azimuth (degrees), its height
   (quarter metres), and since version 4 its lens (the focal length in cell heights, times 10,000);
 - hills: count, then each line's points (the far line first; a third, nearest line since 2.40 for rule 20);
 - ground: count, then each shape's kind (2 water, 3 park, 4 road) and points;
 - items, far to near: count, then each: a **block** (`0`, distance byte, height in half metres, its footprint's points on
   the ground) or a **landmark face** (`1 + kind`: 5 body, 6 glass, 7 light, 9 roof; facing 0-254 of a turn or 255;
-  distance byte; the material's hue and chroma; flags, 1 = the hero; its points). Kind 10 (2.32) is see-through
+  distance byte; the material's hue and chroma; flags, 1 = the hero; its points). Kind 12 (2.43) is a bridge's deck
+(facing 255) or one of its sides: the road raised over the water, drawn in the road's colour, its cars shown on it; Kind 10 (2.32) is see-through
   ironwork (a model's `ironwork` material, the Eiffel Tower's lattice): both its sides are kept, it hides nothing behind
   it, and the app draws it as girders (a faint fill, a cross-hatch of bars about every 8 m, rails along its edges);
-- (version 4) the cars' roads: count, then each main road's width in metres and its centre line's points.
+- (version 4) the cars' roads: count, then each main road's width in metres and its centre line's points (since
+  version 5, 2.43, then each point's height in half metres, a bridge's deck, and each point's mode: 0 shown where the
+  road shows, 1 on a landmark bridge, always shown, 2 hidden, in a tunnel or a landmark bridge's tower);
+- (version 5, 2.43) the boats' lanes: count, then each one's kind (0 a river, 1 a canal) and its centre line's points:
+  the rivers' and canals' centre lines (Overture's water lines) where they run inside the water drawn, at least 5 m
+  in from its banks (so only big rivers and canals mapped as water), 40 m to 3.5 km off.
 
 Distance bytes are `log1p(metres) * 28`. A block's walls are rebuilt by the app: the camera is level, so every vertical
 edge stays vertical and a corner's top is straight above its foot, as far above the horizon as the block's height over
