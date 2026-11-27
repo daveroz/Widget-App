@@ -1603,13 +1603,14 @@ final class WorldScene {
                 android.graphics.RectF box = new android.graphics.RectF(x - R, y - tall - R * 0.2f, x + R, y + R * 0.6f);
                 Bitmap cut = occluders(bt, box, dist);
                 int saved = cut != null ? c.saveLayer(box, null) : -1;
-                // its wake: a pale streak behind it, as wide as the boat and widening a little, fading
+                // its wake: a faint pale streak behind it, narrower than the boat, widening a little and fading out
+                // (2.43: subtler, after the user)
                 p.setStyle(Paint.Style.STROKE);
-                float wake = Math.max(len * 1.3f, 3f * ww);
+                float wake = Math.max(len * 0.9f, 2f * ww);
                 for (int s2 = 0; s2 < 3; s2++) {
-                    float w0 = hl * 0.8f + wake * s2 / 3f, w1 = hl * 0.8f + wake * (s2 + 1) / 3f;
-                    p.setStrokeWidth(ww * (0.55f + 0.2f * s2));
-                    p.setColor(Scene.alpha(0xFFFFFFFF, (0.3f - 0.09f * s2) * a * (0.35f + 0.65f * day)));
+                    float w0 = hl * 0.85f + wake * s2 / 3f, w1 = hl * 0.85f + wake * (s2 + 1) / 3f;
+                    p.setStrokeWidth(Math.max(0.6f, ww * (0.35f + 0.12f * s2)));
+                    p.setColor(Scene.alpha(0xFFFFFFFF, (0.14f - 0.04f * s2) * a * (0.35f + 0.65f * day)));
                     c.drawLine(x - ux * w0, y - uy * w0, x - ux * w1, y - uy * w1, p);
                 }
                 p.setStyle(Paint.Style.FILL);
