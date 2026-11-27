@@ -146,12 +146,13 @@ nearer than it stands (a depth map of every face and block, half size), so boats
 ## Boats (2.43, `boats.py`)
 
 The boats on the big rivers and canals are Kenney's Watercraft Kit 2.1 (CC0, kenney.nl; its licence in
-`LICENSE-kenney-watercraft.txt`): sixteen of its models (three freighters, two tow boats, two houseboats, a ferry,
-five speed boats, a fishing boat and two sailing boats; not its pirate ships or liners). `boats.py` takes each one's
+`LICENSE-kenney-watercraft.txt`): eleven of its models (three freighters, two tow boats, four houseboats, a fishing boat
+and two sailing boats; not its speed boats, round tugs or ferry, whose bare decks read as triangles and blobs at a
+widget's size, nor its pirate ships or liners). `boats.py` takes each one's
 faces with their colours from the kit's colour map, drops its hull bottom (never seen from above) and its small loose
-parts (railings, ropes, antennas: under 6% of its length), then its smallest faces down to 90 to 240, normalises it
+parts (railings, ropes, antennas: under 6% of its length), then its smallest faces down to 110 to 240, normalises it
 (length 1 along +Z, the bow forward, its waterline at 0) and packs them all into `app/src/main/assets/boats.bin`
-(about 47 KB): `'BTS1'`, count, then each: kind (0 a freighter or tow boat, 1 a tour boat or houseboat, 2 a small
+(about 43 KB): `'BTS1'`, count, then each: kind (0 a freighter or tow boat, 1 a tour boat or houseboat, 2 a small
 boat), where it sails (1 rivers, 2 canals, 3 both), length in metres, vertex and face counts, the vertices (floats),
 the faces (shorts) and their colours. The app draws each boat in 3D at its heading, faces turned to the camera far to
 near, lit by the scene's sun; one a few pixels long as a simple hull.

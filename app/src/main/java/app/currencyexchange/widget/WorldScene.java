@@ -1484,7 +1484,7 @@ final class WorldScene {
                 float L = runLength(b.runs[i]);
                 b.len[i] = L;
                 boolean canal = d.boatKind[owner.get(i)] == 1;
-                float want = L / (canal ? 170f : 260f);
+                float want = L / (canal ? 220f : 420f); // a boat every 420 m a lane on a river, 220 m on a canal
                 int c = (int) want + (r.nextFloat() < want - (int) want ? 1 : 0);
                 b.start[i] = new float[c];
                 b.speed[i] = new float[c];
@@ -1593,7 +1593,7 @@ final class WorldScene {
                 if (nearer(bt, x, y, dist)) continue; // its middle hidden: under a bridge, behind a building
                 int mi = bt.model[r][j];
                 Model m = mi >= 0 && mi < ms.length ? ms[mi] : null;
-                float lm = m != null ? m.length : 12f, wm = m != null ? m.beam * m.length * (m.kind == 0 ? 0.6f : 0.85f) : 3.5f;
+                float lm = m != null ? m.length : 12f, wm = m != null ? m.beam * m.length * (m.kind == 0 ? 0.6f : m.kind == 1 ? 0.85f : 0.75f) : 3.5f;
                 float len = lm * o[5], wid = wm * bt.fk / z;
                 if (Math.max(len, wid) < 1.1f) continue;
                 float ww = Math.max(0.8f, wid), hl = Math.max(ww * 0.6f, len / 2f);
@@ -1616,18 +1616,19 @@ final class WorldScene {
                 p.setStyle(Paint.Style.FILL);
                 if (m != null && len >= 3.5f) {
                     model(c, p, bt, m, o, day, night, a);
-                } else { // far off: a simple pointed hull in a boat's white
-                    float nx = -uy * ww / 2f, ny = ux * ww / 2f;
-                    BOAT_PATH.reset();
-                    float sh = hl - Math.min(hl, ww * 1.1f);
-                    BOAT_PATH.moveTo(x - ux * hl + nx, y - uy * hl + ny);
-                    BOAT_PATH.lineTo(x + ux * sh + nx, y + uy * sh + ny);
-                    BOAT_PATH.lineTo(x + ux * hl, y + uy * hl);
-                    BOAT_PATH.lineTo(x + ux * sh - nx, y + uy * sh - ny);
-                    BOAT_PATH.lineTo(x - ux * hl - nx, y - uy * hl - ny);
-                    BOAT_PATH.close();
-                    p.setColor(Scene.alpha(Scene.mix(Scene.mix(bt.light, bt.haze, fog(z, bt.night)), 0xFF141A33, 0.75f * night), a));
-                    c.drawPath(BOAT_PATH, p);
+                } else { // far off: a rounded hull with a small cabin on it, in the scene's tones (2.43: not a wedge)
+                    int hullC = Scene.mix(Scene.mix(bt.dark, bt.haze, fog(z, bt.night)), 0xFF141A33, 0.75f * night);
+                    int cabC = Scene.mix(Scene.mix(bt.light, bt.haze, fog(z, bt.night)), 0xFF141A33, 0.7f * night);
+                    float hh = Math.max(0f, hl - ww / 2f);
+                    p.setStyle(Paint.Style.STROKE);
+                    p.setStrokeCap(Paint.Cap.ROUND);
+                    p.setStrokeWidth(ww);
+                    p.setColor(Scene.alpha(hullC, a));
+                    c.drawLine(x - ux * hh, y - uy * hh, x + ux * hh, y + uy * hh, p);
+                    p.setStrokeWidth(Math.max(0.6f, ww * 0.7f));
+                    p.setColor(Scene.alpha(cabC, a));
+                    c.drawLine(x - ux * hh * 0.45f, y - uy * hh * 0.45f - ww * 0.35f, x + ux * hh * 0.15f, y + uy * hh * 0.15f - ww * 0.35f, p);
+                    p.setStyle(Paint.Style.FILL);
                 }
                 if (night > 0f) { // its lights: the cabin's warm windows, and their reflection down the water
                     int n = m != null && m.kind == 1 ? 4 : 1;
@@ -1705,7 +1706,7 @@ final class WorldScene {
         // model's right-handed, so its x is taken the other way (else every face would turn inside out); a freighter
         // slimmed to a river barge's lines
         float X0 = o[7], Z0 = o[2], hx = o[8], hz = o[9], rx = -hz, rz = hx, Lm = m.length;
-        float slim = m.kind == 0 ? 0.6f : 0.85f;
+        float slim = m.kind == 0 ? 0.6f : m.kind == 1 ? 0.85f : 0.75f;
         for (int i = 0; i < nv; i++) {
             float mx = m.v[3 * i] * Lm * slim, my = m.v[3 * i + 1] * Lm, mz = m.v[3 * i + 2] * Lm;
             float X = X0 + mx * rx + mz * hx, Z = Z0 + mx * rz + mz * hz;

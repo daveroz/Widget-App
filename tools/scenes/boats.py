@@ -20,10 +20,11 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'app'
 BOATS = [
     ('ship-cargo-a', 0, 1, 70, 240), ('ship-cargo-b', 0, 1, 70, 220), ('ship-cargo-c', 0, 1, 60, 180),
     ('boat-tow-a', 0, 1, 20, 180), ('boat-tow-b', 0, 1, 20, 180),
-    ('boat-house-a', 1, 3, 24, 180), ('boat-house-b', 1, 3, 22, 180), ('boat-tug-c', 1, 1, 18, 120),
-    ('boat-speed-a', 2, 3, 7, 90), ('boat-speed-c', 2, 3, 7, 90), ('boat-speed-e', 2, 1, 7, 100),
-    ('boat-speed-h', 2, 3, 7, 90), ('boat-speed-j', 2, 1, 7, 90), ('boat-fishing-small', 2, 1, 9, 110),
-    ('boat-sail-a', 2, 1, 9, 120), ('boat-sail-b', 2, 1, 9, 120),
+    ('boat-house-a', 1, 3, 24, 180), ('boat-house-b', 1, 3, 22, 180),
+    ('boat-house-d', 1, 3, 20, 180), ('boat-house-c', 2, 3, 14, 140),
+    # the small ones each with a cabin that reads from above, even end on (2.43: the speed boats' bare decks read as
+    # triangles at a widget's size, after the user, and the round tugs and ferry as blobs)
+    ('boat-fishing-small', 2, 3, 10, 110), ('boat-sail-a', 2, 1, 9, 120), ('boat-sail-b', 2, 1, 9, 120),
 ]
 
 
